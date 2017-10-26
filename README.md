@@ -42,4 +42,4 @@ This project uses vagrant for environment setup and testing. Use `vagrant up` to
 ## Dependencies
 
 - Web Crawler
-  - scraper
+  - scrapy
