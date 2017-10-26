@@ -9,12 +9,12 @@ setup(
     author='Benedikt Bock, Sebastian Schmidl',
     author_email='mail@benedikt1992.de, sebastian.schmidl@t-online.de',
     url='https://github.com/CodeLionX/CommentSearchEngine',
-    licence='MIT'
+    license='MIT',
     # packages
     packages=['cse'],
 
     # dependencies
-    install_requires=['scrapy'],
+    install_requires=['scrapy>=1.4.0'],
 
     # specific files to install
     package_data={'testCrawlerData': ['testData.csv']},
@@ -23,7 +23,7 @@ setup(
     # executable scripts
     entry_points={
         'console_scripts': [
-            'crawl=cse.crawler:main'
+            'crawl=cse.crawler.crawler:main'
         ],
     },
 )
