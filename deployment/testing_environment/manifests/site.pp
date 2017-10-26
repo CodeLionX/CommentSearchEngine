@@ -18,7 +18,7 @@ node default {
         ensure => installed,
     } ->
     # python packages
-    package { ['python3', 'python3-dev', 'python3-pip', 'libxslt1-dev', 'zlib1g-dev', 'gettext', 'libpq-dev']:
+    package { ['python3', 'python3-dev', 'python3-pip', 'libxslt1-dev', 'zlib1g-dev', 'gettext', 'libpq-dev', 'libffi-dev', 'libssl-dev']:
         ensure => installed,
     }
     ->
@@ -35,6 +35,11 @@ node default {
     exec { 'alias_python_python3':
         provider    => shell,
         # the sudo thing makes "sudo python foo" work
-        command     => 'echo "\nalias python=python3\nalias sudo=\'sudo \'" >> /home/vagrant/.bashrc'
+        command     => 'echo "\nalias python=python3\nalias pip=pip3\nalias sudo=\'sudo \'" >> /home/vagrant/.bashrc'
+    }
+
+    exec { 'install python setuptools':
+        provider => shell,
+        command => 'pip3 install --upgrade setuptools'
     }
 }

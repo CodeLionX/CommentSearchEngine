@@ -92,8 +92,9 @@ class CommentSpider(scrapy.Spider):
 
     print(extracted_comment)
 
+"""
 def main():
-    """ Entry point for application script """
+    # Entry point for application script
     process = CrawlerProcess({
         'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)',
         'LOG_LEVEL': 'ERROR'
@@ -101,4 +102,4 @@ def main():
 
     process.crawl(CommentSpider)
     process.start() # the script will block here until the crawling is finished
-    c
+"""

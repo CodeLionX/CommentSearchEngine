@@ -14,7 +14,10 @@ setup(
     packages=['cse'],
 
     # dependencies
-    install_requires=['scrapy>=1.4.0'],
+    install_requires=[
+        'scrapy>=1.4.0',
+        'cffi>=1.7'
+    ],
 
     # specific files to install
     package_data={'testCrawlerData': ['testData.csv']},
@@ -23,7 +26,7 @@ setup(
     # executable scripts
     entry_points={
         'console_scripts': [
-            'crawl=cse.crawler.crawler:main'
+            'crawl=cse.__main__:main'
         ],
     },
 )
