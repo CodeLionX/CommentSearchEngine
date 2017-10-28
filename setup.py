@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import shutil
 import distutils.cmd
 import distutils.log
 import subprocess
@@ -20,6 +21,7 @@ class CleanAllCommand(distutils.cmd.Command):
         ('includeDistributions', 'd', 'removes distributions inside the `dist` folder as well'),
         ('includeVagrant', 'v', 'removes vagrant mashines and their state as well'),
     ]
+    boolean_options = ['includeDistributions', 'includeVagrant']
 
     def initialize_options(self):
         """Set default values for options."""
@@ -32,16 +34,18 @@ class CleanAllCommand(distutils.cmd.Command):
 
 
     def run(self):
-        command = ['rm', '-rf', 'build/*', '*.egg-info', '*.dist-info']
-        if self.includeDistributions:
-            command.append('dist/*')
-        if self.includeVagrant:
-            command.append('.vagrant')
+        if os.path.exists('build'):
+            shutil.rmtree('build')
+        if os.path.exists('CommentSearchEngine.egg-info'):
+            shutil.rmtree('CommentSearchEngine.egg-info')
+        if os.path.exists('CommentSearchEngine.dist-info'):
+            shutil.rmtree('CommentSearchEngine.dist-info')
+        
+        if self.includeDistributions and os.path.exists('dist'):
+            shutil.rmtree('dist')
 
-        self.announce(
-            'Running command: %s' % str(command),
-            level=distutils.log.INFO)
-        subprocess.run(command, stdout=subprocess.PIPE, shell=True, cwd=os.getcwd())
+        if self.includeVagrant and os.path.exists('.vagrant'):
+            shutil.rmtree('.vagrant')
 
 # end class CleanAllCommand
 
