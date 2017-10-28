@@ -20,13 +20,17 @@ node default {
     # python packages
     package { ['python3', 'python3-dev', 'python3-pip', 'libxslt1-dev', 'zlib1g-dev', 'gettext', 'libpq-dev', 'libffi-dev', 'libssl-dev']:
         ensure => installed,
-    }
-    ->
+    } ->
     package { ['ruby2.4', 'ruby2.4-dev']:
         ensure => installed,
     }
 
+    exec { 'replace bashrc':
+        provider => shell,
+        command  => 'cp /vagrant/deployment/testing_environment/.bashrc /home/vagrant/.bashrc' 
+    } ->
 
+    /*
     exec { 'auto_cd_vagrant':
         provider    => shell,
         command     => 'echo "\ncd /vagrant" >> /home/vagrant/.bashrc'
@@ -37,9 +41,10 @@ node default {
         # the sudo thing makes "sudo python foo" work
         command     => 'echo "\nalias python=python3\nalias pip=pip3\nalias sudo=\'sudo \'" >> /home/vagrant/.bashrc'
     }
+    */
 
-    exec { 'install python setuptools':
+    exec { 'install project deps':
         provider => shell,
-        command => 'pip3 install --upgrade setuptools'
+        command  => 'sudo /bin/bash -c "cd /vagrant/ && ./deployment/testing_environment/installProjectDeps.sh"'
     }
 }

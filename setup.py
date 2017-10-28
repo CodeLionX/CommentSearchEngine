@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 
+import os
 from setuptools import setup
+
+with open(os.path.join('cse', 'VERSION')) as version_file:
+    version = version_file.read().strip()
 
 setup(
     name='CommentSearchEngine',
-    version='0.1.0',
+    version=version,
     description='Search Engine for Comments at news websites',
     author='Benedikt Bock, Sebastian Schmidl',
     author_email='mail@benedikt1992.de, sebastian.schmidl@t-online.de',
     url='https://github.com/CodeLionX/CommentSearchEngine',
     license='MIT',
-    # packages
-    packages=['cse'],
 
     # dependencies
     install_requires=[
@@ -19,14 +21,16 @@ setup(
         'cffi>=1.7'
     ],
 
-    # specific files to install
-    package_data={'testCrawlerData': ['testData.csv']},
-    #data_files=[('myfile': 'folder/file')],
+    # packages
+    packages=['cse'],
+    package_dir={'cse': './cse'},
+    package_data={'cse': ['./VERSION', '../LICENSE']},
+    include_package_data=True,
 
     # executable scripts
     entry_points={
         'console_scripts': [
-            'crawl=cse.__main__:main'
+            'crawl=scripts.crawl:main'
         ],
     },
 )
