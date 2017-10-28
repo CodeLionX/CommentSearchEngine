@@ -31,6 +31,7 @@ class CleanAllCommand(distutils.cmd.Command):
 
     def finalize_options(self):
         """ check provided args """
+        pass
 
 
     def run(self):
