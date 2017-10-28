@@ -34,12 +34,9 @@ class CleanAllCommand(distutils.cmd.Command):
 
 
     def run(self):
-        if os.path.exists('build'):
-            shutil.rmtree('build')
-        if os.path.exists('CommentSearchEngine.egg-info'):
-            shutil.rmtree('CommentSearchEngine.egg-info')
-        if os.path.exists('CommentSearchEngine.dist-info'):
-            shutil.rmtree('CommentSearchEngine.dist-info')
+        for directory in ('build', 'CommentSearchEngine.egg-info', 'CommentSearchEngine.dist-info'):
+            if os.path.exists(directory):
+                shutil.rmtree(directory)
         
         if self.includeDistributions and os.path.exists('dist'):
             shutil.rmtree('dist')
