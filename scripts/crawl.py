@@ -1,6 +1,9 @@
 import sys
+import argparse
 from scrapy.crawler import CrawlerProcess
-from cse.crawler import CommentSpider
+from cse import CommentSpider
+from cse import __version__
+from cse import __title__
 
 def main(args=None):
     """The main routine."""
@@ -8,6 +11,9 @@ def main(args=None):
         args = sys.argv[1:]
 
     # TODO: parse args
+    parser = argparse.ArgumentParser(description='Crawl a specific news website for comments')
+    parser.add_argument('--version', action='version', version=__title__ + ': %(prog)s ' + __version__ )
+    args = parser.parse_args()
 
     print("This is the main routine.")
 
