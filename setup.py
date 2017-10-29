@@ -47,7 +47,6 @@ class CleanAllCommand(distutils.cmd.Command):
 
 # end class CleanAllCommand
 
-
 setup(
     name='CommentSearchEngine',
     version=version,
@@ -77,7 +76,8 @@ setup(
     # executable scripts
     entry_points={
         'console_scripts': [
-            'crawl=scripts.crawl:main'
+            'crawl=cse.__main__:main'
+            #'crawl=scripts.crawl:main'
         ],
     },
 )
