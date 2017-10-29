@@ -91,7 +91,6 @@ class CommentSpider(scrapy.Spider):
     extracted_comment['pid'] = pid
 
     print(extracted_comment)
-    print("\n\nFINISHED")
 
 """
 def main():
