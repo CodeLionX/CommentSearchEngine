@@ -1,6 +1,7 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.selector import Selector
+from cse.WpApiAdapter import WpApiAdapter
 import re
 
 class CommentSpider(scrapy.Spider):
@@ -19,9 +20,12 @@ class CommentSpider(scrapy.Spider):
 
     def parse(self, response):
         # parse an article page and watch out for comments on this page and for linked pages
-        url = response.meta['url']
         sel = Selector(response)
-        print(response.body)
+        url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
+
+        api = WpApiAdapter()
+        comments = api.loadComments(url=url[0])
+        print(comments)
 
         """
         nextLinks = sel.xpath("//div[@class='comment-section__item']//a[@class='pager__button pager__button--next']/@href").extract()
@@ -42,12 +46,12 @@ class CommentSpider(scrapy.Spider):
             request.meta['url'] = url
             yield request
         """
-
+        """
         comments_scope = sel.xpath("//div[contains(@class, 'talk-stream-comment-level-0')]").extract()
         for comment in comments_scope:
             print("found: " + comment)
             self.parse_comment(comment, url)
-
+        """
     # scrape comments that are hidden on the current page
     def parse_replies(self, response):
         sel = Selector(response)
@@ -56,7 +60,7 @@ class CommentSpider(scrapy.Spider):
         for comment in comments_scope:
             self.parse_comment(comment, url)
 
-    # scrape comments 
+    # scrape comments
     def parse_comment(self, comment, url):
         comment_selector = Selector(text=comment)
         extracted_comment = {
