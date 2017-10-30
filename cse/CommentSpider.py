@@ -3,6 +3,9 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.selector import Selector
 from cse.WpApiAdapter import WpApiAdapter
 import re
+import json
+from pprint import pprint
+from cse.WpApiParser import WpApiParser
 
 class CommentSpider(scrapy.Spider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
@@ -24,8 +27,15 @@ class CommentSpider(scrapy.Spider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
 
         api = WpApiAdapter()
-        comments = api.loadComments(url=url[0])
-        print(comments)
+
+        #ToDo This should return the final spiderdata
+        reply = api.loadComments(url=url[0])
+        data = WpApiParser().parseSpiderData(url[0],reply[0],reply[1])
+
+        #ToDo Write data to a csv file
+        #print(type(comments))
+        pprint(data)
+        #print(json.loads(comments))#.dump(sort_keys=False, indent=4))
 
         """
         nextLinks = sel.xpath("//div[@class='comment-section__item']//a[@class='pager__button pager__button--next']/@href").extract()

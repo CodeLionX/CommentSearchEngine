@@ -47,9 +47,9 @@ class WpApiAdapter:
         }
 
     def toJsonString(self, d):
-        return json.dumps(d, 
-            sort_keys=True, 
-            separators=(', ', ': '), 
+        return json.dumps(d,
+            sort_keys=True,
+            separators=(', ', ': '),
             indent=None # prettyprinting: indent=2
         )
 
@@ -59,9 +59,9 @@ class WpApiAdapter:
     def loadComments(self, url):
         payload = self.buildInitialRequstPayload(url)
 
-        response = requests.request("POST", 
-            self.apiEndpoint, 
-            data = self.toJsonString(payload), 
+        response = requests.request("POST",
+            self.apiEndpoint,
+            data = self.toJsonString(payload),
             headers = {'content-type': 'application/json'}
         )
 
@@ -89,14 +89,14 @@ class WpApiAdapter:
         if(commentsHasNextPage):
             comments = comments + self.loadMoreComments(assetId, commentsCursor)
 
-        return comments
+        return [assetId,comments]
 
     def loadMoreComments(self, assetId, cursor):
         payload = self.buildMoreRequestPayload(assetId, cursor=cursor)
 
-        response = requests.request("POST", 
-            self.apiEndpoint, 
-            data = self.toJsonString(payload), 
+        response = requests.request("POST",
+            self.apiEndpoint,
+            data = self.toJsonString(payload),
             headers = {'content-type': 'application/json'}
         )
 
@@ -113,9 +113,9 @@ class WpApiAdapter:
     def loadMoreReplies(self, assetId, cursor, parentId):
         payload = self.buildMoreRequestPayload(assetId, cursor=cursor, parentId=parentId)
 
-        response = requests.request("POST", 
-            self.apiEndpoint, 
-            data = self.toJsonString(payload), 
+        response = requests.request("POST",
+            self.apiEndpoint,
+            data = self.toJsonString(payload),
             headers = {'content-type': 'application/json'}
         )
 
