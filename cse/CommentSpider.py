@@ -6,7 +6,7 @@ import re
 class CommentSpider(scrapy.Spider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
-    urls = [['https://www.washingtonpost.com/news/post-politics/wp/2017/10/29/frustrated-with-the-russia-investigation-trump-demands-democrats-and-hillary-clinton-face-more-scrutiny/?hpid=hp_hp-top-table-main_pp-trump-tweet-1145am%3Ahomepage%2Fstory&utm_term=.2b448898a5be']]
+    urls = [['https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html']]
 
     def start_requests(self):
         for url in self.urls:

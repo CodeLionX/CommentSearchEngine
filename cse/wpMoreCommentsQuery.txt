@@ -1,0 +1,252 @@
+query CoralEmbedStream_LoadMoreComments($limit: Int = 5, $cursor: Cursor, $parent_id: ID, $asset_id: ID, $sortOrder: SORT_ORDER, $sortBy: SORT_COMMENTS_BY = CREATED_AT, $excludeIgnored: Boolean) {
+  comments(query: {limit: $limit, cursor: $cursor, parent_id: $parent_id, asset_id: $asset_id, sortOrder: $sortOrder, sortBy: $sortBy, excludeIgnored: $excludeIgnored}) {
+    nodes {
+      ...CoralEmbedStream_Stream_comment
+      __typename
+    }
+    hasNextPage
+    startCursor
+    endCursor
+    __typename
+  }
+}
+
+fragment CoralEmbedStream_Stream_comment on Comment {
+  id
+  status
+  user {
+    id
+    __typename
+  }
+  ...CoralEmbedStream_Comment_comment
+  __typename
+}
+
+fragment CoralEmbedStream_Comment_comment on Comment {
+  ...CoralEmbedStream_Comment_SingleComment
+  replies(query: {limit: 3, excludeIgnored: $excludeIgnored}) {
+    nodes {
+      ...CoralEmbedStream_Comment_SingleComment
+      replies(query: {limit: 3, excludeIgnored: $excludeIgnored}) {
+        nodes {
+          ...CoralEmbedStream_Comment_SingleComment
+          replies(query: {limit: 3, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: 3, excludeIgnored: $excludeIgnored}) {
+                nodes {
+                  ...CoralEmbedStream_Comment_SingleComment
+                  replies(query: {limit: 3, excludeIgnored: $excludeIgnored}) {
+                    nodes {
+                      ...CoralEmbedStream_Comment_SingleComment
+                      __typename
+                    }
+                    hasNextPage
+                    startCursor
+                    endCursor
+                    __typename
+                  }
+                  __typename
+                }
+                hasNextPage
+                startCursor
+                endCursor
+                __typename
+              }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+          __typename
+        }
+        hasNextPage
+        startCursor
+        endCursor
+        __typename
+      }
+      __typename
+    }
+    hasNextPage
+    startCursor
+    endCursor
+    __typename
+  }
+  __typename
+}
+
+fragment CoralEmbedStream_Comment_SingleComment on Comment {
+  id
+  body
+  created_at
+  status
+  replyCount
+  tags {
+    tag {
+      name
+      __typename
+    }
+    __typename
+  }
+  user {
+    id
+    username
+    __typename
+  }
+  action_summaries {
+    __typename
+    count
+    current_user {
+      id
+      __typename
+    }
+  }
+  editing {
+    edited
+    editableUntil
+    __typename
+  }
+  ...TalkSlot_CommentInfoBar_comment
+  ...TalkSlot_CommentActions_comment
+  ...TalkSlot_CommentContent_comment
+  ...TalkSlot_CommentReactions_comment
+  ...TalkSlot_CommentAvatar_comment
+  ...TalkSlot_CommentAuthorName_comment
+  __typename
+}
+
+fragment TalkSlot_CommentInfoBar_comment on Comment {
+  ...TalkModerationActions_comment
+  __typename
+}
+
+fragment TalkModerationActions_comment on Comment {
+  id
+  status
+  user {
+    id
+    __typename
+  }
+  tags {
+    tag {
+      name
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment TalkSlot_CommentActions_comment on Comment {
+  ...TalkPermalink_Button_comment
+  __typename
+}
+
+fragment TalkPermalink_Button_comment on Comment {
+  id
+  tags {
+    tag {
+      name
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment TalkSlot_CommentContent_comment on Comment {
+  ...TalkPluginCommentContent_comment
+  __typename
+}
+
+fragment TalkPluginCommentContent_comment on Comment {
+  body
+  __typename
+}
+
+fragment TalkSlot_CommentReactions_comment on Comment {
+  ...LikeButton_comment
+  ...FeaturedButton_comment
+  __typename
+}
+
+fragment LikeButton_comment on Comment {
+  id
+  action_summaries {
+    __typename
+    ... on LikeActionSummary {
+      count
+      current_user {
+        id
+        __typename
+      }
+      __typename
+    }
+  }
+  __typename
+}
+
+fragment FeaturedButton_comment on Comment {
+  id
+  tags {
+    tag {
+      name
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment TalkSlot_CommentAvatar_comment on Comment {
+  ...UserAvatar_comment
+  __typename
+}
+
+fragment UserAvatar_comment on Comment {
+  user {
+    avatar
+    __typename
+  }
+  __typename
+}
+
+fragment TalkSlot_CommentAuthorName_comment on Comment {
+  ...TalkAuthorMenu_AuthorName_comment
+  __typename
+}
+
+fragment TalkAuthorMenu_AuthorName_comment on Comment {
+  __typename
+  id
+  user {
+    username
+    __typename
+  }
+  ...TalkSlot_AuthorMenuActions_comment
+}
+
+fragment TalkSlot_AuthorMenuActions_comment on Comment {
+  ...TalkIgnoreUser_IgnoreUserAction_comment
+  __typename
+}
+
+fragment TalkIgnoreUser_IgnoreUserAction_comment on Comment {
+  user {
+    id
+    __typename
+  }
+  ...TalkIgnoreUser_IgnoreUserConfirmation_comment
+  __typename
+}
+
+fragment TalkIgnoreUser_IgnoreUserConfirmation_comment on Comment {
+  user {
+    id
+    username
+    __typename
+  }
+  __typename
+}

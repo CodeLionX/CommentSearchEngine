@@ -63,6 +63,7 @@ setup(
 
     # dependencies
     install_requires=[
+        'requests',
         'scrapy>=1.4.0',
         'cffi>=1.7'
     ],
@@ -70,7 +71,7 @@ setup(
     # packages
     packages=['cse'],
     package_dir={'cse': './cse'},
-    package_data={'cse': ['./VERSION', '../LICENSE']},
+    package_data={'cse': ['./VERSION', './wpCommentQuery.txt', '../LICENSE']},
     include_package_data=True,
 
     # executable scripts
