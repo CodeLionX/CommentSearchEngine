@@ -129,17 +129,18 @@ class CommentSpider(scrapy.Spider):
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
+
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)#, delimiter=', ')
             writer.writerow(["cid", "url", "author", "text", "time", "parent", "votes", "article_id"])
             for commentId in data["comments"]:
                 writer.writerow([
-                commentId,
-                article_url,
-                data["comments"][commentId]["comment_author"],#.encode('ascii'),
-                data["comments"][commentId]["comment_text"],#.encode('utf-8'),
-                data["comments"][commentId]["timestamp"],
-                data["comments"][commentId]["parent_comment_id"],
-                data["comments"][commentId]["votes"],
-                article_id
+                    str(commentId),
+                    article_url,
+                    data["comments"][commentId]["comment_author"], 
+                    data["comments"][commentId]["comment_text"].replace("\n", "\\n"),
+                    data["comments"][commentId]["timestamp"], 
+                    str(data["comments"][commentId]["parent_comment_id"]),
+                    data["comments"][commentId]["votes"],
+                    article_id
                 ])
