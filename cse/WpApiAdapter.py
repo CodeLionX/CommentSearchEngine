@@ -47,14 +47,17 @@ class WpApiAdapter:
         }
 
     def toJsonString(self, d):
-        return json.dumps(d, 
+        return json.dumps(d,
+            encoding='UTF-8',
             sort_keys=True, 
             separators=(', ', ': '), 
             indent=None # prettyprinting: indent=2
         )
 
     def fromJsonString(self, s):
-        return json.loads(s)
+        return json.loads(s,
+            encoding='UTF-8'
+        )
 
     def loadComments(self, url):
         payload = self.buildInitialRequstPayload(url)
