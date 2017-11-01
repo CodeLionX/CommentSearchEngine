@@ -143,3 +143,4 @@ class CommentSpider(scrapy.Spider):
                     data["comments"][commentId]["votes"],
                     article_id
                 ])
+
