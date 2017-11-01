@@ -6,9 +6,9 @@ class WpApiParser:
     def parseSpiderData(self, url, assetId, comments): #ToDo Input should be the raw api output
         commentList = self.iterateComments(comments)
         data = {
-        "article_url" : url,
-        "article_id" : assetId,
-        "comments" : commentList
+            "article_url" : url,
+            "article_id" : assetId,
+            "comments" : commentList
         }
         return data
 
@@ -16,17 +16,20 @@ class WpApiParser:
         commentList = {}
         for comment in comments:
             votes = 0
-            for action_summary in comment["action_summaries"]:
-                if action_summary["__typename"] == "LikeActionSummary":
-                    votes = action_summary["count"]
+            if(not 'action_summaries' in comment):
+                print(comment)
+            else:
+                for action_summary in comment["action_summaries"]:
+                    if action_summary["__typename"] == "LikeActionSummary":
+                        votes = action_summary["count"]
 
-            commentList[comment["id"]] = {
-            "comment_author": comment["user"]["username"],
-            "comment_text" : comment["body"],
-            "timestamp" : comment["created_at"],
-            "parent_comment_id" : parentId,
-            "votes" : votes
-            }
+                commentList[comment["id"]] = {
+                    "comment_author": comment["user"]["username"],
+                    "comment_text" : comment["body"],
+                    "timestamp" : comment["created_at"],
+                    "parent_comment_id" : parentId,
+                    "votes" : votes
+                }
 
             try:
                 commentReplies = self.iterateComments(comment["replies"]["nodes"], comment["id"])

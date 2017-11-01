@@ -75,7 +75,8 @@ class WpApiAdapter:
         #totalCommentCount = data['data']['asset']['totalCommentCount']
         commentsNode = data['data']['asset']['comments']
         
-        return self.processComments(commentsNode, assetId)
+        comments = self.processComments(commentsNode, assetId)
+        return [assetId, comments]
 
 
     def processComments(self, commentsNode, assetId):
@@ -97,7 +98,7 @@ class WpApiAdapter:
         if(commentsHasNextPage):
             comments = comments + self.loadMoreComments(assetId, commentsCursor)
 
-        return [assetId,comments]
+        return comments
 
 
     def loadMoreComments(self, assetId, cursor):
@@ -149,4 +150,4 @@ class WpApiAdapter:
 if __name__ == "__main__":
     api = WpApiAdapter()
     comments = api.loadComments(url="https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html")
-    print(str(api.countAllComments(comments)))
+    print(api.toJsonString(comments))

@@ -37,8 +37,7 @@ class CommentSpider(scrapy.Spider):
         #ToDo Write data to a csv file
         #print(type(comments))
         self.printcsv(data)
-        pprint(data)
-        #print(json.loads(comments))#.dump(sort_keys=False, indent=4))
+        #pprint(data)
 
         """
         nextLinks = sel.xpath("//div[@class='comment-section__item']//a[@class='pager__button pager__button--next']/@href").extract()
