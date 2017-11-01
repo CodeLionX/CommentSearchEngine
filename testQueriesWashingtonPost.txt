@@ -1,0 +1,5 @@
+URL: https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html
+
+scrapy shell url
+Title: response.xpath('//title/text()').extract()
+URL: response.xpath('//meta[@property="og:url"]/@content').extract()

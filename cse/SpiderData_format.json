@@ -1,0 +1,20 @@
+{
+"article_url":"An URL",
+"article_id" : "An ID",
+"comments" : {
+  "comment_id" : {
+    "comment_author": "An Username",
+    "comment_text" : "The comment itself",
+    "timestamp" : "The creation date",
+    "parent_comment_id" : "The parent's id. If it is an root comment it is the comment_id or None",
+    "votes" : "Number of upvotes"
+    },
+  "another comment_id": {
+    "comment_author": "An Username",
+    "comment_text" : "The comment itself",
+    "timestamp" : "The creation date",
+    "parent_comment_id" : "The parent's id. If it is an root comment it is the comment_id or None",
+    "votes" : "Number of upvotes"
+    }
+  }
+}

@@ -1,2 +1,4 @@
 include LICENSE
 include cse/VERSION
+include cse/wpCommentQuery.txt
+include cse/wpMoreCommentQuery.txt
