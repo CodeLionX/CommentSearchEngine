@@ -48,7 +48,7 @@ class WpApiAdapter:
 
     def toJsonString(self, d):
         return json.dumps(d,
-            encoding='UTF-8',
+            ensure_ascii=False,
             sort_keys=True, 
             separators=(', ', ': '), 
             indent=None # prettyprinting: indent=2
