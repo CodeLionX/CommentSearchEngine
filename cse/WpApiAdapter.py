@@ -1,7 +1,7 @@
 import requests
 import os
 
-from cse.WpApiParser import WpApiParser
+#from cse.WpApiParser import WpApiParser
 from cse.util import Util
 
 class WpApiAdapter:
@@ -10,8 +10,8 @@ class WpApiAdapter:
 
     __initialQuery = ""
     __moreQuery = ""
-    __parser = None
-    
+    __handlerContext = None
+
     def __init__(self):
         self.__initialQuery = self.__loadInitialQuery()
         self.__moreQuery = self.__loadMoreQuery()
@@ -47,8 +47,14 @@ class WpApiAdapter:
         return countInList(comments, 0)
 
 
+    def injectCtx(self, handlerContext):
+        self.__handlerContext = handlerContext
+
 
     def loadComments(self, url):
+        if self.__handlerContext is None:
+            raise Exception("WpApiAdapter must be used within a WpApiAdapterHandler to use pipelining functionality!")
+        
         payload = self.__buildInitialRequstPayload(url)
 
         response = requests.request("POST",
@@ -60,15 +66,12 @@ class WpApiAdapter:
         data = Util.fromJsonString(response.text)
         assetId = data['data']['asset']['id']
 
-        # create parser
-        self.__parser = WpApiParser(url=url, assedId=assetId)
-
         #assetUrl = data['data']['asset']['url']
         #commentCount = data['data']['asset']['commentCount']
         #totalCommentCount = data['data']['asset']['totalCommentCount']
         commentsNode = data['data']['asset']['comments']
         
-        comments = self.__processComments(commentsNode, assetId)
+        comments = self.__processComments(commentsNode, url, assetId)
         return [assetId, comments]
 
 
@@ -104,29 +107,32 @@ class WpApiAdapter:
         }
 
 
-    def __processComments(self, commentsNode, assetId):
+    def __processComments(self, commentsNode, url, assetId, parentId=None):
         commentsHasNextPage = commentsNode['hasNextPage']
         commentsCursor = commentsNode['endCursor']
         comments = commentsNode['nodes']
 
+        data={"url": url, "assetId": assetId, "parentId": parentId, "comments": comments}
+        self.__handlerContext.write(data)
+
         # check for replies
         for com in comments:
-            parentId = com['id']
+            repliesParentId = com['id']
             repliesHasNextPage = com['replies']['hasNextPage']
             repliesCursor = com['replies']['endCursor']
             replies = com['replies']['nodes']
 
             if(repliesHasNextPage):
-                com['replies']['nodes'] = replies + self.__loadMoreReplies(assetId, repliesCursor, parentId)
+                com['replies']['nodes'] = replies + self.__loadMoreReplies(url, assetId, repliesCursor, repliesParentId)
 
         # check for another page
         if(commentsHasNextPage):
-            comments = comments + self.__loadMoreComments(assetId, commentsCursor)
+            comments = comments + self.__loadMoreComments(url, assetId, commentsCursor)
 
         return comments
 
 
-    def __loadMoreComments(self, assetId, cursor):
+    def __loadMoreComments(self, url, assetId, cursor):
         payload = self.__buildMoreRequestPayload(assetId, cursor=cursor)
 
         response = requests.request("POST", 
@@ -138,10 +144,10 @@ class WpApiAdapter:
         data = Util.fromJsonString(response.text)
         commentsNode = data['data']['comments']
 
-        return self.__processComments(commentsNode, assetId)
+        return self.__processComments(commentsNode, url, assetId)
 
 
-    def __loadMoreReplies(self, assetId, cursor, parentId):
+    def __loadMoreReplies(self, url, assetId, cursor, parentId):
         payload = self.__buildMoreRequestPayload(assetId, cursor=cursor, parentId=parentId)
 
         response = requests.request("POST", 
@@ -153,7 +159,7 @@ class WpApiAdapter:
         data = Util.fromJsonString(response.text)
         commentsNode = data['data']['comments']
 
-        return self.__processComments(commentsNode, assetId)
+        return self.__processComments(commentsNode, url, assetId, parentId)
 
 
 # just for testing
