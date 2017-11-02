@@ -20,7 +20,7 @@ class SynchronousHandlerContext:
         try:
             self.handler.process(self, msg)
         except Exception as e:
-            print("Exception during processing of handler" + str(self.handler) + ", origin: " + str(e))
+            print("Exception during processing of handler '" + str(self.handler) + "', cause: " + str(e))
 
     def __findNextNode(self):
         return self.nxt

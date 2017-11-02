@@ -1,7 +1,8 @@
 from cse.WpApiAdapter import WpApiAdapter
+from cse.WpApiParser import WpApiParser
 from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
 from cse.pipeline import SimpleConsolePrintHandler
-from cse.pipeline.wpHandler import (WpApiAdapterHandler, ListenerHandler)
+from cse.pipeline.wpHandler import (WpApiAdapterHandler, WpApiParserHandler, ListenerHandler)
 
 class WpApiDataPipelineBootstrap:
 
@@ -11,9 +12,12 @@ class WpApiDataPipelineBootstrap:
 
     __listeners = []
 
+    __countHandler = None
+
     def __init__(self):
         self.__wpApiAdapter = WpApiAdapter()
         self.__wasPipeBuild = False
+        self.__countHandler = CountHandler("Counter")
 
 
     def setupPipeline(self, asynchronous=False):
@@ -27,10 +31,12 @@ class WpApiDataPipelineBootstrap:
             raise Exception("Currently not supported")
             
         self.__pipeline = Pipeline(ctxFactory)
-        self.__pipeline.addLast(WpApiAdapterHandler("WashingtonPost API Adapter", self.__wpApiAdapter)) # url -> json
-        #self.__pipeline.addLast(SimpleConsolePrintHandler()) # json -> console
+        self.__pipeline.addLast(WpApiAdapterHandler("WashingtonPost API Adapter", self.__wpApiAdapter)) # url/json -> recursive datastructures
+        self.__pipeline.addLast(WpApiParserHandler("WashingtonPostParser", WpApiParser())) # recursive datastructures -> flat datastructures
+        #self.__pipeline.addLast(SimpleConsolePrintHandler()) # _ -> console
+        self.__pipeline.addLast(self.__countHandler)
         self.__pipeline.addLast(DebugHandler("DebugHandler"))
-        self.__pipeline.addLast(ListenerHandler(self.__listeners)) # json -> listeners
+        self.__pipeline.addLast(ListenerHandler(self.__listeners)) # _ -> listeners
 
         self.__wasPipeBuild = True
 
@@ -39,6 +45,7 @@ class WpApiDataPipelineBootstrap:
         if not self.__wasPipeBuild:
             raise Exception("Pipeline uninitialized! First init pipeline with setupPipeline()")
         self.__wpApiAdapter.loadComments(url)
+        print(self.__countHandler.getCount())
 
 
     def registerDataListener(self, listener):
@@ -52,9 +59,23 @@ class WpApiDataPipelineBootstrap:
             raise Exception("Pipeline already running! Can't remove listeners at runtime")
         self.__listeners.remove(listener)
 
+
+
+class CountHandler(Handler):
+    __count = 0
+
+    def getCount(self):
+        return self.__count
+
+    def process(self, ctx, data):
+        self.__count = self.__count + len(data["comments"])
+        ctx.write(data)
+
+
 class DebugHandler(Handler):
     def process(self, ctx, data):
-        print(data["url"][0:50], data["assetId"], len(data["comments"]), data["parentId"])
+        print(str(data)[0:50] + "[...]", len(data["comments"]))
+        #print(data["url"][0:50], data["assetId"], len(data["comments"]), data["parentId"])
         ctx.write(data)
 
 

@@ -65,10 +65,6 @@ class WpApiAdapter:
 
         data = Util.fromJsonString(response.text)
         assetId = data['data']['asset']['id']
-
-        #assetUrl = data['data']['asset']['url']
-        #commentCount = data['data']['asset']['commentCount']
-        #totalCommentCount = data['data']['asset']['totalCommentCount']
         commentsNode = data['data']['asset']['comments']
         
         comments = self.__processComments(commentsNode, url, assetId)
