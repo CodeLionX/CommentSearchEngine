@@ -9,28 +9,17 @@ import abc
 
 from cse.pipeline.SynchronousHandlerContext import SynchronousHandlerContext
 from cse.pipeline.Pipeline import Pipeline
-
-
-"""
-Abstract class representing an handler processing data which flows
-through the pipeline.
-"""
-class Handler(object, metaclass=abc.ABCMeta):
-    __name = ""
-
-    def __init__(self, name):
-        self.__name = name
-
-    @abc.abstractmethod
-    def process(self, ctx, data):
-        raise NotImplementedError(
-            "Class %s doesn't implement process(), please do that yourself" %
-            (self.__class__.__name__)
-        )
-
-    def __str__(self):
-        return self.__name
+from cse.pipeline.stdHandler import (SimpleConsolePrintHandler, SimpleForwardHandler, SinkHandler)
+from cse.pipeline.Handler import Handler
 
 class SyncedHandlerContextFactory:
     def createCtx(self, handler, pipeline):
         return SynchronousHandlerContext(handler, pipeline)
+
+
+if __name__ == '__main__':
+    pipe = Pipeline(SyncedHandlerContextFactory())
+    pipe.addLast(SimpleForwardHandler())
+    pipe.addLast(SimpleConsolePrintHandler())
+    pipe.addLast(SinkHandler())
+    pipe.write("test data")

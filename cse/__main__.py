@@ -1,4 +1,3 @@
-import sys
 import argparse
 from scrapy.crawler import CrawlerProcess
 from cse.CommentSpider import CommentSpider

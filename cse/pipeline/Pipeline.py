@@ -47,15 +47,9 @@ class Pipeline:
         self.__tail = ctx
 
     def __createContext(self, handler):
-        return self.__ctxFactory.createCtx(handler, self)
+        ctx = self.__ctxFactory.createCtx(handler, self)
+        handler.registeredAt(ctx)
+        return ctx
 
     def write(self, dataToPass):
         self.__head.invokeRead(dataToPass)
-
-
-if __name__ == '__main__':
-    pipe = Pipeline()
-    pipe.addLast(Handler3("Change Datatype Handler"))
-    pipe.addLast(Handler1("Forwarding Handler"))
-    pipe.addLast(Handler2("Print Handler"))
-    pipe.write("test data")
