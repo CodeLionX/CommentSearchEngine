@@ -5,19 +5,13 @@ class WpApiParser:
 
     __url = ""
     __assetId = ""
-    __data = {}
     __consumer = None
 
-    DEFAULT_CONSUMER = lambda (row) => {print(str(row), "\n")}
+    DEFAULT_CONSUMER = lambda data: print(str(data), "\n")
 
     def __init__(self, url, assetId):
         self.__url = url
         self.__assetId = assetId
-        data = {
-            "article_url" : url,
-            "article_id" : assetId,
-            "comments" : []
-        }
         self.__consumer = self.DEFAULT_CONSUMER
 
 
@@ -34,6 +28,14 @@ class WpApiParser:
     def parseAndAdd(self, comments, parentId):
         pass
 
+    def __buildDataSkeleton(self):
+        return {
+            "article_url" : self.__url,
+            "article_id" : self.__assetId,
+            "comments" : []
+        }
+
+    
     def __iterateComments(self, comments, parentId=None):
         commentList = {}
         for comment in comments:
@@ -54,7 +56,7 @@ class WpApiParser:
                 }
 
             try:
-                commentReplies = self.iterateComments(comment["replies"]["nodes"], comment["id"])
+                commentReplies = self.__iterateComments(comment["replies"]["nodes"], comment["id"])
             except KeyError: # There may be a limit of the nesting level of comments on wp
                 commentReplies = {}
             commentList.update(commentReplies)

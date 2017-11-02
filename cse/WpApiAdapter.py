@@ -1,6 +1,7 @@
 import requests
 import os
 
+from cse.WpApiParser import WpApiParser
 from cse.util import Util
 
 class WpApiAdapter:
@@ -9,7 +10,8 @@ class WpApiAdapter:
 
     __initialQuery = ""
     __moreQuery = ""
-
+    __parser = None
+    
     def __init__(self):
         self.__initialQuery = self.__loadInitialQuery()
         self.__moreQuery = self.__loadMoreQuery()
@@ -57,6 +59,10 @@ class WpApiAdapter:
 
         data = Util.fromJsonString(response.text)
         assetId = data['data']['asset']['id']
+
+        # create parser
+        self.__parser = WpApiParser(url=url, assedId=assetId)
+
         #assetUrl = data['data']['asset']['url']
         #commentCount = data['data']['asset']['commentCount']
         #totalCommentCount = data['data']['asset']['totalCommentCount']
