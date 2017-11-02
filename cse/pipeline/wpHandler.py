@@ -8,8 +8,8 @@ class ListenerHandler(Handler):
         self.__listener = listener
 
     def process(self, ctx, data):
-        for l in self.__listener:
-            l.receivedData(data)
+        for callback in self.__listener:
+            callback(data)
 
 
 class WpApiAdapterHandler(Handler):

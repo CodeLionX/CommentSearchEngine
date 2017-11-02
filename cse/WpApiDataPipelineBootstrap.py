@@ -1,7 +1,7 @@
 from cse.WpApiAdapter import WpApiAdapter
 from cse.WpApiParser import WpApiParser
+from cse.CSVWriter import CSVWriter
 from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
-from cse.pipeline import SimpleConsolePrintHandler
 from cse.pipeline.wpHandler import (WpApiAdapterHandler, WpApiParserHandler, ListenerHandler)
 
 class WpApiDataPipelineBootstrap:
@@ -33,7 +33,6 @@ class WpApiDataPipelineBootstrap:
         self.__pipeline = Pipeline(ctxFactory)
         self.__pipeline.addLast(WpApiAdapterHandler("WashingtonPost API Adapter", self.__wpApiAdapter)) # url/json -> recursive datastructures
         self.__pipeline.addLast(WpApiParserHandler("WashingtonPostParser", WpApiParser())) # recursive datastructures -> flat datastructures
-        #self.__pipeline.addLast(SimpleConsolePrintHandler()) # _ -> console
         self.__pipeline.addLast(self.__countHandler)
         self.__pipeline.addLast(DebugHandler("DebugHandler"))
         self.__pipeline.addLast(ListenerHandler(self.__listeners)) # _ -> listeners
@@ -81,7 +80,11 @@ class DebugHandler(Handler):
 
 # just for testing
 if __name__ == "__main__":
+    writer = CSVWriter("data/file1")
+    writer.open()
+    writer.printHeader()
     bs = WpApiDataPipelineBootstrap()
+    bs.registerDataListener(writer.printData)
     bs.setupPipeline()
     bs.process(url='https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html')
-    
+    writer.close()
