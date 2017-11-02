@@ -15,3 +15,4 @@ __license__ = 'MIT'
 
 # top-level shortcuts
 from .CommentSpider import CommentSpider 
+from .util import Util

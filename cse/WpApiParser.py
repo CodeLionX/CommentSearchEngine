@@ -1,18 +1,40 @@
-import json
 from pprint import pprint
+from cse.util import Util
 
 class WpApiParser:
 
-    def parseSpiderData(self, url, assetId, comments): #ToDo Input should be the raw api output
-        commentList = self.iterateComments(comments)
+    __url = ""
+    __assetId = ""
+    __data = {}
+    __consumer = None
+
+    DEFAULT_CONSUMER = lambda (row) => {print(str(row), "\n")}
+
+    def __init__(self, url, assetId):
+        self.__url = url
+        self.__assetId = assetId
         data = {
             "article_url" : url,
             "article_id" : assetId,
-            "comments" : commentList
+            "comments" : []
         }
-        return data
+        self.__consumer = self.DEFAULT_CONSUMER
 
-    def iterateComments(self, comments, parentId=None):
+
+    def setConsumer(self, consumer):
+        self.__consumer = consumer
+
+
+    def removeConsumer(self):
+        self.__consumer = self.DEFAULT_CONSUMER
+
+    def parseAndAdd(self, comments):
+        pass
+
+    def parseAndAdd(self, comments, parentId):
+        pass
+
+    def __iterateComments(self, comments, parentId=None):
         commentList = {}
         for comment in comments:
             votes = 0
