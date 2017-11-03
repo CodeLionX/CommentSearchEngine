@@ -1,18 +1,43 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.selector import Selector
-from cse.WpApiAdapter import WpApiAdapter
 import re
 import json
 from pprint import pprint
-from cse.WpApiParser import WpApiParser
-import csv
-import os
+import hashlib
+
+from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
+from cse.CSVWriter import CSVWriter
 
 class CommentSpider(scrapy.Spider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
     urls = [['https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html']]
+
+    __pbs = None
+
+
+    def __init__(self):
+        self.__pbs = PipelineBootstrap()
+        self.__pbs.setupPipeline()
+
+
+    def __setupFileWriter(self, url):
+        m = hashlib.sha256()
+        m.update(url.encode('utf-8'))
+        filename = m.hexdigest()
+
+        writer = CSVWriter("data/" + filename)
+        writer.open()
+        writer.printHeader()
+        self.__pbs.registerDataListener(writer.printData)
+        return writer
+
+
+    def __teardownFileWriter(self, writer):
+        self.__pbs.unregisterDataListener(writer.printData)
+        writer.close()
+
 
     def start_requests(self):
         for url in self.urls:
@@ -23,21 +48,17 @@ class CommentSpider(scrapy.Spider):
                 meta={'url': url[0]}
             )
 
+
     def parse(self, response):
         # parse an article page and watch out for comments on this page and for linked pages
         sel = Selector(response)
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
+        url = url[0]
 
-        api = WpApiAdapter()
+        writer = self.__setupFileWriter(url)
+        self.__pbs.crawlComments(url)
+        self.__teardownFileWriter(writer)
 
-        #ToDo This should return the final spiderdata
-        reply = api.loadComments(url=url[0])
-        data = WpApiParser().parseSpiderData(url[0],reply[0],reply[1])
-
-        #ToDo Write data to a csv file
-        #print(type(comments))
-        self.printcsv(data)
-        #pprint(data)
 
         """
         nextLinks = sel.xpath("//div[@class='comment-section__item']//a[@class='pager__button pager__button--next']/@href").extract()
@@ -64,6 +85,8 @@ class CommentSpider(scrapy.Spider):
             print("found: " + comment)
             self.parse_comment(comment, url)
         """
+
+
     # scrape comments that are hidden on the current page
     def parse_replies(self, response):
         sel = Selector(response)
@@ -71,6 +94,7 @@ class CommentSpider(scrapy.Spider):
         comments_scope = sel.xpath("//article[contains(@class, 'comment')]").extract()
         for comment in comments_scope:
             self.parse_comment(comment, url)
+
 
     # scrape comments
     def parse_comment(self, comment, url):
@@ -116,31 +140,3 @@ class CommentSpider(scrapy.Spider):
 
         print(extracted_comment)
         print("\n\nFINISHED")
-
-    def printcsv(self, data):
-        article_url = data["article_url"]
-        article_id = data["article_id"]
-
-        filename = "data/data.csv"
-        if not os.path.exists(os.path.dirname(filename)):
-            try:
-                os.makedirs(os.path.dirname(filename))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-        with open(filename, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)#, delimiter=', ')
-            writer.writerow(["cid", "url", "author", "text", "time", "parent", "votes", "article_id"])
-            for commentId in data["comments"]:
-                writer.writerow([
-                    str(commentId),
-                    article_url,
-                    data["comments"][commentId]["comment_author"], 
-                    data["comments"][commentId]["comment_text"].replace("\n", "\\n"),
-                    data["comments"][commentId]["timestamp"], 
-                    str(data["comments"][commentId]["parent_comment_id"]),
-                    data["comments"][commentId]["votes"],
-                    article_id
-                ])
-

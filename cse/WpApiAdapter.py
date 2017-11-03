@@ -1,137 +1,37 @@
 import requests
-import json
 import os
+
+from cse.util import Util
 
 class WpApiAdapter:
 
-    apiEndpoint = "https://www.washingtonpost.com/talk/api/v1/graph/ql"
+    API_ENDPOINT = "https://www.washingtonpost.com/talk/api/v1/graph/ql"
 
-    def loadInitialQuery(self):
+    __initialQuery = ""
+    __moreQuery = ""
+    __handlerContext = None
+
+    def __init__(self):
+        self.__initialQuery = self.__loadInitialQuery()
+        self.__moreQuery = self.__loadMoreQuery()
+
+
+    @staticmethod
+    def __loadInitialQuery():
         with open(os.path.join(os.path.dirname(__file__), "wpCommentsQuery.txt")) as query_file:
             query = query_file.read().strip()
         return query
 
-    def loadMoreQuery(self):
+
+    @staticmethod
+    def __loadMoreQuery():
         with open(os.path.join(os.path.dirname(__file__), "wpMoreCommentsQuery.txt")) as query_file:
             query = query_file.read().strip()
         return query
 
-    def buildInitialRequstPayload(self, url):
-        return {
-            "query": self.loadInitialQuery(),
-            "variables": {
-                "assetId": "",
-                "assetUrl": url,
-                "commentId": "",
-                "hasComment": False,
-                "excludeIgnored": False,
-                "sortBy": "CREATED_AT",
-                "sortOrder": "DESC",
-                "operationName": "CoralEmbedStream_Embed"
-            }
-        }
 
-    def buildMoreRequestPayload(self, assetId, cursor=None, parentId=None):
-        return {
-            "query": self.loadMoreQuery(),
-            "variables": {
-                "asset_id": assetId,
-                "cursor": cursor,
-                #"limit": 10,
-                "parent_id": parentId,
-                "sortOrder": "DESC",
-                "sortBy": "CREATED_AT",
-                "excludeIgnored": False
-            },
-            "operationName":"CoralEmbedStream_LoadMoreComments"
-        }
-
-    def toJsonString(self, d):
-        return json.dumps(d,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(', ', ': '),
-            indent=None # prettyprinting: indent=2
-        )
-
-    def fromJsonString(self, s):
-        return json.loads(s,
-            encoding='UTF-8'
-        )
-
-    def loadComments(self, url):
-        payload = self.buildInitialRequstPayload(url)
-
-        response = requests.request("POST",
-            self.apiEndpoint,
-            data = self.toJsonString(payload),
-            headers = {'content-type': 'application/json'}
-        )
-
-        data = self.fromJsonString(response.text)
-        assetId = data['data']['asset']['id']
-        #assetUrl = data['data']['asset']['url']
-        #commentCount = data['data']['asset']['commentCount']
-        #totalCommentCount = data['data']['asset']['totalCommentCount']
-        commentsNode = data['data']['asset']['comments']
-        
-        comments = self.processComments(commentsNode, assetId)
-        return [assetId, comments]
-
-
-    def processComments(self, commentsNode, assetId):
-        commentsHasNextPage = commentsNode['hasNextPage']
-        commentsCursor = commentsNode['endCursor']
-        comments = commentsNode['nodes']
-
-        # check for replies
-        for com in comments:
-            parentId = com['id']
-            repliesHasNextPage = com['replies']['hasNextPage']
-            repliesCursor = com['replies']['endCursor']
-            replies = com['replies']['nodes']
-
-            if(repliesHasNextPage):
-                com['replies']['nodes'] = replies + self.loadMoreReplies(assetId, repliesCursor, parentId)
-
-        # check for another page
-        if(commentsHasNextPage):
-            comments = comments + self.loadMoreComments(assetId, commentsCursor)
-
-        return comments
-
-
-    def loadMoreComments(self, assetId, cursor):
-        payload = self.buildMoreRequestPayload(assetId, cursor=cursor)
-
-        response = requests.request("POST", 
-            self.apiEndpoint,
-            data = self.toJsonString(payload),
-            headers = {'content-type': 'application/json'}
-        )
-
-        data = self.fromJsonString(response.text)
-        commentsNode = data['data']['comments']
-
-        return self.processComments(commentsNode, assetId)
-
-
-    def loadMoreReplies(self, assetId, cursor, parentId):
-        payload = self.buildMoreRequestPayload(assetId, cursor=cursor, parentId=parentId)
-
-        response = requests.request("POST", 
-            self.apiEndpoint,
-            data = self.toJsonString(payload),
-            headers = {'content-type': 'application/json'}
-        )
-
-        data = self.fromJsonString(response.text)
-        commentsNode = data['data']['comments']
-
-        return self.processComments(commentsNode, assetId)
-
-
-    def countAllComments(self, comments):
+    @staticmethod
+    def countAllComments(comments):
         def countInList(comments, count):
             for comment in comments:
                 count = countInNode(comment, count)
@@ -146,8 +46,111 @@ class WpApiAdapter:
         return countInList(comments, 0)
 
 
-# just for testing
-if __name__ == "__main__":
-    api = WpApiAdapter()
-    comments = api.loadComments(url="https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html")
-    print(api.toJsonString(comments))
+    def injectCtx(self, handlerContext):
+        self.__handlerContext = handlerContext
+
+
+    def loadComments(self, url):
+        if self.__handlerContext is None:
+            raise Exception("WpApiAdapter must be used within a WpApiAdapterHandler to use pipelining functionality!")
+        
+        payload = self.__buildInitialRequstPayload(url)
+
+        response = requests.request("POST",
+            self.API_ENDPOINT,
+            data = Util.toJsonString(payload),
+            headers = {'content-type': 'application/json'}
+        )
+
+        data = Util.fromJsonString(response.text)
+        assetId = data['data']['asset']['id']
+        commentsNode = data['data']['asset']['comments']
+        
+        comments = self.__processComments(commentsNode, url, assetId)
+
+
+    def __buildInitialRequstPayload(self, url):
+        return {
+            "query": self.__initialQuery,
+            "variables": {
+                "assetId": "",
+                "assetUrl": url,
+                "commentId": "",
+                "hasComment": False,
+                "excludeIgnored": False,
+                "sortBy": "CREATED_AT",
+                "sortOrder": "DESC",
+                "operationName": "CoralEmbedStream_Embed"
+            }
+        }
+    
+
+    def __buildMoreRequestPayload(self, assetId, cursor=None, parentId=None):
+        return {
+            "query": self.__moreQuery,
+            "variables": {
+                "asset_id": assetId,
+                "cursor": cursor,
+                #"limit": 10,
+                "parent_id": parentId,
+                "sortOrder": "DESC",
+                "sortBy": "CREATED_AT",
+                "excludeIgnored": False
+            },
+            "operationName":"CoralEmbedStream_LoadMoreComments"
+        }
+
+
+    def __processComments(self, commentsNode, url, assetId, parentId=None):
+        commentsHasNextPage = commentsNode['hasNextPage']
+        commentsCursor = commentsNode['endCursor']
+        comments = commentsNode['nodes']
+
+        data={"url": url, "assetId": assetId, "parentId": parentId, "comments": comments}
+        self.__handlerContext.write(data)
+
+        # check for replies
+        for com in comments:
+            repliesParentId = com['id']
+            repliesHasNextPage = com['replies']['hasNextPage']
+            repliesCursor = com['replies']['endCursor']
+            replies = com['replies']['nodes']
+
+            if(repliesHasNextPage):
+                com['replies']['nodes'] = replies + self.__loadMoreReplies(url, assetId, repliesCursor, repliesParentId)
+
+        # check for another page
+        if(commentsHasNextPage):
+            comments = comments + self.__loadMoreComments(url, assetId, commentsCursor)
+
+        return comments
+
+
+    def __loadMoreComments(self, url, assetId, cursor):
+        payload = self.__buildMoreRequestPayload(assetId, cursor=cursor)
+
+        response = requests.request("POST", 
+            self.API_ENDPOINT,
+            data = Util.toJsonString(payload),
+            headers = {'content-type': 'application/json'}
+        )
+
+        data = Util.fromJsonString(response.text)
+        commentsNode = data['data']['comments']
+
+        return self.__processComments(commentsNode, url, assetId)
+
+
+    def __loadMoreReplies(self, url, assetId, cursor, parentId):
+        payload = self.__buildMoreRequestPayload(assetId, cursor=cursor, parentId=parentId)
+
+        response = requests.request("POST", 
+            self.API_ENDPOINT,
+            data = Util.toJsonString(payload),
+            headers = {'content-type': 'application/json'}
+        )
+
+        data = Util.fromJsonString(response.text)
+        commentsNode = data['data']['comments']
+
+        return self.__processComments(commentsNode, url, assetId, parentId)

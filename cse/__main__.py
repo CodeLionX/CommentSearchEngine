@@ -1,4 +1,3 @@
-import sys
 import argparse
 from scrapy.crawler import CrawlerProcess
 from cse.CommentSpider import CommentSpider
@@ -27,6 +26,8 @@ def crawl(args=None):
 
     process.crawl(CommentSpider)
     process.start() # the script will block here until the crawling is finished
+
+
 
 if __name__ == "__main__":
     main()

@@ -1,38 +1,43 @@
-import json
-from pprint import pprint
+from cse.util import Util
 
 class WpApiParser:
 
-    def parseSpiderData(self, url, assetId, comments): #ToDo Input should be the raw api output
-        commentList = self.iterateComments(comments)
-        data = {
-            "article_url" : url,
-            "article_id" : assetId,
-            "comments" : commentList
-        }
+    def __init__(self):
+        pass
+
+
+    def parse(self, comments, url, assetId, parentId):
+        data = self.__buildDataSkeleton(url, assetId)
+        data["comments"] = self.__iterateComments(comments, parentId)
         return data
 
-    def iterateComments(self, comments, parentId=None):
+
+    def __buildDataSkeleton(self, url, assetId):
+        return {
+            "article_url" : url,
+            "article_id" : assetId,
+            "comments" : []
+        }
+
+
+    def __iterateComments(self, comments, parentId=None):
         commentList = {}
         for comment in comments:
             votes = 0
-            if(not 'action_summaries' in comment):
-                print(comment)
-            else:
-                for action_summary in comment["action_summaries"]:
-                    if action_summary["__typename"] == "LikeActionSummary":
-                        votes = action_summary["count"]
+            for action_summary in comment["action_summaries"]:
+                if action_summary["__typename"] == "LikeActionSummary":
+                    votes = action_summary["count"]
 
-                commentList[comment["id"]] = {
-                    "comment_author": comment["user"]["username"],
-                    "comment_text" : comment["body"],
-                    "timestamp" : comment["created_at"],
-                    "parent_comment_id" : parentId,
-                    "votes" : votes
-                }
+            commentList[comment["id"]] = {
+                "comment_author": comment["user"]["username"],
+                "comment_text" : comment["body"],
+                "timestamp" : comment["created_at"],
+                "parent_comment_id" : parentId,
+                "votes" : votes
+            }
 
             try:
-                commentReplies = self.iterateComments(comment["replies"]["nodes"], comment["id"])
+                commentReplies = self.__iterateComments(comment["replies"]["nodes"], comment["id"])
             except KeyError: # There may be a limit of the nesting level of comments on wp
                 commentReplies = {}
             commentList.update(commentReplies)
