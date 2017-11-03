@@ -67,7 +67,6 @@ class WpApiAdapter:
         commentsNode = data['data']['asset']['comments']
         
         comments = self.__processComments(commentsNode, url, assetId)
-        return [assetId, comments]
 
 
     def __buildInitialRequstPayload(self, url):

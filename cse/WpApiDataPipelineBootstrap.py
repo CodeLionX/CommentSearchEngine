@@ -3,7 +3,7 @@ from cse.WpApiAdapter import WpApiAdapter
 from cse.WpApiParser import WpApiParser
 from cse.CSVWriter import CSVWriter
 from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
-from cse.pipeline.wpHandler import (WpApiAdapterHandler, WpApiParserHandler)
+from cse.pipeline.wpHandler import (WpApiAdapterHandler, WpApiParserHandler, DuplicateHandler, RemoveDuplicatesHandler)
 
 class WpApiDataPipelineBootstrap(Handler):
 
@@ -15,12 +15,14 @@ class WpApiDataPipelineBootstrap(Handler):
     __listenersLock = None
 
     __countHandler = None
+    __duplicateHandler = None
 
 
     def __init__(self):
         super().__init__("PipelineBootstrap for data listeners")
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
+        self.__duplicateHandler = DuplicateHandler()
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
 
@@ -38,6 +40,8 @@ class WpApiDataPipelineBootstrap(Handler):
         self.__pipeline = Pipeline(ctxFactory)
         self.__pipeline.addLast(WpApiAdapterHandler("WashingtonPost API Adapter", self.__wpApiAdapter)) # url/json -> recursive datastructures
         self.__pipeline.addLast(WpApiParserHandler("WashingtonPostParser", WpApiParser())) # recursive datastructures -> flat datastructures
+        self.__pipeline.addLast(RemoveDuplicatesHandler())
+        self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
         self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
         self.__pipeline.addLast(self) # _ -> listeners
@@ -58,6 +62,8 @@ class WpApiDataPipelineBootstrap(Handler):
         self.__countHandler.reset()
         self.__wpApiAdapter.loadComments(url)
         print("Processed comments: " + str(self.__countHandler.get()))
+        self.__duplicateHandler.getDuplicates()
+
 
 
     def registerDataListener(self, listener):
