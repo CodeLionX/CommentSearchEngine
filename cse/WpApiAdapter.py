@@ -1,7 +1,6 @@
 import requests
 import os
 
-#from cse.WpApiParser import WpApiParser
 from cse.util import Util
 
 class WpApiAdapter:
@@ -156,10 +155,3 @@ class WpApiAdapter:
         commentsNode = data['data']['comments']
 
         return self.__processComments(commentsNode, url, assetId, parentId)
-
-
-# just for testing
-if __name__ == "__main__":
-    api = WpApiAdapter()
-    comments = api.loadComments(url="https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html")
-    print(Util.toJsonString(comments))

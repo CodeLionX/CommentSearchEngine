@@ -77,10 +77,12 @@ class Pipeline:
         # set new tail pointer
         self._head = ctx
 
+
     def __createContext(self, handler):
         ctx = self.__ctxFactory.createCtx(handler, self)
         handler.registeredAt(ctx)
         return ctx
+
 
     def write(self, dataToPass):
         self.__head.invokeRead(dataToPass)

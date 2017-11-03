@@ -1,15 +1,5 @@
 from cse.pipeline.Handler import Handler
 
-class ListenerHandler(Handler):
-    __listener = []
-
-    def __init__(self, listener):
-        super().__init__("Listener Handler")
-        self.__listener = listener
-
-    def process(self, ctx, data):
-        for callback in self.__listener:
-            callback(data)
 
 
 class WpApiAdapterHandler(Handler):
@@ -24,6 +14,7 @@ class WpApiAdapterHandler(Handler):
 
     def process(self, ctx, data):
         raise Exception("This Adapter is the starting point of the pipeline, thus should not receive any data!")
+
 
 
 class WpApiParserHandler(Handler):

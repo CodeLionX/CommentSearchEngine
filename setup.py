@@ -69,9 +69,9 @@ setup(
     ],
 
     # packages
-    packages=['cse'],
-    package_dir={'cse': './cse'},
-    package_data={'cse': ['./VERSION', './wpCommentQuery.txt', './wpMoreCommentQuery.txt', '../LICENSE']},
+    packages=['cse', 'cse.pipeline'],
+    package_dir={'cse': './cse', 'cse.pipeline': './cse/pipeline'},
+    package_data={'cse': ['./VERSION', './wpCommentsQuery.txt', './wpMoreCommentsQuery.txt', '../LICENSE']},
     include_package_data=True,
 
     # executable scripts
