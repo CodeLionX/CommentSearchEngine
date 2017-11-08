@@ -38,7 +38,7 @@ class WpApiDataPipelineBootstrap(Handler):
             raise Exception("Currently not supported")
             
         self.__pipeline = Pipeline(ctxFactory)
-        self.__pipeline.addLast(WpApiAdapterHandler("WashingtonPost API Adapter", self.__wpApiAdapter)) # url/json -> recursive datastructures
+        self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> recursive datastructures
         self.__pipeline.addLast(WpApiParserHandler("WashingtonPostParser", WpApiParser())) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
         #self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids

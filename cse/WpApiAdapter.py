@@ -1,9 +1,10 @@
 import requests
 import os
 
+from cse.pipeline import Handler
 from cse.util import Util
 
-class WpApiAdapter:
+class WpApiAdapter(Handler):
 
     API_ENDPOINT = "https://www.washingtonpost.com/talk/api/v1/graph/ql"
 
@@ -12,6 +13,7 @@ class WpApiAdapter:
     __handlerContext = None
 
     def __init__(self):
+        super().__init__(self.__class__.__name__)
         self.__initialQuery = self.__loadInitialQuery()
         self.__moreQuery = self.__loadMoreQuery()
 
@@ -44,10 +46,6 @@ class WpApiAdapter:
                 return count + 1
 
         return countInList(comments, 0)
-
-
-    def injectCtx(self, handlerContext):
-        self.__handlerContext = handlerContext
 
 
     def loadComments(self, url):
@@ -154,3 +152,10 @@ class WpApiAdapter:
         commentsNode = data['data']['comments']
 
         return self.__processComments(commentsNode, url, assetId, parentId)
+
+    # inherited from cse.pipeline.Handler
+    def registeredAt(self, ctx):
+        self.__handlerContext = ctx
+
+    def process(self, ctx, data):
+        raise Exception("This Adapter is the starting point of the pipeline, thus should not receive any data!")
