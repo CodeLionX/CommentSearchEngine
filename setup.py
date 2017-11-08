@@ -65,6 +65,7 @@ setup(
     install_requires=[
         'requests',
         'scrapy>=1.4.0',
+        'spacy>=2.0.0',
         'cffi>=1.7'
     ],
 
