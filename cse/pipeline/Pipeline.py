@@ -16,13 +16,12 @@ class Pipeline:
         if handler is None:
             raise Exception("handler was None")
         else:
-            print("adding handler " + str(handler))
+            print("   Pipeline: adding handler " + str(handler))
             ctx = self.__createContext(handler)
             if self.__head is None or self.__tail is None:
                 self.__init(ctx)
             else:
                 self.__addLast(ctx)
-            print("new head: " + str(self.__head) + ", new tail: " + str(self.__tail))
 
 
     def addFirst(self, handler):

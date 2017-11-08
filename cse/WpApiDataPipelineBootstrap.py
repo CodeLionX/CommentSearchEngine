@@ -41,9 +41,9 @@ class WpApiDataPipelineBootstrap(Handler):
         self.__pipeline.addLast(WpApiAdapterHandler("WashingtonPost API Adapter", self.__wpApiAdapter)) # url/json -> recursive datastructures
         self.__pipeline.addLast(WpApiParserHandler("WashingtonPostParser", WpApiParser())) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
-        self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
+        #self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
-        self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
+        #self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
         self.__pipeline.addLast(self) # _ -> listeners
 
         self.__wasPipeBuild = True
@@ -67,13 +67,13 @@ class WpApiDataPipelineBootstrap(Handler):
 
 
     def registerDataListener(self, listener):
-        print("adding " + str(listener))
+        print("   adding " + str(listener))
         self.__listeners.append(listener) # append() is atomic
 
 
     def unregisterDataListener(self, listener):
         with self.__listenersLock:
-            print("removing " + str(listener))
+            print("   removing " + str(listener))
             self.__listeners.remove(listener)
 
 
