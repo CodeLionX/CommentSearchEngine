@@ -13,9 +13,10 @@ from cse.CSVWriter import CSVWriter
 class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
-    sitemap_urls = ['https://www.washingtonpost.com/robots.txt']
+    #sitemap_urls = ['https://www.washingtonpost.com/robots.txt']
+    sitemap_urls = ['http://www.washingtonpost.com/news-politics-sitemap.xml', 'http://www.washingtonpost.com/news-opinions-sitemap.xml','http://www.washingtonpost.com/news-local-sitemap.xml','http://www.washingtonpost.com/news-national-sitemap.xml']
     
-    sitemap_follow = ['/news-sitemap-index']
+    #sitemap_follow = ['/web-sitemap-index','/news-sitemap-index','/real-estate/sitemap']#news-sitemap-index']
     __pbs = None
 
 
@@ -47,13 +48,11 @@ class CommentSpider(SitemapSpider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
         try:
             url = url[0]
-            print(url)
+            writer = self.__setupFileWriter(url)
+            self.__pbs.crawlComments(url)
+            self.__teardownFileWriter(writer)
         except:
-            pass
-        print('\n\n')
-        ##writer = self.__setupFileWriter(url)
-        #self.__pbs.crawlComments(url)
-        #self.__teardownFileWriter(writer)
+            print('fail\n')
 
 
 
