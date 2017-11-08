@@ -1,6 +1,6 @@
 import abc
 
-class Pipeline:
+class Pipeline(object):
 
     __head = None
     __tail = None

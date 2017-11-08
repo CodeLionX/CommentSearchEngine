@@ -1,4 +1,4 @@
-class SearchEngine():
+class SearchEngine(object):
 
     def index(self, directory):
         # preprocessing

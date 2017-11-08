@@ -7,6 +7,9 @@ through the pipeline.
 class Handler(object, metaclass=abc.ABCMeta):
     __name = ""
 
+    def __init__(self):
+        pass
+
 
     def __init__(self, name):
         self.__name = name
@@ -25,4 +28,7 @@ class Handler(object, metaclass=abc.ABCMeta):
 
 
     def __str__(self):
-        return self.__name
+        if not self.__name:
+            return self.__class__.__name__
+        else:
+            return self.__name

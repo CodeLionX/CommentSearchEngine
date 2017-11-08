@@ -6,7 +6,7 @@ class RemoveDuplicatesHandler(Handler):
     __ids = []
 
     def __init__(self):
-        super().__init__("RemoveDuplicatesHandler")
+        super()
 
     def getDuplicates(self):
         for id in self.__ids:
@@ -28,7 +28,7 @@ class DuplicateHandler(Handler):
     __ids = {}
 
     def __init__(self):
-        super().__init__("DuplicateHandler")
+        super()
 
     def getDuplicates(self):
         for id in self.__ids:

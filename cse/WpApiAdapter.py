@@ -13,7 +13,7 @@ class WpApiAdapter(Handler):
     __handlerContext = None
 
     def __init__(self):
-        super().__init__(self.__class__.__name__)
+        super()
         self.__initialQuery = self.__loadInitialQuery()
         self.__moreQuery = self.__loadMoreQuery()
 

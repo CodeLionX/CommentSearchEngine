@@ -19,7 +19,7 @@ class WpApiDataPipelineBootstrap(Handler):
 
 
     def __init__(self):
-        super().__init__("PipelineBootstrap for data listeners")
+        super(WpApiDataPipelineBootstrap, self).__init__("PipelineBootstrap for data listeners")
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
         self.__duplicateHandler = DuplicateHandler()

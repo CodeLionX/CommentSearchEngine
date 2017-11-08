@@ -4,7 +4,7 @@ from cse.pipeline import Handler
 class WpApiParser(Handler):
 
     def __init__(self):
-        super().__init__(self.__class__.__name__)
+        super()
 
 
     def parse(self, comments, url, assetId, parentId):
