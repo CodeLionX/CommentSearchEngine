@@ -1,4 +1,4 @@
-class SynchronousHandlerContext:
+class SynchronousHandlerContext(object):
     handler = None
     pipeline = None
     nxt = None

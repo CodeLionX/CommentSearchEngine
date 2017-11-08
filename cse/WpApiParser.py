@@ -1,9 +1,10 @@
 from cse.util import Util
+from cse.pipeline import Handler
 
-class WpApiParser:
+class WpApiParser(Handler):
 
     def __init__(self):
-        pass
+        super()
 
 
     def parse(self, comments, url, assetId, parentId):
@@ -42,3 +43,18 @@ class WpApiParser:
                 commentReplies = {}
             commentList.update(commentReplies)
         return commentList
+
+
+    # inherited from cse.pipeline.Handler
+    def registeredAt(self, ctx):
+        pass
+
+
+    def process(self, ctx, data):
+        result = self.parse(
+            comments=data["comments"],
+            url=data["url"],
+            assetId=data["assetId"],
+            parentId=data["parentId"]
+        )
+        ctx.write(result)

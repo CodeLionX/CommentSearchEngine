@@ -1,6 +1,6 @@
 import json
 
-class Util:
+class Util(object):
 
     def __init__(self):
         pass

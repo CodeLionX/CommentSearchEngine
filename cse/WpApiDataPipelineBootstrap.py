@@ -3,7 +3,7 @@ from cse.WpApiAdapter import WpApiAdapter
 from cse.WpApiParser import WpApiParser
 from cse.CSVWriter import CSVWriter
 from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
-from cse.pipeline.wpHandler import (WpApiAdapterHandler, WpApiParserHandler, DuplicateHandler, RemoveDuplicatesHandler)
+from cse.pipeline.wpHandler import (DuplicateHandler, RemoveDuplicatesHandler)
 
 class WpApiDataPipelineBootstrap(Handler):
 
@@ -19,7 +19,7 @@ class WpApiDataPipelineBootstrap(Handler):
 
 
     def __init__(self):
-        super().__init__("PipelineBootstrap for data listeners")
+        super(WpApiDataPipelineBootstrap, self).__init__("PipelineBootstrap for data listeners")
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
         self.__duplicateHandler = DuplicateHandler()
@@ -38,12 +38,12 @@ class WpApiDataPipelineBootstrap(Handler):
             raise Exception("Currently not supported")
             
         self.__pipeline = Pipeline(ctxFactory)
-        self.__pipeline.addLast(WpApiAdapterHandler("WashingtonPost API Adapter", self.__wpApiAdapter)) # url/json -> recursive datastructures
-        self.__pipeline.addLast(WpApiParserHandler("WashingtonPostParser", WpApiParser())) # recursive datastructures -> flat datastructures
+        self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> recursive datastructures
+        self.__pipeline.addLast(WpApiParser()) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
-        self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
+        #self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
-        self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
+        #self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
         self.__pipeline.addLast(self) # _ -> listeners
 
         self.__wasPipeBuild = True
@@ -67,13 +67,13 @@ class WpApiDataPipelineBootstrap(Handler):
 
 
     def registerDataListener(self, listener):
-        print("adding " + str(listener))
+        print("   adding " + str(listener))
         self.__listeners.append(listener) # append() is atomic
 
 
     def unregisterDataListener(self, listener):
         with self.__listenersLock:
-            print("removing " + str(listener))
+            print("   removing " + str(listener))
             self.__listeners.remove(listener)
 
 
