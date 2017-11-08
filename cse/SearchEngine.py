@@ -30,10 +30,10 @@ class SearchEngine():
         return results
 
     def printAssignment2QueryResults(self):
-        print self.search("October")
-        print self.search("jobs")
-        print self.search("Trump")
-        print self.search("hate")
+        print(self.search("October"))
+        print(self.search("jobs"))
+        print(self.search("Trump"))
+        print(self.search("hate"))
 
 
 class Preprocessor(object):
@@ -49,7 +49,7 @@ class Preprocessor(object):
 
 
 pp = Preprocessor()
-pp.tokenize("This is a very long text about very special things, like fishs, tropical fishs, don't do this at home!")
+print(pp.tokenize("This is a very long text about very special things, like fishs, tropical fishs, don't do this at home!"))
 
 #searchEngine = SearchEngine()
 #searchEngine.printAssignment2QueryResults()
