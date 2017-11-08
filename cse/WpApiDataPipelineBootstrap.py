@@ -3,7 +3,7 @@ from cse.WpApiAdapter import WpApiAdapter
 from cse.WpApiParser import WpApiParser
 from cse.CSVWriter import CSVWriter
 from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
-from cse.pipeline.wpHandler import (WpApiAdapterHandler, WpApiParserHandler, DuplicateHandler, RemoveDuplicatesHandler)
+from cse.pipeline.wpHandler import (DuplicateHandler, RemoveDuplicatesHandler)
 
 class WpApiDataPipelineBootstrap(Handler):
 
@@ -39,7 +39,7 @@ class WpApiDataPipelineBootstrap(Handler):
             
         self.__pipeline = Pipeline(ctxFactory)
         self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> recursive datastructures
-        self.__pipeline.addLast(WpApiParserHandler("WashingtonPostParser", WpApiParser())) # recursive datastructures -> flat datastructures
+        self.__pipeline.addLast(WpApiParser()) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
         #self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments

@@ -153,9 +153,11 @@ class WpApiAdapter(Handler):
 
         return self.__processComments(commentsNode, url, assetId, parentId)
 
+
     # inherited from cse.pipeline.Handler
     def registeredAt(self, ctx):
         self.__handlerContext = ctx
+
 
     def process(self, ctx, data):
         raise Exception("This Adapter is the starting point of the pipeline, thus should not receive any data!")
