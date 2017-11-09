@@ -4,6 +4,14 @@
 
 # install dependecies
 pip3 install --upgrade setuptools
+
+pip3 install nltk
+python3 - <<NLTKDOWNLOAD
+    import nltk
+    nltk.download("punkt")
+    nltk.download("stopwords")
+NLTKDOWNLOAD
+
 pip3 install --upgrade -r requirements.txt
 
 # build project
