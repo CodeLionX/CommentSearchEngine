@@ -10,6 +10,7 @@ python3 - <<NLTKDOWNLOAD
     import nltk
     nltk.download("punkt")
     nltk.download("stopwords")
+    nltk.download('wordnet')
 NLTKDOWNLOAD
 
 pip3 install --upgrade -r requirements.txt

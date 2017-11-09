@@ -10,6 +10,7 @@ from cse.lang.Preprocessor import Preprocessor
 from cse.lang.NltkTokenizer import NltkTokenizer
 from cse.lang.NltkStopwordFilter import NltkStopwordFilter
 from cse.lang.NltkStemmer import NltkStemmer
+from cse.lang.NltkLemmatizer import NltkLemmatizer
 
 
 class PreprocessorBuilder(object):
@@ -56,6 +57,10 @@ class PreprocessorBuilder(object):
         self.__stemmer = NltkStemmer(NltkStemmer.porter())
         return self
 
+    def useNltkLemmatizer(self):
+        self.__useLemmatizing = True
+        self.__lemmatizer = NltkLemmatizer(NltkLemmatizer.nltkDefault())
+        return self
 
     def build(self):
         if not self.__tokenizer:
@@ -82,7 +87,8 @@ if __name__ == '__main__':
         PreprocessorBuilder()
         .useNltkTokenizer()
         .useNltkStopwordList()
-        .usePorterStemmer()
+        #.usePorterStemmer()
+        .useNltkLemmatizer()
         .build()
     )
     tokens = prep.processText("WordNet® is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. Synsets are interlinked by means of conceptual-semantic and lexical relations. The resulting network of meaningfully related words and concepts can be navigated with the browser. WordNet is also freely and publicly available for download. WordNet’s structure makes it a useful tool for computational linguistics and natural language processing.")

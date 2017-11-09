@@ -16,6 +16,7 @@ class Preprocessor(object):
         for step in self.__steps:
             tokens = step.processAll(tokens)
         ######
+        """
         pTokens = []
         for token in tokens:
             pT = token
@@ -23,6 +24,7 @@ class Preprocessor(object):
                 pT = step.process(pT)
             pTokens.append(pT)
         tokens = pTokens
+        """
         ###### which way is faster?
 
         return tokens
