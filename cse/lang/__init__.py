@@ -23,6 +23,7 @@ class PreprocessorBuilder(object):
     __tokenizer = None
     __stemmer = None
     __lemmatizer = None
+    __custemSteps = []
 
 
     def __init__(self):
@@ -62,6 +63,10 @@ class PreprocessorBuilder(object):
         self.__lemmatizer = NltkLemmatizer(NltkLemmatizer.nltkDefault())
         return self
 
+    def addCustomStepToEnd(self, step):
+        self.__custemSteps.append(step)
+        return self
+
     def build(self):
         if not self.__tokenizer:
             raise Exception("You must specify at least a tokenizer to use the preprocessor!")
@@ -77,6 +82,10 @@ class PreprocessorBuilder(object):
 
         if self.__useLemmatizing and not self.__useStemming:
             steps.append(self.__lemmatizer)
+
+        if self.__custemSteps and len(self.__custemSteps) > 0:
+            for step in self.__custemSteps:
+                steps.append(step)
 
         return Preprocessor(self.__tokenizer, steps)
 

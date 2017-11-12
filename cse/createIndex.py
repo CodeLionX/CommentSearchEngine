@@ -1,5 +1,5 @@
 import os
-from cse.Index import Index
+from cse.Index import (Index, InvertedIndex)
 from cse.CommentReader import CommentReader
 
 """
@@ -33,6 +33,10 @@ def scanRawDir(path, index):
 
 #persistIndexCsv("data/index.csv", scanRawDir("data/raw"))
 #persistIndexJson("data/index.json", scanRawDir("data/raw"))
-i = Index()
-scanRawDir("data/raw", i)
-i.saveJson("data/index.json")
+#i = Index()
+#scanRawDir("data/raw", i)
+#i.saveJson("data/index.json")
+
+i = InvertedIndex("data/invertedIndex.json")
+i.load()
+print("terms:", len(i.terms()))

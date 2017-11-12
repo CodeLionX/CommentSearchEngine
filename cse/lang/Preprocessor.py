@@ -23,7 +23,7 @@ class Preprocessor(object):
             for step in self.__steps:
                 pT = step.process(pT)
             pTokens.append(pT)
-        tokens = pTokens
+        tokens = filter(lambda token: token is not None, pTokens)
         """
         ###### which way is faster?
 

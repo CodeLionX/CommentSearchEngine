@@ -2,6 +2,7 @@ import abc
 import os
 
 from cse.lang import PreprocessorBuilder
+from cse.lang.PreprocessorStep import PreprocessorStep
 from cse.Index import (InvertedIndex, Index)
 from cse.CommentReader import CommentReader
 
@@ -22,34 +23,48 @@ class SearchEngine():
             .useNltkTokenizer()
             #.useNltkStopwordList()
             .usePorterStemmer()
+            .addCustomStepToEnd(CustomPpStep())
             .build()
         )
         #tokens = prep.processText("WordNet® is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. Synsets are interlinked by means of conceptual-semantic and lexical relations. The resulting network of meaningfully related words and concepts can be navigated with the browser. WordNet is also freely and publicly available for download. WordNet’s structure makes it a useful tool for computational linguistics and natural language processing.")
         #print(tokens)
 
-        # lookup random articles file id
+        # lookup for articles file ids
         index = Index()
         index.loadJson("data/index.json")
+
+        # to be created inverted index
+        ii = InvertedIndex("data/invertedIndex.json")
+
+        # for just one article
         randomCid = index.listCids()[0:1][0]
         filename = index.get(randomCid)["fileId"]
+        self.__createIndexForArticle(ii, prep, filename)
+        ii.save()
 
-        # open this file and create inverted index object
-        ii = InvertedIndex("data/invertedIndex.json")
+        # for all article
+        """
+        for cid in index.listCids():
+            filename = index.get(cid)["fileId"]
+            print("Processing file", filename)
+            self.__createIndexForArticle(ii, prep, filename)
+        ii.save()
+        """
+
+
+    def __createIndexForArticle(self, index, prep, filename):
         cr = CommentReader(os.path.join("data", "raw", filename))
         cr.open()
         fileData = cr.readData()
 
         for cid in fileData["comments"]:
             tokens = prep.processText(fileData["comments"][cid]["comment_text"])
-            tokens.sort()
-            
+
             for token in set(tokens):
-                ii.insert(token, cid)
+                index.insert(token, cid)
 
         cr.close()
-        ii.save()
-        print(ii.terms())
-        
+
 
 
     def loadIndex(self, directory):
@@ -66,6 +81,21 @@ class SearchEngine():
         print(self.search("jobs"))
         print(self.search("Trump"))
         print(self.search("hate"))
+
+
+
+class CustomPpStep(PreprocessorStep):
+
+    def __init__(self):
+        pass
+
+    def process(self, token):
+        return token if not token.startswith("//") else None
+
+    def processAll(self, tokens):
+        return [token for token in tokens if not token.startswith("//")]
+
+        
 
 
 
