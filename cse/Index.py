@@ -36,9 +36,9 @@ class InvertedIndex(object):
     def insert(self, term, documentId):
         pl = self.get(term)
         if not pl:
-            pl = list(documentId)
+            pl = [documentId]
         else:
-            pl = pl.append(documentId)
+            pl.append(documentId)
         pl.sort()
         self.__index[term] = pl
 
@@ -48,6 +48,9 @@ class InvertedIndex(object):
             return self.__index[term]
         except KeyError as ex:
             return None
+
+    def terms(self):
+        return [term for term in self.__index]
 
 
 

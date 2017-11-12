@@ -48,7 +48,7 @@ class SearchEngine():
 
         cr.close()
         ii.save()
-        print(ii)
+        print(ii.terms())
         
 
 

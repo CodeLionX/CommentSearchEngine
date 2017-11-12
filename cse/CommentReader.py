@@ -46,7 +46,7 @@ class CommentReader(object):
 
             commentId = row[0]
             author = row[2]
-            text = row[3]
+            text = row[3].replace("\\n", "\n")
             timestamp = row[4]
             parentId = row[5]
             votes = int(row[6])
