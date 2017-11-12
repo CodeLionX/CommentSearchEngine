@@ -1,3 +1,4 @@
+import os
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.selector import Selector
@@ -30,7 +31,7 @@ class CommentSpider(scrapy.Spider):
         m.update(url.encode('utf-8'))
         filename = m.hexdigest()
 
-        writer = CSVWriter("data/" + filename)
+        writer = CSVWriter(os.path.join("data","raw", filename))
         writer.open()
         writer.printHeader()
         self.__pbs.registerDataListener(writer.printData)
