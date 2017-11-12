@@ -1,6 +1,9 @@
 import abc
+import os
 
 from cse.lang import PreprocessorBuilder
+from cse.Index import (InvertedIndex, Index)
+from cse.CommentReader import CommentReader
 
 class SearchEngine():
 
@@ -17,12 +20,36 @@ class SearchEngine():
         prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
-            .useNltkStopwordList()
+            #.useNltkStopwordList()
             .usePorterStemmer()
             .build()
         )
-        tokens = prep.processText("WordNet® is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. Synsets are interlinked by means of conceptual-semantic and lexical relations. The resulting network of meaningfully related words and concepts can be navigated with the browser. WordNet is also freely and publicly available for download. WordNet’s structure makes it a useful tool for computational linguistics and natural language processing.")
-        print(tokens)
+        #tokens = prep.processText("WordNet® is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. Synsets are interlinked by means of conceptual-semantic and lexical relations. The resulting network of meaningfully related words and concepts can be navigated with the browser. WordNet is also freely and publicly available for download. WordNet’s structure makes it a useful tool for computational linguistics and natural language processing.")
+        #print(tokens)
+
+        # lookup random articles file id
+        index = Index()
+        index.loadJson("data/index.json")
+        randomCid = index.listCids()[0:1][0]
+        filename = index.get(randomCid)["fileId"]
+
+        # open this file and create inverted index object
+        ii = InvertedIndex("data/invertedIndex.json")
+        cr = CommentReader(os.path.join("data", "raw", filename))
+        cr.open()
+        fileData = cr.readData()
+
+        for cid in fileData["comments"]:
+            tokens = prep.processText(fileData["comments"][cid]["comment_text"])
+            tokens.sort()
+            
+            for token in set(tokens):
+                ii.insert(token, cid)
+
+        cr.close()
+        ii.save()
+        print(ii)
+        
 
 
     def loadIndex(self, directory):
@@ -44,3 +71,5 @@ class SearchEngine():
 
 #searchEngine = SearchEngine()
 #searchEngine.printAssignment2QueryResults()
+se = SearchEngine()
+se.index("")
