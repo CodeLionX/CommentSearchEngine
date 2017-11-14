@@ -19,6 +19,7 @@ class InvertedIndex(object):
     
         with open(self.__indexFile, 'r', newline='') as file:
             self.__index = Util.fromJsonString(file.read())
+        return self
         
 
     def save(self):
@@ -106,6 +107,7 @@ class Index(object):
         
         with open(filepath, 'r', newline='') as file:
             self.__index = Util.fromJsonString(file.read())
+        return self
 
 
     def insert(self, cid, data):

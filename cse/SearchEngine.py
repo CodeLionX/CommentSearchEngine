@@ -6,19 +6,24 @@ from cse.lang.PreprocessorStep import PreprocessorStep
 from cse.Index import (InvertedIndex, Index)
 from cse.CommentReader import CommentReader
 
+
 class SearchEngine():
 
-    def index(self, directory):
-        # preprocessing
-        # - to lower case
-        # - tokenization (remove punctuation)
-        # - remove stopwords (https://github.com/igorbrigadir/stopwords)
-        # - stemming (porter(2), porter very fast python wrapper: https://github.com/shibukawa/snowball_py) or lemmatization (i dont think we need this)
+    """
+    preprocessing
+    - to lower case
+    - tokenization (remove punctuation)
+    - remove stopwords (https://github.com/igorbrigadir/stopwords)
+    - stemming (porter(2), porter very fast python wrapper: https://github.com/shibukawa/snowball_py)
+      or lemmatization (i dont think we need this)
 
-        # see: http://whoosh.readthedocs.io/en/latest/stemming.html (stemming from whoosh in separate package: https://pypi.python.org/pypi/stemming/1.0)
+    see: http://whoosh.readthedocs.io/en/latest/stemming.html (stemming from whoosh in separate package: https://pypi.python.org/pypi/stemming/1.0)
+    """
+    __prep = None
 
-        # with nltk:
-        prep = (
+
+    def __init__(self):
+        self.__prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
             .useNltkStopwordList()
@@ -26,39 +31,43 @@ class SearchEngine():
             .addCustomStepToEnd(CustomPpStep())
             .build()
         )
-        #tokens = prep.processText("WordNet® is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. Synsets are interlinked by means of conceptual-semantic and lexical relations. The resulting network of meaningfully related words and concepts can be navigated with the browser. WordNet is also freely and publicly available for download. WordNet’s structure makes it a useful tool for computational linguistics and natural language processing.")
-        #print(tokens)
 
-        # lookup for articles file ids
+
+    def index(self, directory):
+        # lookup for article file ids
         index = Index()
-        index.loadJson("data/index.json")
+        index.loadJson(os.path.join(directory, "index.json"))
 
         # to be created inverted index
-        ii = InvertedIndex("data/invertedIndex.json")
+        ii = InvertedIndex(os.path.join(directory, "invertedIndex.json"))
 
         # for just one article
+        """
         randomCid = index.listCids()[0:1][0]
         filename = index.get(randomCid)["fileId"]
         self.__createIndexForArticle(ii, prep, filename)
         ii.save()
-
-        # for all article
         """
+
+        # for all articles
+        filenames = []
         for cid in index.listCids():
-            filename = index.get(cid)["fileId"]
+            filenames.append(index.get(cid)["fileId"])
+
+        for filename in set(filenames):
             print("Processing file", filename)
-            self.__createIndexForArticle(ii, prep, filename)
+            self.__createIndexForArticle(ii, filename)
+
         ii.save()
-        """
 
 
-    def __createIndexForArticle(self, index, prep, filename):
+    def __createIndexForArticle(self, index, filename):
         cr = CommentReader(os.path.join("data", "raw", filename))
         cr.open()
         fileData = cr.readData()
 
         for cid in fileData["comments"]:
-            tokens = prep.processText(fileData["comments"][cid]["comment_text"])
+            tokens = self.__prep.processText(fileData["comments"][cid]["comment_text"])
 
             for token in set(tokens):
                 index.insert(token, cid)
@@ -68,19 +77,56 @@ class SearchEngine():
 
 
     def loadIndex(self, directory):
-        pass
+        return InvertedIndex(os.path.join(directory, "InvertedIndex.json")).load()
 
 
     def search(self, query):
+        print("\n\n##### query for", query)
+        ii = self.loadIndex("data")
+        queryTerms = self.__prep.processText(query)
+
+        # assume multiple tokens in query are combined with OR operator
+        allCids = []
+        for term in queryTerms:
+            cids = ii.get(term)
+            if cids and len(cids) > 0:
+                for cid in cids:
+                    allCids.append(cid)
+
+        #print("found", len(allCids), "documents")
+
+        # read info from files
+        index = Index().loadJson(os.path.join("data", "index.json"))
+        fileIdCids = {}
+        for cid in allCids:
+            meta = index.get(cid)
+            if meta["fileId"] not in fileIdCids:
+                fileIdCids[meta["fileId"]] = []
+            fileIdCids[meta["fileId"]].append(cid)
+
+        #print("distributed in", len(fileIdCids), "files")
+
+        # get comments
         results = []
+        for fileId in fileIdCids:
+            #print("  processing file", fileId)
+            cr = CommentReader(os.path.join("data", "raw", fileId))
+            cr.open()
+            fileData = cr.readData()
+
+            for cid in fileData["comments"]:
+                if(cid in set(fileIdCids[fileId])):
+                    results.append(fileData["comments"][cid]["comment_text"])
+
+            cr.close()
         return results
 
 
     def printAssignment2QueryResults(self):
-        print(self.search("October"))
-        print(self.search("jobs"))
-        print(self.search("Trump"))
-        print(self.search("hate"))
+        print(self.search("October")[:5])
+        print(self.search("jobs")[:5])
+        print(self.search("Trump")[:5])
+        print(self.search("hate")[:5])
 
 
 
@@ -102,4 +148,5 @@ class CustomPpStep(PreprocessorStep):
 #searchEngine = SearchEngine()
 #searchEngine.printAssignment2QueryResults()
 se = SearchEngine()
-se.index("")
+#se.index("data")
+se.printAssignment2QueryResults()
