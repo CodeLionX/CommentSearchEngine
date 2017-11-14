@@ -1,10 +1,8 @@
-import scrapy
-from scrapy.crawler import CrawlerProcess
-from scrapy.selector import Selector
+import os
 import re
-import json
-from pprint import pprint
-import hashlib
+import scrapy
+from scrapy.selector import Selector
+from scrapy import signals
 
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.CSVWriter import CSVWriter
@@ -12,34 +10,44 @@ from cse.CSVWriter import CSVWriter
 class CommentSpider(scrapy.Spider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
-    urls = [['https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html'],
-            ['https://www.washingtonpost.com/politics/japanese-leader-shinzo-abe-plays-the-role-of-trumps-loyal-sidekick/2017/11/06/cc23dcae-c2f1-11e7-afe9-4f60b5a6c4a0_story.html'],
-            ['http://www.washingtonpost.com/news/the-fix/wp/2017/11/03/trumps-latest-target-the-diversity-visa-program-wasnt-always-aimed-at-achieving-diversity/']
+    urls = [
+        ['https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html'],
+        ['https://www.washingtonpost.com/politics/japanese-leader-shinzo-abe-plays-the-role-of-trumps-loyal-sidekick/2017/11/06/cc23dcae-c2f1-11e7-afe9-4f60b5a6c4a0_story.html'],
+        ['http://www.washingtonpost.com/news/the-fix/wp/2017/11/03/trumps-latest-target-the-diversity-visa-program-wasnt-always-aimed-at-achieving-diversity/']
     ]
 
     __pbs = None
+    __writer = None
 
 
     def __init__(self):
         self.__pbs = PipelineBootstrap()
         self.__pbs.setupPipeline()
+        self.__setupFileWriter("comments.csv")
 
 
-    def __setupFileWriter(self, url):
-        m = hashlib.sha256()
-        m.update(url.encode('utf-8'))
-        filename = m.hexdigest()
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(CommentSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
 
-        writer = CSVWriter("data/" + filename)
+
+    def __setupFileWriter(self, filename):
+        writer = CSVWriter(os.path.join("data", filename))
         writer.open()
         writer.printHeader()
         self.__pbs.registerDataListener(writer.printData)
-        return writer
+        self.__writer = writer
 
 
-    def __teardownFileWriter(self, writer):
-        self.__pbs.unregisterDataListener(writer.printData)
-        writer.close()
+    def __teardownFileWriter(self):
+        self.__pbs.unregisterDataListener(self.__writer.printData)
+        self.__writer.close()
+
+
+    def spider_closed(self, spider):
+        self.__teardownFileWriter()
 
 
     def start_requests(self):
@@ -58,9 +66,8 @@ class CommentSpider(scrapy.Spider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
         url = url[0]
 
-        writer = self.__setupFileWriter(url)
+        
         self.__pbs.crawlComments(url)
-        self.__teardownFileWriter(writer)
 
 
         """
