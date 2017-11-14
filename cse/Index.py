@@ -46,7 +46,7 @@ class InvertedIndex(object):
     def get(self, term):
         try:
             return self.__index[term]
-        except KeyError as ex:
+        except KeyError:
             return None
 
 
