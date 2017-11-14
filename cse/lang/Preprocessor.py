@@ -28,3 +28,10 @@ class Preprocessor(object):
         ###### which way is faster?
 
         return tokens
+
+    def processToken(self, token):
+        res = token
+        for step in self.__steps:
+            res = step.process(res)
+
+        return res

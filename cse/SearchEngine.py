@@ -34,13 +34,17 @@ class SearchEngine():
         index.loadJson("data/index.json")
 
         # to be created inverted index
-        ii = InvertedIndex("data/invertedIndex.json")
+        ii = InvertedIndex("data")
+        ii.open()
 
         # for just one article
         randomCid = index.listCids()[0:1][0]
         filename = index.get(randomCid)["fileId"]
         self.__createIndexForArticle(ii, prep, filename)
-        ii.save()
+
+        query = prep.processToken("hate")
+        print("hate", ii.get(query))
+        ii.close()
 
         # for all article
         """
