@@ -1,5 +1,6 @@
 import abc
 import os
+import pprint
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
@@ -81,7 +82,6 @@ class SearchEngine():
 
 
     def search(self, query):
-        print("\n\n##### query for", query)
         ii = self.loadIndex("data")
         queryTerms = self.__prep.processText(query)
 
@@ -119,15 +119,20 @@ class SearchEngine():
                     results.append(fileData["comments"][cid]["comment_text"])
 
             cr.close()
+        
+        print("\n\n##### query for", query, ", comments found:", len(results))
         return results
 
 
     def printAssignment2QueryResults(self):
-        print(self.search("October")[:5])
-        print(self.search("jobs")[:5])
-        print(self.search("Trump")[:5])
-        print(self.search("hate")[:5])
+        print(prettyPrint(self.search("October")[:5]))
+        print(prettyPrint(self.search("jobs")[:5]))
+        print(prettyPrint(self.search("Trump")[:5]))
+        print(prettyPrint(self.search("hate")[:5]))
 
+
+def prettyPrint(l):
+    return "\t" + "\n\t".join([t.replace("\n", "\\n") for t in l])
 
 
 class CustomPpStep(PreprocessorStep):
