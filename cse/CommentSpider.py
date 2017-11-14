@@ -1,13 +1,11 @@
-import scrapy
-from scrapy.crawler import CrawlerProcess
-from scrapy.selector import Selector
+import os
 import re
-import json
-from pprint import pprint
+import scrapy
+from scrapy.selector import Selector
+from scrapy import signals
 
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.CSVWriter import CSVWriter
-from cse.util import Util
 
 class CommentSpider(scrapy.Spider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
@@ -19,26 +17,37 @@ class CommentSpider(scrapy.Spider):
     ]
 
     __pbs = None
+    __writer = None
 
 
     def __init__(self):
         self.__pbs = PipelineBootstrap()
         self.__pbs.setupPipeline()
+        self.__setupFileWriter("comments.csv")
 
 
-    def __setupFileWriter(self, url):
-        filename = Util.sha256(url)
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(CommentSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
 
-        writer = CSVWriter("data/" + filename)
+
+    def __setupFileWriter(self, filename):
+        writer = CSVWriter(os.path.join("data", filename))
         writer.open()
         writer.printHeader()
         self.__pbs.registerDataListener(writer.printData)
-        return writer
+        self.__writer = writer
 
 
-    def __teardownFileWriter(self, writer):
-        self.__pbs.unregisterDataListener(writer.printData)
-        writer.close()
+    def __teardownFileWriter(self):
+        self.__pbs.unregisterDataListener(self.__writer.printData)
+        self.__writer.close()
+
+
+    def spider_closed(self, spider):
+        self.__teardownFileWriter()
 
 
     def start_requests(self):
@@ -57,9 +66,8 @@ class CommentSpider(scrapy.Spider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
         url = url[0]
 
-        writer = self.__setupFileWriter(url)
+        
         self.__pbs.crawlComments(url)
-        self.__teardownFileWriter(writer)
 
 
         """
