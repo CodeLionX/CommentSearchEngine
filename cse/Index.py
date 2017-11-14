@@ -1,16 +1,65 @@
 import os
-import csv
-import pandas as pd
 from pandas.io import pickle
 from cse.util import Util
 
 
+class PostingListIndex(object):
+
+
+    __pl = None
+    __margin = 300
+    __cidSize = 0
+    __numCids = 0
+
+
+    def __init__(self, cidSize=85): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
+        self.__pl = dict()
+        self.__cidSize = cidSize
+        self.__numCids = 0
+
+
+    def retrieve(self, line):
+        if line not in self.__pl:
+            return None
+        return self.__pl[line]
+
+
+    def insert(self, line, cid):
+        if line not in self.__pl:
+            self.__pl[line] = []
+        self.__pl[line].append(cid)
+        self.__pl[line].sort()
+        self.__numCids = self.__numCids + 1
+
+
+    def __getitem__(self, key):
+        value = self.retrieve(key)
+        if not value:
+            raise KeyError
+
+
+    def __setitem__(self, key, value):
+        self.insert(key, value)
+
+
+    def __iter__(self):
+        return self.__pl.__iter__()
+
+
+    def __contains__(self, item):
+        return self.__pl.__contains__(item)
+
+
+    def __sizeof__(self):
+        from sys import getsizeof
+        return (getsizeof(self.__pl)
+                + self.__cidSize * self.__numCids
+                + self.__margin)
+
+
+
 class InvertedIndex(object):
 
-    """
-    Dictionary (in memory)
-    Structure: Term -> Postinglist Line Number
-    """
     __dictionary = None
     """
     Inverted Index (on disk)
@@ -18,28 +67,20 @@ class InvertedIndex(object):
     """
     __postingList = None
     __postingListFilename = ""
-    __indexFilename = ""
 
 
     def __init__(self, filepath):
-        self.__indexFilename = os.path.join(filepath, "dictionary.index")
+        self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
         self.__postingListFilename = os.path.join(filepath, "pl.index")
 
 
     def open(self):
-        if not os.path.exists(os.path.dirname(self.__indexFilename)) or not os.path.exists(os.path.dirname(self.__postingListFilename)):
+        if not os.path.exists(os.path.dirname(self.__postingListFilename)):
             try:
-                os.makedirs(os.path.dirname(self.__indexFilename))
+                os.makedirs(os.path.dirname(self.__postingListFilename))
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
-
-        if not os.path.exists(self.__indexFilename):
-            print("dictionary file not available...creating new dictionary")
-            self.__dictionary = dict()
-        else:
-            with open(self.__indexFilename, 'r', newline='', encoding="utf-8") as file:
-                self.__dictionary = Util.fromJsonString(file.read())
 
         if not os.path.exists(self.__postingListFilename):
             print("postinglist file not available...creating file")
@@ -47,21 +88,8 @@ class InvertedIndex(object):
         self.__postingList = open(self.__postingListFilename, 'r+', newline='', encoding="utf-8")
 
 
-    def save(self):
-        if not os.path.exists(os.path.dirname(self.__indexFilename)):
-            try:
-                os.makedirs(os.path.dirname(self.__indexFilename))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-
-        with open(self.__indexFilename, 'w', newline='', encoding="utf-8") as file:
-            file.write(Util.toJsonString(self.__dictionary))
-
-
     def close(self):
-        self.save()
+        self.__dictionary.save()
         self.__postingList.close()
 
 
@@ -129,99 +157,68 @@ class InvertedIndex(object):
 
 
 
-class Index(object):
-
-    __index = dict()
-
-
-    def __init__(self):
-        pass
-
-
-    def saveCsv(self, filepath):
-        if not os.path.exists(os.path.dirname(filepath)):
-            try:
-                os.makedirs(os.path.dirname(filepath))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-        index = open(filepath, 'w', newline='')
-        writer = csv.writer(index)
-
-        # write header
-        writer.writerow(["cid", "fileId", "articleId", "articleUrl"])
-
-        # write index
-        for record in self.__index:
-            writer.writerow([
-                str(record["cid"]),
-                str(record["fileId"]),
-                str(record["articleId"]),
-                record["articleUrl"]
-            ])
-
-
-    def saveJson(self, filepath):
-        if not os.path.exists(os.path.dirname(filepath)):
-            try:
-                os.makedirs(os.path.dirname(filepath))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-        with open(filepath, 'w', newline='') as file:
-            file.write(Util.toJsonString(self.__index))
-
-
-    def loadJson(self, filepath):
-        if not os.path.exists(os.path.dirname(filepath)):
-                raise Exception("file not found:" + filepath)
-        
-        with open(filepath, 'r', newline='') as file:
-            self.__index = Util.fromJsonString(file.read())
-
-
-    def insert(self, cid, data):
-        self.__index[cid] = data
-
-
-    def get(self, cid):
-        try:
-            return self.__index[cid]
-        except KeyError as ex:
-            print("key " + cid + " not found in Index: " + ex)
-            return None
-
-
-    def listCids(self):
-        return [cid for cid in self.__index]
-
-
-
+"""
+Dictionary (in memory)
+Structure: Term -> Postinglist Line Number (referred to as pointer)
 """
 class Dictionary(object):
 
-    __dict = dict()
 
-    def __init__(self):
-        pass
+    __filename = ""
+    __dictionary = None
 
-    @staticmethod
-    def termDescriptorEncode(term, postinglistPointer):
-        return {
-            "term": term,
-            "postinglistPointer": postinglistPointer
-        }
 
-    @staticmethod
-    def termDescriptorDecode(termDescriptor):
-        return (termDescriptor["term"], termDescriptor["postinglistPointer"])
+    def __init__(self, filename):
+        self.__filename = filename
+        self.__open()
 
-    def load(self):
-        pass
 
+    def __open(self):
+        if not os.path.exists(os.path.dirname(self.__filename)):
+            try:
+                os.makedirs(os.path.dirname(self.__filename))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+
+        if not os.path.exists(self.__filename):
+            print("dictionary file not available...creating new dictionary in-memory, " +
+                  "call save() to save to disk!")
+            self.__dictionary = dict()
+        else:
+            with open(self.__filename, 'r', newline='', encoding="utf-8") as file:
+                self.__dictionary = Util.fromJsonString(file.read())
+
+
+    def close(self): self.save()
     def save(self):
-        pass
+        with open(self.__filename, 'w', newline='', encoding="utf-8") as file:
+            file.write(Util.toJsonString(self.__dictionary))
 
-"""  
+
+    def retrieve(self, term):
+        if term not in self.__dictionary:
+            return None
+        return self.__dictionary[term]
+
+
+    def insert(self, term, pointer):
+        self.__dictionary[term] = pointer
+
+
+    def __getitem__(self, key):
+        value = self.retrieve(key)
+        if not value:
+            raise KeyError
+
+
+    def __setitem__(self, key, value):
+        self.insert(key, value)
+
+
+    def __iter__(self):
+        return self.__dictionary.__iter__()
+
+
+    def __contains__(self, item):
+        return self.__dictionary.__contains__(item)
