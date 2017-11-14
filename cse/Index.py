@@ -3,9 +3,12 @@ from pandas.io import pickle
 from cse.util import Util
 
 
-class PostingListIndex(object):
+class DeltaPostingListIndex(object):
 
-
+    """
+    Inverted Index (delta - in memory)
+    Structure: Line Number in File -> Posting List
+    """
     __pl = None
     __margin = 300
     __cidSize = 0
@@ -13,9 +16,15 @@ class PostingListIndex(object):
 
 
     def __init__(self, cidSize=85): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
-        self.__pl = dict()
+        self.__pl = {}
         self.__cidSize = cidSize
         self.__numCids = 0
+
+
+    def close(self): self.save()
+    def save(self):
+        raise NotImplementedError
+        # TODO
 
 
     def retrieve(self, line):
@@ -32,10 +41,15 @@ class PostingListIndex(object):
         self.__numCids = self.__numCids + 1
 
 
+    def estimatedSize(self):
+        return self.__sizeof__()
+
+
     def __getitem__(self, key):
         value = self.retrieve(key)
-        if not value:
+        if value is None:
             raise KeyError
+        return value
 
 
     def __setitem__(self, key, value):
@@ -58,102 +72,146 @@ class PostingListIndex(object):
 
 
 
-class InvertedIndex(object):
+class MainPostingListIndex(object):
 
-    __dictionary = None
-    """
-    Inverted Index (on disk)
-    Structure: Line Number in File -> Posting List
-    """
-    __postingList = None
-    __postingListFilename = ""
+    __postingLists = None
+    __postingListsFilename = ""
 
 
-    def __init__(self, filepath):
-        self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__postingListFilename = os.path.join(filepath, "pl.index")
+    def __init__(self, filename):
+        self.__postingListsFilename = filename
+        self.__open()
 
 
-    def open(self):
-        if not os.path.exists(os.path.dirname(self.__postingListFilename)):
+    def __open(self):
+        if not os.path.exists(os.path.dirname(self.__postingListsFilename)):
             try:
-                os.makedirs(os.path.dirname(self.__postingListFilename))
+                os.makedirs(os.path.dirname(self.__postingListsFilename))
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
 
-        if not os.path.exists(self.__postingListFilename):
+        if not os.path.exists(self.__postingListsFilename):
             print("postinglist file not available...creating file")
-            os.mknod(self.__postingListFilename)
-        self.__postingList = open(self.__postingListFilename, 'r+', newline='', encoding="utf-8")
+            os.mknod(self.__postingListsFilename)
+        self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
+
+
+    def close(self): self.save()
+    def save(self):
+        self.__postingLists.close()
+
+
+    def retrieve(self, line):
+        self.__postingLists.seek(0)
+        for i, pl in enumerate(self.__postingLists):
+            if i == line:
+                return list(pl.split(","))
+        return None
+
+
+    def estimatedSize(self):
+        return self.__sizeof__()
+
+
+    def __getitem__(self, key):
+        value = self.retrieve(key)
+        if value is None:
+            raise KeyError
+        return value
+
+
+    def __iter__(self):
+        return enumerate(self.__postingLists)
+
+
+
+class InvertedIndex(object):
+
+
+    __dictionary = None
+    __dIndex = None
+    __mIndex = None
+    __calls = 0
+
+
+    def __init__(self, filepath):
+        self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
+        self.__dIndex = DeltaPostingListIndex()
+        self.__mIndex = MainPostingListIndex(os.path.join(filepath, "postingLists.index"))
+        self.__calls = 0
 
 
     def close(self):
-        self.__dictionary.save()
-        self.__postingList.close()
+        self.deltaMerge()
+        self.__dictionary.close()
+        self.__dIndex.close()
+        self.__mIndex.close()
 
 
     def insert(self, term, documentId):
         if term in self.__dictionary:
             pointer = self.__dictionary[term]
-            self.__addToPl(pointer, documentId)
         else:
-            pointer = self.__insertPl([documentId])
+            pointer = self.__dictionary.nextFreeLinePointer()
             self.__dictionary[term] = pointer
+
+        self.__dIndex.insert(pointer, documentId)
+
+        if self.__calls % (1000 * 10) == 0:
+            # check memory usage
+            if self.__dIndex.estimatedSize() > (100 * 1024*1024):
+                print("!! delta merge !!")
+                self.deltaMerge()
+                self.__calls = -1
+
+        self.__calls = self.__calls + 1
+            
 
 
     def get(self, term):
-        try:
-            return self.__lookupPl(self.__dictionary[term])
-        except KeyError:
-            return None
+        if term not in self.__dictionary:
+            raise KeyError
+        pointer = self.__dictionary[term]
+
+        #TODO
 
 
     def terms(self):
         return [term for term in self.__dictionary]
 
 
-    def __lookupPl(self, line):
-        self.__postingList.seek(0)
-        for i, pl in enumerate(self.__postingList):
-            if i == line:
-                return list(pl.split(","))
+    def deltaMerge(self):
+        pass#raise NotImplementedError
 
 
-    def __addToPl(self, line, cid):
-        """
-        self.__postingList.seek(0)
-        for i, pl in enumerate(self.__postingList):
-            if i == line:
-                # unsorted!!
-                self.__postingList.write(",".join([pl, cid])) # i guess this will overwrite existing postinglist in the following line
-        """
-        
-        from tempfile import mkstemp
-        from shutil import move
-        from os import remove
 
-        self.__postingList.close()
-        sh, targetPath = mkstemp()
-        with open(targetPath, 'w') as target_file:
-            with open(self.__postingListFilename, 'r') as source_file:
-                for i, pl in enumerate(source_file):
-                    if i == line:
-                        target_file.write(",".join([pl, cid]) + "\n")
-                    else:
-                        target_file.write(pl)
-        remove(self.__postingListFilename)
-        move(targetPath, self.__postingListFilename)
-        self.__postingList = open(self.__postingListFilename, 'r+', newline='', encoding="utf-8")
+"""
+def __addToPl(self, line, cid):
+    
+    self.__postingList.seek(0)
+    for i, pl in enumerate(self.__postingList):
+        if i == line:
+            # unsorted!!
+            self.__postingList.write(",".join([pl, cid])) # i guess this will overwrite existing postinglist in the following line
+    
+    from tempfile import mkstemp
+    from shutil import move
+    from os import remove
 
-
-    def __insertPl(self, cidList):
-        self.__postingList.seek(0)
-        line = 0
-        for i, pl in enumerate(self.__postingList):
-            line = i
-        self.__postingList.write(",".join(cidList) + "\n")
-        return line + 1
+    self.__postingList.close()
+    sh, targetPath = mkstemp()
+    with open(targetPath, 'w') as target_file:
+        with open(self.__postingListFilename, 'r') as source_file:
+            for i, pl in enumerate(source_file):
+                if i == line:
+                    target_file.write(",".join([pl, cid]) + "\n")
+                else:
+                    target_file.write(pl)
+    remove(self.__postingListFilename)
+    move(targetPath, self.__postingListFilename)
+    self.__postingList = open(self.__postingListFilename, 'r+', newline='', encoding="utf-8")
+"""
 
 
 
@@ -166,11 +224,13 @@ class Dictionary(object):
 
     __filename = ""
     __dictionary = None
+    __nextPointerCache = 0
 
 
     def __init__(self, filename):
         self.__filename = filename
         self.__open()
+        self.__nextPointerCache = max(self.__dictionary.values(), default = -1) + 1
 
 
     def __open(self):
@@ -184,7 +244,7 @@ class Dictionary(object):
         if not os.path.exists(self.__filename):
             print("dictionary file not available...creating new dictionary in-memory, " +
                   "call save() to save to disk!")
-            self.__dictionary = dict()
+            self.__dictionary = {}
         else:
             with open(self.__filename, 'r', newline='', encoding="utf-8") as file:
                 self.__dictionary = Util.fromJsonString(file.read())
@@ -197,28 +257,65 @@ class Dictionary(object):
 
 
     def retrieve(self, term):
-        if term not in self.__dictionary:
+        if str(term) not in self.__dictionary:
             return None
-        return self.__dictionary[term]
+        return int(self.__dictionary[term])
 
 
     def insert(self, term, pointer):
-        self.__dictionary[term] = pointer
+        self.__dictionary[str(term)] = int(pointer)
+
+
+    def nextFreeLinePointer(self):
+        nextPointer = self.__nextPointerCache
+        self.__nextPointerCache = self.__nextPointerCache + 1
+        return nextPointer
 
 
     def __getitem__(self, key):
         value = self.retrieve(key)
-        if not value:
+        if value is None:
             raise KeyError
+        return value
 
 
     def __setitem__(self, key, value):
         self.insert(key, value)
 
 
+    def iterkeys(self): self.__iter__()
     def __iter__(self):
         return self.__dictionary.__iter__()
 
 
     def __contains__(self, item):
-        return self.__dictionary.__contains__(item)
+        return self.__dictionary.__contains__(str(item))
+
+
+if __name__ == '__main__':
+    d = Dictionary(os.path.join("data", "dictionary.index"))
+
+    if "hello" in d:
+        pointer = d["hello"]
+    else:
+        pointer = 2
+        d["hello"] = pointer
+    print(d["hello"])
+
+    if "hello" in d:
+        pointer = d["hello"]
+    else:
+        pointer = 3
+        d["hello"] = pointer
+    print(d["hello"])
+
+    i = DeltaPostingListIndex()
+    i.insert(2, "cid1")
+    cid = i.retrieve(2)
+    print(cid)
+    i[5] = "cid2"
+    i[5] = "cid3"
+    print(i[5])
+    print(list(i))
+    print(5 in i)
+    print(6 in i)

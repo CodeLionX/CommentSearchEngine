@@ -37,15 +37,14 @@ class SearchEngine():
 
         # to be created inverted index
         ii = InvertedIndex("data")
-        ii.open()
 
         # for just one article
         randomCid = index.listCids()[0:1][0]
         filename = index.get(randomCid)["fileId"]
         self.__createIndexForArticle(ii, prep, filename)
 
-        query = prep.processToken("hate")
-        print("hate", ii.get(query))
+        #query = prep.processToken("hate")
+        #print("hate", ii.get(query))
         ii.close()
 
         # for all article
@@ -104,8 +103,8 @@ class CustomPpStep(PreprocessorStep):
         
 
 
-
-#searchEngine = SearchEngine()
-#searchEngine.printAssignment2QueryResults()
-se = SearchEngine()
-se.index("")
+if __name__ == '__main__':
+    #searchEngine = SearchEngine()
+    #searchEngine.printAssignment2QueryResults()
+    se = SearchEngine()
+    se.index("")
