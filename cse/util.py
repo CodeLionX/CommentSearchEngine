@@ -19,3 +19,11 @@ class Util(object):
         return json.loads(s,
             encoding='UTF-8'
         )
+
+    @staticmethod
+    def sha256(s):
+        import hashlib
+
+        m = hashlib.sha256()
+        m.update(s.encode('utf-8'))
+        return m.hexdigest()

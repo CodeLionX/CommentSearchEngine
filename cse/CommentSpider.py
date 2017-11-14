@@ -4,17 +4,18 @@ from scrapy.selector import Selector
 import re
 import json
 from pprint import pprint
-import hashlib
 
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.CSVWriter import CSVWriter
+from cse.util import Util
 
 class CommentSpider(scrapy.Spider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
-    urls = [['https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html'],
-            ['https://www.washingtonpost.com/politics/japanese-leader-shinzo-abe-plays-the-role-of-trumps-loyal-sidekick/2017/11/06/cc23dcae-c2f1-11e7-afe9-4f60b5a6c4a0_story.html'],
-            ['http://www.washingtonpost.com/news/the-fix/wp/2017/11/03/trumps-latest-target-the-diversity-visa-program-wasnt-always-aimed-at-achieving-diversity/']
+    urls = [
+        ['https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html'],
+        ['https://www.washingtonpost.com/politics/japanese-leader-shinzo-abe-plays-the-role-of-trumps-loyal-sidekick/2017/11/06/cc23dcae-c2f1-11e7-afe9-4f60b5a6c4a0_story.html'],
+        ['http://www.washingtonpost.com/news/the-fix/wp/2017/11/03/trumps-latest-target-the-diversity-visa-program-wasnt-always-aimed-at-achieving-diversity/']
     ]
 
     __pbs = None
@@ -26,9 +27,7 @@ class CommentSpider(scrapy.Spider):
 
 
     def __setupFileWriter(self, url):
-        m = hashlib.sha256()
-        m.update(url.encode('utf-8'))
-        filename = m.hexdigest()
+        filename = Util.sha256(url)
 
         writer = CSVWriter("data/" + filename)
         writer.open()
