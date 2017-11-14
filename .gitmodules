@@ -1,0 +1,3 @@
+[submodule "deployment/testing_environment/modules/stdlib"]
+	path = deployment/testing_environment/modules/stdlib
+	url = https://github.com/puppetlabs/puppetlabs-stdlib.git
