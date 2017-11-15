@@ -104,11 +104,11 @@ class MainPostingListIndex(object):
 
 
     def __decodePlLine(self, line):
-        return list(line.split(","))
+        return list(line.replace("\n", "").split(","))
 
 
     def __encodePlLine(self, pl):
-        return ",".join(pl)
+        return ",".join(pl) + "\n"
 
 
     def close(self): self.save()
@@ -128,15 +128,17 @@ class MainPostingListIndex(object):
         return self.__sizeof__()
 
 
-    def mergeDeltaIndex(self, dIndex):
+    def mergeInDeltaIndex(self, dIndex):
         self.__postingLists.seek(0)
         sh, tempFilePath = mkstemp()
         with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
             for i, line in enumerate(self.__postingLists):
-                pl = self.__decodePlLine(line)
                 if i in dIndex:
+                    pl = self.__decodePlLine(line)
                     pl.append(dIndex[i])
-                tempFile.write(self.__encodePlLine + "\n")
+                    tempFile.write(self.__encodePlLine(pl))
+                else:
+                    tempFile.write(line)
 
         self.__postingLists.close()
         del self.__postingLists
