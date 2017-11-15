@@ -1,5 +1,7 @@
 import os
-from pandas.io import pickle
+from os import remove
+from tempfile import mkstemp
+from shutil import move
 from cse.util import Util
 
 
@@ -43,6 +45,10 @@ class DeltaPostingListIndex(object):
 
     def estimatedSize(self):
         return self.__sizeof__()
+
+
+    def lines(self):
+        return self.__pl.keys()
 
 
     def __getitem__(self, key):
@@ -97,6 +103,14 @@ class MainPostingListIndex(object):
         self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
 
 
+    def __decodePlLine(self, line):
+        return list(line.split(","))
+
+
+    def __encodePlLine(self, pl):
+        return ",".join(pl)
+
+
     def close(self): self.save()
     def save(self):
         self.__postingLists.close()
@@ -106,12 +120,29 @@ class MainPostingListIndex(object):
         self.__postingLists.seek(0)
         for i, pl in enumerate(self.__postingLists):
             if i == line:
-                return list(pl.split(","))
+                return self.__decodePlLine(pl)
         return None
 
 
     def estimatedSize(self):
         return self.__sizeof__()
+
+
+    def mergeDeltaIndex(self, dIndex):
+        self.__postingLists.seek(0)
+        sh, tempFilePath = mkstemp()
+        with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
+            for i, line in enumerate(self.__postingLists):
+                pl = self.__decodePlLine(line)
+                if i in dIndex:
+                    pl.append(dIndex[i])
+                tempFile.write(self.__encodePlLine + "\n")
+
+        self.__postingLists.close()
+        del self.__postingLists
+        remove(self.__postingListsFilename)
+        move(tempFilePath, self.__postingListsFilename)
+        self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
 
 
     def __getitem__(self, key):
@@ -182,7 +213,9 @@ class InvertedIndex(object):
 
 
     def deltaMerge(self):
-        pass#raise NotImplementedError
+
+
+        raise NotImplementedError
 
 
 
