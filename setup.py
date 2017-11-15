@@ -66,7 +66,10 @@ setup(
         'requests',
         'scrapy>=1.4.0',
         'nltk>=3.2.0',
-        'cffi>=1.7'
+        #'pandas>=0.21.0',
+        # additional
+        'cffi>=1.7',
+        'cryptography>=2.1.3'
     ],
 
     # packages

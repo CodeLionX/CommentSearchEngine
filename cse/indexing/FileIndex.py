@@ -1,64 +1,14 @@
 import os
 import csv
+
 from cse.util import Util
 
 
-class InvertedIndex(object):
 
-    __index = dict()
-    __indexFile = ""
+class FileIndex(object):
 
 
-    def __init__(self, filepath):
-        self.__indexFile = filepath
-
-
-    def load(self):
-        if not os.path.exists(os.path.dirname(self.__indexFile)):
-            raise Exception("file not found!")
-    
-        with open(self.__indexFile, 'r', newline='') as file:
-            self.__index = Util.fromJsonString(file.read())
-        return self
-        
-
-    def save(self):
-        if not os.path.exists(os.path.dirname(self.__indexFile)):
-            try:
-                os.makedirs(os.path.dirname(self.__indexFile))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-        with open(self.__indexFile, 'w', newline='') as file:
-            file.write(Util.toJsonString(self.__index))
-
-
-    def insert(self, term, documentId):
-        pl = self.get(term)
-        if not pl:
-            pl = [documentId]
-        else:
-            pl.append(documentId)
-        pl.sort()
-        self.__index[term] = pl
-
-
-    def get(self, term):
-        try:
-            return self.__index[term]
-        except KeyError:
-            return None
-
-
-    def terms(self):
-        return [term for term in self.__index]
-
-
-
-class Index(object):
-
-    __index = dict()
+    __index = {}
 
 
     def __init__(self):
@@ -124,32 +74,3 @@ class Index(object):
 
     def listCids(self):
         return [cid for cid in self.__index]
-
-
-
-"""
-class Dictionary(object):
-
-    __dict = dict()
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def termDescriptorEncode(term, postinglistPointer):
-        return {
-            "term": term,
-            "postinglistPointer": postinglistPointer
-        }
-
-    @staticmethod
-    def termDescriptorDecode(termDescriptor):
-        return (termDescriptor["term"], termDescriptor["postinglistPointer"])
-
-    def load(self):
-        pass
-
-    def save(self):
-        pass
-
-"""  

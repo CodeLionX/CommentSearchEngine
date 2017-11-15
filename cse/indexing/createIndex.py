@@ -1,5 +1,5 @@
 import os
-from cse.Index import (Index, InvertedIndex)
+from cse.indexing.FileIndex import FileIndex
 from cse.CommentReader import CommentReader
 
 """
@@ -31,12 +31,8 @@ def scanRawDir(path, index):
                 "articleUrl": articleData["article_url"]
             })
 
-#persistIndexCsv("data/index.csv", scanRawDir("data/raw"))
-#persistIndexJson("data/index.json", scanRawDir("data/raw"))
-#i = Index()
-#scanRawDir("data/raw", i)
-#i.saveJson("data/index.json")
 
-i = InvertedIndex("data/invertedIndex.json")
-i.load()
-print("terms:", len(i.terms()))
+if __name__ == '__main__':
+    i = FileIndex()
+    scanRawDir("data/raw", i)
+    i.saveJson("data/index.json")

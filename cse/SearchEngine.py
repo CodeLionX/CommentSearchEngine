@@ -2,7 +2,8 @@ import os
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
-from cse.Index import (InvertedIndex, Index)
+from cse.indexing import (InvertedIndexWriter, InvertedIndexReader)
+from cse.indexing.FileIndex import FileIndex
 from cse.CommentReader import CommentReader
 
 
@@ -34,18 +35,19 @@ class SearchEngine():
 
     def index(self, directory):
         # lookup for article file ids
-        index = Index()
+        index = FileIndex()
         index.loadJson(os.path.join(directory, "index.json"))
 
         # to be created inverted index
-        ii = InvertedIndex(os.path.join(directory, "invertedIndex.json"))
+        ii = InvertedIndexWriter(directory)
+
 
         # for just one article
         """
         randomCid = index.listCids()[0:1][0]
         filename = index.get(randomCid)["fileId"]
         self.__createIndexForArticle(ii, prep, filename)
-        ii.save()
+        ii.close()
         """
 
         # for all articles
@@ -57,7 +59,7 @@ class SearchEngine():
             print("Processing file", filename)
             self.__createIndexForArticle(ii, filename)
 
-        ii.save()
+        ii.close()
 
 
     def __createIndexForArticle(self, index, filename):
@@ -74,9 +76,8 @@ class SearchEngine():
         cr.close()
 
 
-
     def loadIndex(self, directory):
-        return InvertedIndex(os.path.join(directory, "InvertedIndex.json")).load()
+        return InvertedIndexReader(directory)
 
 
     def search(self, query):
@@ -86,15 +87,14 @@ class SearchEngine():
         # assume multiple tokens in query are combined with OR operator
         allCids = []
         for term in queryTerms:
-            cids = ii.get(term)
+            cids = ii.retrieve(term)
             if cids and len(cids) > 0:
-                for cid in cids:
-                    allCids.append(cid)
+                allCids + cids
 
         #print("found", len(allCids), "documents")
 
         # read info from files
-        index = Index().loadJson(os.path.join("data", "index.json"))
+        index = FileIndex().loadJson(os.path.join("data", "index.json"))
         fileIdCids = {}
         for cid in allCids:
             meta = index.get(cid)
@@ -129,8 +129,10 @@ class SearchEngine():
         print(prettyPrint(self.search("hate")[:5]))
 
 
+
 def prettyPrint(l):
     return "\t" + "\n\t".join([t.replace("\n", "\\n") for t in l])
+
 
 
 class CustomPpStep(PreprocessorStep):
@@ -144,12 +146,12 @@ class CustomPpStep(PreprocessorStep):
     def processAll(self, tokens):
         return [token for token in tokens if not token.startswith("//")]
 
-        
-
 
 
 #searchEngine = SearchEngine()
 #searchEngine.printAssignment2QueryResults()
-se = SearchEngine()
-#se.index("data")
-se.printAssignment2QueryResults()
+
+if __name__ == '__main__':
+    se = SearchEngine()
+    se.index("data")
+    se.printAssignment2QueryResults()
