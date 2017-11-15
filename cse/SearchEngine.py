@@ -3,8 +3,8 @@ import os
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
-from cse.Index import InvertedIndex
-from cse.FileIndex import FileIndex
+from cse.indexing import InvertedIndexWriter
+from cse.indexing.FileIndex import FileIndex
 from cse.CommentReader import CommentReader
 
 
@@ -36,7 +36,7 @@ class SearchEngine():
         index.loadJson("data/index.json")
 
         # to be created inverted index
-        ii = InvertedIndex("data")
+        ii = InvertedIndexWriter("data")
 
         """
         # for just one article
