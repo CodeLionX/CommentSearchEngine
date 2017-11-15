@@ -8,7 +8,7 @@ from cse.util import Util
 class FileIndex(object):
 
 
-    __index = dict()
+    __index = {}
 
 
     def __init__(self):
