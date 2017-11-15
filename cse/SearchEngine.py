@@ -38,6 +38,7 @@ class SearchEngine():
         # to be created inverted index
         ii = InvertedIndex("data")
 
+        """
         # for just one article
         randomCid = index.listCids()[0:1][0]
         filename = index.get(randomCid)["fileId"]
@@ -46,15 +47,18 @@ class SearchEngine():
         #query = prep.processToken("hate")
         #print("hate", ii.get(query))
         ii.close()
-
-        # for all article
         """
+
+        # for all articles
+        filenames = []
         for cid in index.listCids():
-            filename = index.get(cid)["fileId"]
+            filenames.append(index.get(cid)["fileId"])
+
+        for filename in set(filenames):
             print("Processing file", filename)
             self.__createIndexForArticle(ii, prep, filename)
-        ii.save()
-        """
+
+        ii.close()
 
 
     def __createIndexForArticle(self, index, prep, filename):

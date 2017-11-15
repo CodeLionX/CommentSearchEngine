@@ -17,16 +17,10 @@ class DeltaPostingListIndex(object):
     __numCids = 0
 
 
-    def __init__(self, cidSize=85): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
+    def __init__(self, cidSize=35): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
         self.__pl = {}
         self.__cidSize = cidSize
         self.__numCids = 0
-
-
-    def close(self): self.save()
-    def save(self):
-        raise NotImplementedError
-        # TODO
 
 
     def retrieve(self, line):
@@ -41,6 +35,11 @@ class DeltaPostingListIndex(object):
         self.__pl[line].append(cid)
         self.__pl[line].sort()
         self.__numCids = self.__numCids + 1
+
+
+    def clear(self):
+        self.__pl = {}
+        self.__numCids = 0
 
 
     def estimatedSize(self):
@@ -72,7 +71,7 @@ class DeltaPostingListIndex(object):
 
     def __sizeof__(self):
         from sys import getsizeof
-        return (getsizeof(self.__pl)
+        return int(getsizeof(self.__pl)
                 + self.__cidSize * self.__numCids
                 + self.__margin)
 
@@ -131,20 +130,32 @@ class MainPostingListIndex(object):
     def mergeInDeltaIndex(self, dIndex):
         self.__postingLists.seek(0)
         sh, tempFilePath = mkstemp()
+        visited = set()
         with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
             for i, line in enumerate(self.__postingLists):
                 if i in dIndex:
                     pl = self.__decodePlLine(line)
-                    pl.append(dIndex[i])
+                    pl = pl + dIndex[i]
+                    pl.sort()
                     tempFile.write(self.__encodePlLine(pl))
                 else:
                     tempFile.write(line)
+                visited.add(i)
+            for pointer in dIndex:
+                if pointer not in visited:
+                    tempFile.write(self.__encodePlLine(dIndex[pointer]))
+        
+        added = len(set(dIndex.lines()) - visited)
+        merged = len(set(dIndex.lines())) - added
+        print("MainPL: merged", merged, "posting lists")
+        print("MainPL: added", added, "new posting lists")
 
         self.__postingLists.close()
         del self.__postingLists
         remove(self.__postingListsFilename)
         move(tempFilePath, self.__postingListsFilename)
         self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
+        print("MainPL: new postinglist index file has size:", os.path.getsize(self.__postingListsFilename) / 1024 / 1024, "mb")
 
 
     def __getitem__(self, key):
@@ -175,10 +186,16 @@ class InvertedIndex(object):
         self.__calls = 0
 
 
+    def __shouldDeltaMerge(self):
+        # check memory usage
+        if self.__dIndex.estimatedSize() > (50 * 1024*1024):
+            self.deltaMerge()
+            self.__calls = -1
+
+
     def close(self):
         self.deltaMerge()
         self.__dictionary.close()
-        self.__dIndex.close()
         self.__mIndex.close()
 
 
@@ -191,15 +208,10 @@ class InvertedIndex(object):
 
         self.__dIndex.insert(pointer, documentId)
 
-        if self.__calls % (1000 * 10) == 0:
-            # check memory usage
-            if self.__dIndex.estimatedSize() > (100 * 1024*1024):
-                print("!! delta merge !!")
-                self.deltaMerge()
-                self.__calls = -1
+        if self.__calls % (1000 * 50) == 0:
+            self.__shouldDeltaMerge()
 
-        self.__calls = self.__calls + 1
-            
+        self.__calls = self.__calls + 1   
 
 
     def get(self, term):
@@ -215,9 +227,10 @@ class InvertedIndex(object):
 
 
     def deltaMerge(self):
+        print("!! delta merge !!")
+        print("  delta estimated size:", self.__dIndex.estimatedSize() / 1024 / 1024, "mb")
         self.__mIndex.mergeInDeltaIndex(self.__dIndex)
-
-        raise NotImplementedError
+        self.__dIndex.clear()
 
 
 
