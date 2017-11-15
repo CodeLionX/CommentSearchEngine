@@ -8,7 +8,8 @@ Vagrant.configure("2") do |config|
   config.vm.box = "puppetlabs/ubuntu-14.04-64-puppet"
   config.vm.box_version = "= 1.0.3"
 
-
+  config.vm.network "private_network", type: "dhcp"
+  
   # Use NFS for shared folders for better performance
   config.vm.synced_folder '.', '/vagrant', nfs: true
   # port forwarding
@@ -20,7 +21,7 @@ Vagrant.configure("2") do |config|
 
   # customize ressources
     v.memory = 4096
-    v.cpus = 2
+    v.cpus = 1
     # fast dns lookup
     #v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"] #to be tested
 
