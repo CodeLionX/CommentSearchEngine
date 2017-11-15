@@ -215,7 +215,7 @@ class InvertedIndex(object):
 
 
     def deltaMerge(self):
-
+        self.__mIndex.mergeInDeltaIndex(self.__dIndex)
 
         raise NotImplementedError
 
