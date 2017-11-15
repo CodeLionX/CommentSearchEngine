@@ -1,6 +1,5 @@
 import os
 
-from cse.util import Util
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
 from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex

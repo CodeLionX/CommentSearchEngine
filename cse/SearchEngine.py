@@ -75,7 +75,6 @@ class SearchEngine():
         cr.close()
 
 
-
     def loadIndex(self, directory):
         pass
 
