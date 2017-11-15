@@ -8,10 +8,10 @@ Vagrant.configure("2") do |config|
   config.vm.box = "puppetlabs/ubuntu-14.04-64-puppet"
   config.vm.box_version = "= 1.0.3"
 
-  config.vm.network "private_network", type: "dhcp"
+  #config.vm.network "private_network", type: "dhcp"
   
   # Use NFS for shared folders for better performance
-  config.vm.synced_folder '.', '/vagrant', nfs: true
+  #config.vm.synced_folder '.', '/vagrant', nfs: true
   # port forwarding
   #config.vm.network :forwarded_port, guest: 8000, host: 8000
 
