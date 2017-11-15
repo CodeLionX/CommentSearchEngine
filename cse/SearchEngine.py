@@ -89,7 +89,7 @@ class SearchEngine():
         for term in queryTerms:
             cids = ii.retrieve(term)
             if cids and len(cids) > 0:
-                allCids + cids
+                allCids = allCids + cids
 
         #print("found", len(allCids), "documents")
 
@@ -153,5 +153,5 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine()
-    se.index("data")
+    #se.index("data")
     se.printAssignment2QueryResults()
