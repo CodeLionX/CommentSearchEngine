@@ -5,7 +5,7 @@ from cse.util import Util
 
 
 
-class FileIndex(object):
+class DocumentMap(object):
 
 
     __index = {}

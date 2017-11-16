@@ -7,6 +7,7 @@ index creation and using package, this package also deales with the index persis
 import os
 from cse.indexing.InvertedIndexWriter import InvertedIndexWriter
 from cse.indexing.InvertedIndexReader import InvertedIndexReader
+from cse.indexing.DocumentMap import DocumentMap
 
 
 

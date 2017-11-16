@@ -3,7 +3,7 @@ import os
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
 from cse.indexing import (InvertedIndexWriter, InvertedIndexReader)
-from cse.indexing.FileIndex import FileIndex
+from cse.indexing import DocumentMap
 from cse.CommentReader import CommentReader
 
 
@@ -35,8 +35,8 @@ class SearchEngine():
 
     def index(self, directory):
         # lookup for article file ids
-        index = FileIndex()
-        index.loadJson(os.path.join(directory, "index.json"))
+        documentMap = DocumentMap()
+        documentMap.loadJson(os.path.join(directory, "index.json"))
 
         # to be created inverted index
         ii = InvertedIndexWriter(directory)
@@ -44,16 +44,16 @@ class SearchEngine():
 
         # for just one article
         """
-        randomCid = index.listCids()[0:1][0]
-        filename = index.get(randomCid)["fileId"]
+        randomCid = documentMap.listCids()[0:1][0]
+        filename = documentMap.get(randomCid)["fileId"]
         self.__createIndexForArticle(ii, prep, filename)
         ii.close()
         """
 
         # for all articles
         filenames = []
-        for cid in index.listCids():
-            filenames.append(index.get(cid)["fileId"])
+        for cid in documentMap.listCids():
+            filenames.append(documentMap.get(cid)["fileId"])
 
         for filename in set(filenames):
             print("Processing file", filename)
@@ -94,10 +94,10 @@ class SearchEngine():
         #print("found", len(allCids), "documents")
 
         # read info from files
-        index = FileIndex().loadJson(os.path.join("data", "index.json"))
+        documentMap = DocumentMap().loadJson(os.path.join("data", "index.json"))
         fileIdCids = {}
         for cid in allCids:
-            meta = index.get(cid)
+            meta = documentMap.get(cid)
             if meta["fileId"] not in fileIdCids:
                 fileIdCids[meta["fileId"]] = []
             fileIdCids[meta["fileId"]].append(cid)
