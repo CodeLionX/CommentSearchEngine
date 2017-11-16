@@ -9,6 +9,7 @@ class CommentReader(object):
     __file = None
     __reader = None
 
+
     def __init__(self, filepath, delimiter=','):
         self.__delimiter = delimiter
         self.__filepath = filepath
@@ -38,29 +39,33 @@ class CommentReader(object):
             if first:
                 first = False
                 continue
-            
+
             if second:
                 articleUrl = row[1]
                 articleId = row[7]
                 second = False
 
             commentId = row[0]
-            author = row[2]
-            text = row[3].replace("\\n", "\n")
-            timestamp = row[4]
-            parentId = row[5]
-            votes = int(row[6])
-
-            comments[commentId] = {
-                "comment_author": author,
-                "comment_text" : text,
-                "timestamp" : timestamp,
-                "parent_comment_id" : parentId,
-                "votes" : votes
-            }
+            comments[commentId] = self.__parseRow(row)
 
         return {
             "article_url": articleUrl,
             "article_id": articleId,
             "comments": comments
+        }
+
+
+    def __parseRow(self, row):
+        author = row[2]
+        text = row[3].replace("\\n", "\n")
+        timestamp = row[4]
+        parentId = row[5]
+        votes = int(row[6])
+
+        return {
+            "comment_author": author,
+            "comment_text" : text,
+            "timestamp" : timestamp,
+            "parent_comment_id" : parentId,
+            "votes" : votes
         }

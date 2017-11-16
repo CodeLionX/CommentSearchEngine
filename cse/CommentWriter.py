@@ -1,7 +1,7 @@
 import csv
 import os
 
-class CSVWriter(object):
+class CommentWriter(object):
 
     __delimiter = ''
     __filepath = ""

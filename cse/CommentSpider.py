@@ -5,7 +5,7 @@ from scrapy.selector import Selector
 from scrapy import signals
 
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
-from cse.CSVWriter import CSVWriter
+from cse.CommentWriter import CommentWriter
 
 class CommentSpider(scrapy.Spider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
@@ -34,7 +34,7 @@ class CommentSpider(scrapy.Spider):
 
 
     def __setupFileWriter(self, filename):
-        writer = CSVWriter(os.path.join("data", filename))
+        writer = CommentWriter(os.path.join("data", filename))
         writer.open()
         writer.printHeader()
         self.__pbs.registerDataListener(writer.printData)
