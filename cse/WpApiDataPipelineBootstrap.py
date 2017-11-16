@@ -1,7 +1,6 @@
 from threading import Lock
 from cse.WpApiAdapter import WpApiAdapter
 from cse.WpApiParser import WpApiParser
-from cse.CSVWriter import CSVWriter
 from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
 from cse.pipeline.wpHandler import (DuplicateHandler, RemoveDuplicatesHandler)
 
@@ -103,7 +102,8 @@ class DebugHandler(Handler):
 
 # just for testing
 if __name__ == "__main__":
-    writer = CSVWriter("data/file1")
+    from cse.CommentWriter import CommentWriter
+    writer = CommentWriter("data/file1")
     writer.open()
     writer.printHeader()
     bs = WpApiDataPipelineBootstrap()
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     writer.close()
 
     ## try changing data listener
-    writer = CSVWriter("data/file2")
+    writer = CommentWriter("data/file2")
     writer.open()
     writer.printHeader()
     bs.registerDataListener(writer.printData)
