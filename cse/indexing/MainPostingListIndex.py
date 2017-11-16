@@ -37,8 +37,8 @@ class MainPostingListIndex(object):
         return list(line.replace("\n", "").split(","))
 
 
-    def __encodePlLine(self, pl):
-        return ",".join(pl) + "\n"
+    def __encodePlLine(self, postingList):
+        return ",".join(postingList) + "\n"
 
 
     def close(self):
@@ -49,11 +49,11 @@ class MainPostingListIndex(object):
         self.__postingLists.close()
 
 
-    def retrieve(self, line):
+    def retrieve(self, pointer):
         self.__postingLists.seek(0)
-        for i, pl in enumerate(self.__postingLists):
-            if i == line:
-                return self.__decodePlLine(pl)
+        for i, plLine in enumerate(self.__postingLists):
+            if i == pointer:
+                return self.__decodePlLine(plLine)
         return None
 
 
@@ -63,17 +63,17 @@ class MainPostingListIndex(object):
 
     def mergeInDeltaIndex(self, dIndex):
         self.__postingLists.seek(0)
-        sh, tempFilePath = mkstemp()
+        _, tempFilePath = mkstemp()
         visited = set()
         with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
-            for i, line in enumerate(self.__postingLists):
+            for i, plLine in enumerate(self.__postingLists):
                 if i in dIndex:
-                    pl = self.__decodePlLine(line)
-                    pl = pl + dIndex[i]
-                    pl.sort()
-                    tempFile.write(self.__encodePlLine(pl))
+                    postingList = self.__decodePlLine(plLine)
+                    postingList = postingList + dIndex[i]
+                    postingList.sort()
+                    tempFile.write(self.__encodePlLine(postingList))
                 else:
-                    tempFile.write(line)
+                    tempFile.write(plLine)
                 visited.add(i)
             for pointer in dIndex:
                 if pointer not in visited:

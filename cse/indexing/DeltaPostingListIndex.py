@@ -8,35 +8,35 @@ Structure: Line Number in File -> Posting List
 class DeltaPostingListIndex(object):
 
 
-    __pl = None
+    __postingLists = None
     __margin = 300
     __cidSize = 0
-    __numCids = 0
+    __numCommentIds = 0
 
 
     def __init__(self, cidSize=35): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
-        self.__pl = {}
+        self.__postingLists = {}
         self.__cidSize = cidSize
-        self.__numCids = 0
+        self.__numCommentIds = 0
 
 
-    def retrieve(self, line):
-        if line not in self.__pl:
+    def retrieve(self, pointer):
+        if pointer not in self.__postingLists:
             return None
-        return self.__pl[line]
+        return self.__postingLists[pointer]
 
 
-    def insert(self, line, cid):
-        if line not in self.__pl:
-            self.__pl[line] = []
-        self.__pl[line].append(cid)
-        self.__pl[line].sort()
-        self.__numCids = self.__numCids + 1
+    def insert(self, pointer, commentId):
+        if pointer not in self.__postingLists:
+            self.__postingLists[pointer] = []
+        self.__postingLists[pointer].append(commentId)
+        self.__postingLists[pointer].sort()
+        self.__numCommentIds = self.__numCommentIds + 1
 
 
     def clear(self):
-        self.__pl = {}
-        self.__numCids = 0
+        self.__postingLists = {}
+        self.__numCommentIds = 0
 
 
     def estimatedSize(self):
@@ -44,7 +44,7 @@ class DeltaPostingListIndex(object):
 
 
     def lines(self):
-        return self.__pl.keys()
+        return self.__postingLists.keys()
 
 
     def __getitem__(self, key):
@@ -59,14 +59,14 @@ class DeltaPostingListIndex(object):
 
 
     def __iter__(self):
-        return self.__pl.__iter__()
+        return self.__postingLists.__iter__()
 
 
     def __contains__(self, item):
-        return self.__pl.__contains__(item)
+        return self.__postingLists.__contains__(item)
 
 
     def __sizeof__(self):
-        return int(getsizeof(self.__pl)
-                + self.__cidSize * self.__numCids
+        return int(getsizeof(self.__postingLists)
+                + self.__cidSize * self.__numCommentIds
                 + self.__margin)
