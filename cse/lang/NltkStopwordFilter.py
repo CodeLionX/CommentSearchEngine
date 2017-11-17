@@ -16,9 +16,9 @@ class NltkStopwordFilter(PreprocessorStep):
         return stopwords.words("english")
 
 
-    def processAll(self, tokens):
-        return [token for token in tokens if token not in self.__stopwordlist]
+    def processAll(self, tokenTuples):
+        return [(token, position) for token, position in tokenTuples if token not in self.__stopwordlist]
 
 
-    def process(self, token):
-        return token if token not in self.__stopwordlist else None
+    def process(self, tokenTuple):
+        return tokenTuple if tokenTuple[0] not in self.__stopwordlist else None

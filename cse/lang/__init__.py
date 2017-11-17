@@ -47,9 +47,9 @@ class PreprocessorBuilder(object):
         return self
 
 
-    def appendToStopwordList(self, stopwords):
+    def appendToStopwordList(self, *stopwords):
         self.__useStopwords = True
-        self.__stopwords.append(stopwords)
+        self.__stopwords = self.__stopwords + list(stopwords)
         return self
 
 
@@ -99,9 +99,11 @@ if __name__ == '__main__':
         PreprocessorBuilder()
         .useNltkTokenizer()
         .useNltkStopwordList()
+        .appendToStopwordList("a", "of")
         #.usePorterStemmer()
         .useNltkLemmatizer()
         .build()
     )
-    tokens = prep.processText("WordNet® is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. Synsets are interlinked by means of conceptual-semantic and lexical relations. The resulting network of meaningfully related words and concepts can be navigated with the browser. WordNet is also freely and publicly available for download. WordNet’s structure makes it a useful tool for computational linguistics and natural language processing.")
-    print(tokens)
+    tokenTuples = prep.processText("WordNet® is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. Synsets are interlinked by means of conceptual-semantic and lexical relations. The resulting network of meaningfully related words and concepts can be navigated with the browser. WordNet is also freely and publicly available for download. WordNet’s structure makes it a useful tool for computational linguistics and natural language processing.")
+    for term, position in tokenTuples:
+        print(term, position)

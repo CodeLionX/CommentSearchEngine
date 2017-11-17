@@ -19,9 +19,9 @@ class NltkStemmer(PreprocessorStep):
         return SnowballStemmer("english")
 
 
-    def processAll(self, tokens):
-        return [self.__stemmerType.stem(token) for token in tokens]
+    def processAll(self, tokenTuples):
+        return [(self.__stemmerType.stem(token), position) for token, position in tokenTuples]
 
 
-    def process(self, token):
-        return self.__stemmerType.stem(token)
+    def process(self, tokenTuple):
+        return (self.__stemmerType.stem(tokenTuple[0]), tokenTuple[1])

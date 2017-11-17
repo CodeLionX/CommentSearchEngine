@@ -11,10 +11,11 @@ class Preprocessor(object):
 
     def processText(self, comment):
         tokens = self.__tokenizer.tokenize(comment)
+        tokenTuple = [(token, position) for position, token in enumerate(tokens)]
 
         ###### which way is faster?
         for step in self.__steps:
-            tokens = step.processAll(tokens)
+            tokenTuple = step.processAll(tokenTuple)
         ######
         """
         pTokens = []
@@ -27,4 +28,4 @@ class Preprocessor(object):
         """
         ###### which way is faster?
 
-        return tokens
+        return tokenTuple

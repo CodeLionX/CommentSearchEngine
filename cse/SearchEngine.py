@@ -68,10 +68,17 @@ class SearchEngine():
         fileData = cr.readData()
 
         for cid in fileData["comments"]:
-            tokens = self.__prep.processText(fileData["comments"][cid]["comment_text"])
+            tokenTuples = self.__prep.processText(fileData["comments"][cid]["comment_text"])
 
-            for token in set(tokens):
-                index.insert(token, cid)
+            tokenDict = {}
+            for token, position in tokenTuples:
+                positionList = tokenDict.get(token, default=[])
+                positionList.append(position)
+                positionList.sort()
+                tokenDict[token] = positionList
+            
+            for token in tokenDict:
+                index.insert(token, cid) # and also positionList = tokenDict[token]
 
         cr.close()
 
@@ -82,11 +89,11 @@ class SearchEngine():
 
     def search(self, query):
         ii = self.loadIndex("data")
-        queryTerms = self.__prep.processText(query)
+        queryTermTuples = self.__prep.processText(query)
 
         # assume multiple tokens in query are combined with OR operator
         allCids = []
-        for term in queryTerms:
+        for term, position in queryTermTuples:
             cids = ii.retrieve(term)
             if cids and len(cids) > 0:
                 allCids = allCids + cids
@@ -140,11 +147,11 @@ class CustomPpStep(PreprocessorStep):
     def __init__(self):
         pass
 
-    def process(self, token):
-        return token if not token.startswith("//") else None
+    def process(self, tokenTuple):
+        return tokenTuple if not tokenTuple[0].startswith("//") else None
 
-    def processAll(self, tokens):
-        return [token for token in tokens if not token.startswith("//")]
+    def processAll(self, tokenTuples):
+        return [(token, position) for token, position in tokenTuples if not token.startswith("//")]
 
 
 
