@@ -79,21 +79,22 @@ class MainPostingListIndex(object):
 
     def mergeInDeltaIndex(self, dIndex):
         self.__postingLists.seek(0)
-        _, tempFilePath = mkstemp()
+        tempFile, tempFilePath = mkstemp(text=True)
         visited = set()
-        with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
-            for i, plLine in enumerate(self.__postingLists):
-                if i in dIndex:
-                    postingList = self.__decodePlLine(plLine)
-                    postingList = postingList + dIndex[i]
-                    postingList.sort()
-                    tempFile.write(self.__encodePlLine(postingList))
-                else:
-                    tempFile.write(plLine)
-                visited.add(i)
-            for pointer in dIndex:
-                if pointer not in visited:
-                    tempFile.write(self.__encodePlLine(dIndex[pointer]))
+        for i, plLine in enumerate(self.__postingLists):
+            if i in dIndex:
+                postingList = self.__decodePlLine(plLine)
+                postingList = postingList + dIndex[i]
+                postingList.sort()
+                tempFile.write(self.__encodePlLine(postingList))
+            else:
+                tempFile.write(plLine)
+            visited.add(i)
+        for pointer in sorted(dIndex):
+            if pointer not in visited:
+                tempFile.write(self.__encodePlLine(dIndex[pointer]))
+
+        tempFile.close()
 
         added = len(set(dIndex.lines()) - visited)
         merged = len(set(dIndex.lines())) - added
