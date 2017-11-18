@@ -34,11 +34,27 @@ class MainPostingListIndex(object):
 
 
     def __decodePlLine(self, line):
-        return list(line.replace("\n", "").split(","))
+        # postingList line: <cid1>|<pos1>,<pos2>,<pos3>;<cid2>|<pos1>,<pos2>\n
+        # result:           [(cid1, [pos1, pos2, pos3]), (cid2, [pos1, pos2])]
+        # result type:      list[tuple[string, list[int]]]
+        return list(map(
+            lambda s: (s.split("|")[0], list(s.split("|")[1].split(","))),
+            list(line.replace("\n", "").split(";"))
+        ))
 
 
     def __encodePlLine(self, postingList):
-        return ",".join(postingList) + "\n"
+        # postingList:      [(cid1, [pos1, pos2, pos3]), (cid2, [pos1, pos2])]
+        # postingList type: list[tuple[string, list[int]]]
+        # result:           <cid1>|<pos1>,<pos2>,<pos3>;<cid2>|<pos1>,<pos2>\n
+        return ";".join([
+            termTuple[0]
+                + "|"
+                + ",".join(
+                    str(position) for position in termTuple[1]
+                )
+            for termTuple in postingList
+        ]) + "\n"
 
 
     def close(self):

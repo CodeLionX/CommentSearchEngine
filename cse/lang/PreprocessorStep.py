@@ -4,10 +4,10 @@ class PreprocessorStep(object, metaclass=abc.ABCMeta):
 
 
     @abc.abstractmethod
-    def processAll(self, tokens):
-        return tokens
+    def processAll(self, tokenTuples):
+        return tokenTuples
 
 
     @abc.abstractmethod
-    def process(self, token):
-        return token
+    def process(self, tokenTuple):
+        return tokenTuple

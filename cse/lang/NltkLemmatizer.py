@@ -14,10 +14,10 @@ class NltkLemmatizer(PreprocessorStep):
         return WordNetLemmatizer()
 
 
-    def processAll(self, tokens):
-        return [self.__lemmatizerType.lemmatize(token) for token in tokens]
+    def processAll(self, tokenTuples):
+        return [(self.__lemmatizerType.lemmatize(token), position) for token, position in tokenTuples]
 
 
-    def process(self, token):
-        return self.__lemmatizerType.lemmatize(token)
+    def process(self, tokenTuple):
+        return (self.__lemmatizerType.lemmatize(tokenTuple[0]), tokenTuple[1])
 
