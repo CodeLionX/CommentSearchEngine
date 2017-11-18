@@ -1,5 +1,5 @@
 import os
-from cse.indexing.FileIndex import FileIndex
+from cse.indexing import DocumentMap
 from cse.CommentReader import CommentReader
 
 """
@@ -33,6 +33,6 @@ def scanRawDir(path, index):
 
 
 if __name__ == '__main__':
-    i = FileIndex()
+    i = DocumentMap()
     scanRawDir("data/raw", i)
     i.saveJson("data/index.json")
