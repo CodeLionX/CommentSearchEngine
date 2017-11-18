@@ -34,14 +34,14 @@ class InvertedIndexWriter(object):
         self.__mIndex.close()
 
 
-    def insert(self, term, documentId):
+    def insert(self, term, documentId, positions):
         if term in self.__dictionary:
             pointer = self.__dictionary[term]
         else:
             pointer = self.__dictionary.nextFreeLinePointer()
             self.__dictionary[term] = pointer
 
-        self.__dIndex.insert(pointer, documentId)
+        self.__dIndex.insert(pointer, documentId, positions)
 
         if self.__calls % (1000 * 50) == 0:
             self.__shouldDeltaMerge()

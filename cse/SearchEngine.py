@@ -72,13 +72,13 @@ class SearchEngine():
 
             tokenDict = {}
             for token, position in tokenTuples:
-                positionList = tokenDict.get(token, default=[])
+                positionList = tokenDict.get(token, [])
                 positionList.append(position)
                 positionList.sort()
                 tokenDict[token] = positionList
             
             for token in tokenDict:
-                index.insert(token, cid) # and also positionList = tokenDict[token]
+                index.insert(token, cid, tokenDict[token]) # and also positionList = tokenDict[token]
 
         cr.close()
 
@@ -94,16 +94,16 @@ class SearchEngine():
         # assume multiple tokens in query are combined with OR operator
         allCids = []
         for term, position in queryTermTuples:
-            cids = ii.retrieve(term)
-            if cids and len(cids) > 0:
-                allCids = allCids + cids
+            cidTupleList = ii.retrieve(term)
+            if cidTupleList:
+                allCids = allCids + cidTupleList
 
         #print("found", len(allCids), "documents")
 
         # read info from files
         documentMap = DocumentMap().loadJson(os.path.join("data", "index.json"))
         fileIdCids = {}
-        for cid in allCids:
+        for cid, _ in allCids:
             meta = documentMap.get(cid)
             if meta["fileId"] not in fileIdCids:
                 fileIdCids[meta["fileId"]] = []
@@ -160,5 +160,5 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine()
-    #se.index("data")
+    se.index("data")
     se.printAssignment2QueryResults()
