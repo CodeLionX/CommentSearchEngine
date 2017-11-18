@@ -49,6 +49,15 @@ node default {
         timeout => 0,
         require => Exec['install setuptools']
     }
+    exec { 'download nltk data':
+        provider => shell,
+        command => '/usr/bin/python3 -m nltk.downloader -d /vagrant/data/nltk_data punkt stopwords wordnet',
+        require => [Exec['install dependencies'], File_line['setup nltk data link']],
+    }
+    file_line { 'setup nltk data link':
+        path => '/etc/environment',
+        line => 'NLTK_DATA="/vagrant/data/nltk_data"'
+    }
 
     # .bashrc
     file_line { 'jump_to_project_dir':
