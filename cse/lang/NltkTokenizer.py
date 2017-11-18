@@ -18,5 +18,4 @@ class NltkTokenizer(object):
         # replace "n't" with "not"
         tokens = map(lambda word: word if word != "n't" else "not", tokens)
         tokens = [re.sub(r'^-|-$|\'', '', word) for word in tokens]
-        tokens = filter(lambda word: word, tokens)
         return list(tokens)
