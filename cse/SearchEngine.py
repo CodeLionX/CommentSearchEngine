@@ -1,4 +1,5 @@
 import os
+import re
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
@@ -31,6 +32,8 @@ class SearchEngine():
             .addCustomStepToEnd(CustomPpStep())
             .build()
         )
+        self.__boolQueryPattern = re.compile('^(\w+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*\w+)$', re.I | re.M)
+        self.__prefixQueryPattern = re.compile('^[^\S\x0a\x0d]*(\w*\*)[^\S\x0a\x0d]*$', re.I | re.M)
 
 
     def index(self, directory):
@@ -76,11 +79,21 @@ class SearchEngine():
                 positionList.append(position)
                 positionList.sort()
                 tokenDict[token] = positionList
-            
+
             for token in tokenDict:
                 index.insert(token, cid, tokenDict[token]) # and also positionList = tokenDict[token]
 
         cr.close()
+
+
+    def __booleanSearch(self, query):
+        # TODO: implement bool query parser
+        return []
+
+
+    def __prefixSearch(self, query):
+        # TODO: implement prefix query parser
+        return []
 
 
     def loadIndex(self, directory):
@@ -88,45 +101,51 @@ class SearchEngine():
 
 
     def search(self, query):
-        ii = self.loadIndex("data")
-        queryTermTuples = self.__prep.processText(query)
+        if self.__boolQueryPattern.fullmatch(query):
+            return self.__booleanSearch(query)
+        elif self.__prefixQueryPattern.fullmatch(query):
+            return self.__prefixSearch(query)
+        else:
 
-        # assume multiple tokens in query are combined with OR operator
-        allCids = []
-        for term, position in queryTermTuples:
-            cidTupleList = ii.retrieve(term)
-            if cidTupleList:
-                allCids = allCids + cidTupleList
+            ii = self.loadIndex("data")
+            queryTermTuples = self.__prep.processText(query)
 
-        #print("found", len(allCids), "documents")
+            # assume multiple tokens in query are combined with OR operator
+            allCids = []
+            for term, position in queryTermTuples:
+                cidTupleList = ii.retrieve(term)
+                if cidTupleList:
+                    allCids = allCids + cidTupleList
 
-        # read info from files
-        documentMap = DocumentMap().loadJson(os.path.join("data", "index.json"))
-        fileIdCids = {}
-        for cid, _ in allCids:
-            meta = documentMap.get(cid)
-            if meta["fileId"] not in fileIdCids:
-                fileIdCids[meta["fileId"]] = []
-            fileIdCids[meta["fileId"]].append(cid)
+            #print("found", len(allCids), "documents")
 
-        #print("distributed in", len(fileIdCids), "files")
+            # read info from files
+            documentMap = DocumentMap().loadJson(os.path.join("data", "index.json"))
+            fileIdCids = {}
+            for cid, _ in allCids:
+                meta = documentMap.get(cid)
+                if meta["fileId"] not in fileIdCids:
+                    fileIdCids[meta["fileId"]] = []
+                fileIdCids[meta["fileId"]].append(cid)
 
-        # get comments
-        results = []
-        for fileId in fileIdCids:
-            #print("  processing file", fileId)
-            cr = CommentReader(os.path.join("data", "raw", fileId))
-            cr.open()
-            fileData = cr.readData()
+            #print("distributed in", len(fileIdCids), "files")
 
-            for cid in fileData["comments"]:
-                if(cid in set(fileIdCids[fileId])):
-                    results.append(fileData["comments"][cid]["comment_text"])
+            # get comments
+            results = []
+            for fileId in fileIdCids:
+                #print("  processing file", fileId)
+                cr = CommentReader(os.path.join("data", "raw", fileId))
+                cr.open()
+                fileData = cr.readData()
 
-            cr.close()
-        
-        print("\n\n##### query for", query, ", comments found:", len(results))
-        return results
+                for cid in fileData["comments"]:
+                    if(cid in set(fileIdCids[fileId])):
+                        results.append(fileData["comments"][cid]["comment_text"])
+
+                cr.close()
+            
+            print("\n\n##### query for", query, ", comments found:", len(results))
+            return results
 
 
     def printAssignment2QueryResults(self):
@@ -134,6 +153,8 @@ class SearchEngine():
         print(prettyPrint(self.search("jobs")[:5]))
         print(prettyPrint(self.search("Trump")[:5]))
         print(prettyPrint(self.search("hate")[:5]))
+        print(prettyPrint(self.search("Trump AND Clinton")[:5]))
+        print(prettyPrint(self.search("New*")))
 
 
 
@@ -160,5 +181,5 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine()
-    se.index("data")
+    #se.index("data")
     se.printAssignment2QueryResults()
