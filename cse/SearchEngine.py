@@ -88,6 +88,17 @@ class SearchEngine():
 
     def __booleanSearch(self, query):
         # TODO: implement bool query parser
+        # operator precedence: NOT > AND > OR
+        "bla NOT blas OR blub AND fasel NOT my*"
+        "((bla NOT blas) OR (blub AND (fasel NOT my*)))"
+        orTerms = query.split("OR")
+        terms = [t.split("AND") for t in orTerms]
+        allTerms = []
+        for orTerm in terms:
+            andTerms = []
+            for andTerm in terms:
+                andTerms.append(andTerm.split("NOT"))
+            allTerms.append(andTerms)
         return []
 
 
@@ -156,6 +167,15 @@ class SearchEngine():
         print(prettyPrint(self.search("Trump AND Clinton")[:5]))
         print(prettyPrint(self.search("New*")))
 
+
+class OrTerm(object):
+
+    def __init__(self):
+        self.__terms = terms
+
+    def parse(self, term):
+        terms = term.replace("OR")
+        self.__terms = terms
 
 
 def prettyPrint(l):
