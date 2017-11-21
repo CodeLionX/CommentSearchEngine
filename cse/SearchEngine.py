@@ -64,8 +64,47 @@ class SearchEngine():
         return []
 
 
+    def __calc(self, cid, posList, cidTuples, offset):
+        for cid2, posList2 in cidTuples:
+            if cid == cid2:
+                for pos in posList:
+                    if pos+offset in posList2:
+                        return [cid]
+        return []
+
+
     def __phraseSearch(self, query):
         # TODO: implement phrase search
+        ii = self.loadIndex("data")
+        queryTermTuples = self.__prep.processText(query.replace("'", ""))
+
+        allCids = []
+        allPositions = []
+        for term, _ in queryTermTuples:
+            cidTupleList = ii.retrieve(term)
+            for cid, pos in cidTupleList:
+                allCids.append(cid)
+                allPositions.append(pos)
+
+        allCidTuples = []
+        resultCids = []
+        first = True
+        offset = 1
+        for term, _ in queryTermTuples:
+            if first:
+                allCidTuples = ii.retrieve(term)
+                first = False
+            else:
+                cidTuples = ii.retrieve(term)
+                for cid, posList in allCidTuples:
+                    resultCids = resultCids + self.__calc(cid, posList, cidTuples, offset)
+                for cid, posList in allCidTuples:
+                    if cid not in resultCids:
+                        allCidTuples.remove((cid, posList))
+            offset = offset + 1
+
+        print(resultCids)
+        
         return []
 
 
@@ -75,7 +114,7 @@ class SearchEngine():
 
         # assume multiple tokens in query are combined with OR operator
         allCidTuples = []
-        for term, position in queryTermTuples:
+        for term, _ in queryTermTuples:
             cidTupleList = ii.retrieve(term)
             if cidTupleList:
                 allCidTuples = allCidTuples + cidTupleList
@@ -127,17 +166,19 @@ class SearchEngine():
     
 
     def printAssignment3QueryResults(self):
-        print(prettyPrint(self.search("hate")[:5]))
-        print(prettyPrint(self.search("prefix*")[:5]))
-        print(prettyPrint(self.search("party AND chancellor NOT europe")))
+        #print(prettyPrint(self.search("hate")[:5]))
+        #print(prettyPrint(self.search("prefix*")[:5]))
+        #print(prettyPrint(self.search("party AND chancellor NOT europe")))
 
-        print(prettyPrint(self.search("party AND chancellor")[:5]))
-        print(prettyPrint(self.search("party NOT politics")[:5]))
-        print(prettyPrint(self.search("war OR conflict")[:5]))
-        print(prettyPrint(self.search("euro* NOT europe")[:5]))
-        print(prettyPrint(self.search("publi* OR moderation")[:5]))
-        print(prettyPrint(self.search("'the european union'")[:5]))
+        #print(prettyPrint(self.search("party AND chancellor")[:5]))
+        #print(prettyPrint(self.search("party NOT politics")[:5]))
+        #print(prettyPrint(self.search("war OR conflict")[:5]))
+        #print(prettyPrint(self.search("euro* NOT europe")[:5]))
+        #print(prettyPrint(self.search("publi* OR moderation")[:5]))
+        #print(prettyPrint(self.search("'the european union'")[:5]))
         print(prettyPrint(self.search("'christmas market'")))
+        print(prettyPrint(self.search("'Republican legislation'")))
+        print(prettyPrint(self.search("'truck confederate flag'")))
 
 
 

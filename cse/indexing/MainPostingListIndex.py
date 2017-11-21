@@ -38,7 +38,7 @@ class MainPostingListIndex(object):
         # result:           [(cid1, [pos1, pos2, pos3]), (cid2, [pos1, pos2])]
         # result type:      list[tuple[string, list[int]]]
         return list(map(
-            lambda s: (s.split("|")[0], list(s.split("|")[1].split(","))),
+            lambda s: (s.split("|")[0], [int(pos) for pos in s.split("|")[1].split(",")]),
             list(line.replace("\n", "").split(";"))
         ))
 
