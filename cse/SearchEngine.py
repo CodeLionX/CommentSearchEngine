@@ -3,7 +3,7 @@ import re
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
-from cse.indexing import InvertedIndexReader
+from cse.indexing import (InvertedIndexReader, DocumentMap)
 from cse.indexing.FileIndexer import FileIndexer
 from cse.CommentReader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
@@ -45,7 +45,7 @@ class SearchEngine():
 
     def index(self, directory):
         indexer = FileIndexer(directory, self.__prep)
-        indexer.indexMultiFile()
+        indexer.index()
 
 
     def __booleanSearch(self, query):
@@ -76,36 +76,26 @@ class SearchEngine():
         # assume multiple tokens in query are combined with OR operator
         allCids = []
         for term, position in queryTermTuples:
-            cidTupleList = ii.retrieve(term)
-            if cidTupleList:
-                allCids = allCids + cidTupleList
+            cidList = ii.retrieve(term)
+            if cidList:
+                allCids = allCids + cidList
 
         #print("found", len(allCids), "documents")
 
-        # read info from files
-        multiFileMap = MultiFileMap().loadJson(os.path.join("data", "index.json"))
-        fileIdCids = {}
-        for cid, _ in allCids:
-            meta = multiFileMap.get(cid)
-            if meta["fileId"] not in fileIdCids:
-                fileIdCids[meta["fileId"]] = []
-            fileIdCids[meta["fileId"]].append(cid)
-
-        #print("distributed in", len(fileIdCids), "files")
-
         # get comments
         results = []
-        for fileId in fileIdCids:
-            #print("  processing file", fileId)
-            cr = CommentReader(os.path.join("data", "raw", fileId))
-            cr.open()
-            fileData = cr.readAllData()
+        commentPointers = set()
+        documentMap = DocumentMap(os.path.join("data","documentMap.index")).open()
+        for cid in allCids:
+            try:
+                commentPointers.add(documentMap.get(cid))
+            except KeyError:
+                print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
-            for cid in fileData["comments"]:
-                if(cid in set(fileIdCids[fileId])):
-                    results.append(fileData["comments"][cid]["comment_text"])
-
-            cr.close()
+        with CommentReader(os.path.join("data", "comments.data")).open() as cr:
+            for pointer, rowData in enumerate(cr):
+                if pointer in commentPointers:
+                    results.append(rowData["comments"][cid]["comment_text"])
         
         print("\n\n##### query for", query, ", comments found:", len(results))
         return results
