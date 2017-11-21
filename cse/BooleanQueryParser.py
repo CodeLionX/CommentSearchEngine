@@ -47,8 +47,8 @@ class Operator(Enum):
 
 
 if __name__ == '__main__':
-    print(QueryParser("bla NOT blas"))
-    print(QueryParser("blas OR blub"))
-    print(QueryParser("blub AND fasel"))
-    print(QueryParser("fasel NOT my*"))
-    print(QueryParser("x* AND c NOT d"))
+    print(BooleanQueryParser("bla NOT blas"))
+    print(BooleanQueryParser("blas OR blub"))
+    print(BooleanQueryParser("blub AND fasel"))
+    print(BooleanQueryParser("fasel NOT my*"))
+    print(BooleanQueryParser("x* AND c NOT d"))
