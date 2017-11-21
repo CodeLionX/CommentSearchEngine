@@ -47,7 +47,7 @@ class MultiFileMap(object):
         try:
             return self.__index[cid]
         except KeyError as ex:
-            print("key " + cid + " not found in Index: " + ex)
+            print(self.__class__.__name__ + ":", "key " + cid + " not found in Index: " + ex)
             return None
 
 

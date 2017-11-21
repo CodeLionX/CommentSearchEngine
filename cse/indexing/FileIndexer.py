@@ -2,6 +2,7 @@ import os
 
 from cse.helper.MultiFileMap import MultiFileMap
 from cse.indexing import InvertedIndexWriter
+from cse.indexing import DocumentMap
 from cse.CommentReader import CommentReader
 
 
@@ -11,13 +12,32 @@ class FileIndexer(object):
 
     def __init__(self, directory, preprocessor):
         self.__directory = directory
-        self.__index = InvertedIndexWriter(directory)
         self.__prep = preprocessor
         self.__multiFileIndexPath   = os.path.join(directory, "multiFileIndex.index")
+        self.__documentMapPath      = os.path.join(directory, "documentMap.index")
         self.__dictionaryPath       = os.path.join(directory, "dictionary.index")
         self.__postingListsPath     = os.path.join(directory, "postingLists.index")
         self.__dataFolderPath       = os.path.join(directory, "raw")
         self.__dataFilePath         = os.path.join(directory, "comments.data")
+
+
+    def index(self):
+        self.__index = InvertedIndexWriter(self.__directory)
+        documentMap = DocumentMap(self.__documentMapPath).open()
+
+        #print("Starting indexing...")
+        with CommentReader(self.__dataFilePath) as dataFile:
+            for pointer, data in enumerate(dataFile):
+                try:
+                    documentMap.get(data["commentId"])
+                except KeyError:
+                    documentMap.insert(data["commentId"], pointer)
+                    self.__processComment(data["commentId"], data["comment_text"])
+
+        #print("Saving index...")
+        documentMap.close()
+        self.__index.close()
+
 
 
     def indexMultiFile(self):
@@ -28,6 +48,7 @@ class FileIndexer(object):
 
         multiFileMap = MultiFileMap()
         multiFileMap.loadJson(self.__multiFileIndexPath)
+        self.__index = InvertedIndexWriter(self.__directory)
 
         print("multifile index and inverted index instance loaded")
 
@@ -72,3 +93,17 @@ class FileIndexer(object):
 
         for token in tokenDict:
             self.__index.insert(token, cid, tokenDict[token])
+
+
+
+if __name__ == "__main__":
+    from cse.lang import PreprocessorBuilder
+    prep = (
+        PreprocessorBuilder()
+        .useNltkTokenizer()
+        .useNltkStopwordList()
+        .usePorterStemmer()
+        #.addCustomStepToEnd(CustomPpStep())
+        .build()
+    )
+    FileIndexer("data", prep).index()

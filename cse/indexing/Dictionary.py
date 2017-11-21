@@ -31,7 +31,7 @@ class Dictionary(object):
                     raise
 
         if not os.path.exists(self.__filename):
-            print("dictionary file not available...creating new dictionary in-memory, " +
+            print(self.__class__.__name__ + ":", "dictionary file not available...creating new dictionary in-memory, " +
                   "call save() to save to disk!")
             self.__dictionary = {}
         else:

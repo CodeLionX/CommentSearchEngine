@@ -36,6 +36,7 @@ class CommentReader(object):
         articleId = ""
         comments = {}
 
+        self.__file.seek(0)
         for row in self.__reader:
             if first:
                 first = False
@@ -73,6 +74,7 @@ class CommentReader(object):
 
 
     def __parseIterRow(self, row):
+        commentId = row[0]
         articleUrl = row[1]
         author = row[2]
         text = row[3].replace("\\n", "\n")
@@ -82,6 +84,7 @@ class CommentReader(object):
         articleId = row[7]
 
         return {
+            "commentId": commentId,
             "article_url": articleUrl,
             "article_id": articleId,
             "comment_author": author,
@@ -93,7 +96,9 @@ class CommentReader(object):
 
 
     def __iter__(self):
+        self.__file.seek(0)
         self.__reader.__iter__()
+        # skip csv header in iteration mode:
         self.__reader.__next__()
         return self
 
@@ -112,6 +117,10 @@ class CommentReader(object):
 
 
 if __name__ == "__main__":
-    with CommentReader("data/comments.csv") as reader:
+    with CommentReader("data/comments.data") as reader:
+        #print(len(reader))
+        print(len(reader.readAllData()["comments"]))
+        count = 0
         for e in reader:
-            print(e)
+            count = count + 1
+        print(count)
