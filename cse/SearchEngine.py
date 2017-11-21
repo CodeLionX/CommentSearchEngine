@@ -74,19 +74,17 @@ class SearchEngine():
         queryTermTuples = self.__prep.processText(query)
 
         # assume multiple tokens in query are combined with OR operator
-        allCids = []
+        allCidTuples = []
         for term, position in queryTermTuples:
-            cidList = ii.retrieve(term)
-            if cidList:
-                allCids = allCids + cidList
-
-        #print("found", len(allCids), "documents")
+            cidTupleList = ii.retrieve(term)
+            if cidTupleList:
+                allCidTuples = allCidTuples + cidTupleList
 
         # get comments
         results = []
         commentPointers = set()
         documentMap = DocumentMap(os.path.join("data","documentMap.index")).open()
-        for cid in allCids:
+        for cid, _ in allCidTuples:
             try:
                 commentPointers.add(documentMap.get(cid))
             except KeyError:
@@ -95,7 +93,7 @@ class SearchEngine():
         with CommentReader(os.path.join("data", "comments.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
-                    results.append(rowData["comments"][cid]["comment_text"])
+                    results.append(rowData["comment_text"])
         
         print("\n\n##### query for", query, ", comments found:", len(results))
         return results
@@ -129,6 +127,7 @@ class SearchEngine():
     
 
     def printAssignment3QueryResults(self):
+        print(prettyPrint(self.search("hate")[:5]))
         print(prettyPrint(self.search("prefix*")[:5]))
         print(prettyPrint(self.search("party AND chancellor NOT europe")))
 
