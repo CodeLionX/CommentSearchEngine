@@ -25,6 +25,8 @@ class CommentWriter(object):
         # a+ = read and append (file is created if it does not exist)
         self.__file = open(self.__filepath, 'w', newline='')   
         self.__writer = csv.writer(self.__file)
+        return self
+
 
     def close(self):
         self.__file.close()
@@ -54,3 +56,11 @@ class CommentWriter(object):
                 article_id
             ])
         self.__file.flush()
+
+
+    def __enter__(self):
+        return self.open()
+
+
+    def __exit__(self, type, value, traceback):
+        self.close()
