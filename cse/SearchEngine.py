@@ -4,9 +4,9 @@ import re
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
 from cse.indexing import (InvertedIndexWriter, InvertedIndexReader)
-from cse.indexing import DocumentMap
 from cse.CommentReader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
+from cse.helper.MultiFileMap import MultiFileMap
 
 
 class SearchEngine():
@@ -40,8 +40,8 @@ class SearchEngine():
 
     def index(self, directory):
         # lookup for article file ids
-        documentMap = DocumentMap()
-        documentMap.loadJson(os.path.join(directory, "index.json"))
+        multiFileMap = MultiFileMap()
+        multiFileMap.loadJson(os.path.join(directory, "index.json"))
 
         # to be created inverted index
         ii = InvertedIndexWriter(directory)
@@ -49,16 +49,16 @@ class SearchEngine():
 
         # for just one article
         """
-        randomCid = documentMap.listCids()[0:1][0]
-        filename = documentMap.get(randomCid)["fileId"]
+        randomCid = multiFileMap.listCids()[0:1][0]
+        filename = multiFileMap.get(randomCid)["fileId"]
         self.__createIndexForArticle(ii, prep, filename)
         ii.close()
         """
 
         # for all articles
         filenames = []
-        for cid in documentMap.listCids():
-            filenames.append(documentMap.get(cid)["fileId"])
+        for cid in multiFileMap.listCids():
+            filenames.append(multiFileMap.get(cid)["fileId"])
 
         for filename in set(filenames):
             print("Processing file", filename)
@@ -123,10 +123,10 @@ class SearchEngine():
         #print("found", len(allCids), "documents")
 
         # read info from files
-        documentMap = DocumentMap().loadJson(os.path.join("data", "index.json"))
+        multiFileMap = MultiFileMap().loadJson(os.path.join("data", "index.json"))
         fileIdCids = {}
         for cid, _ in allCids:
-            meta = documentMap.get(cid)
+            meta = multiFileMap.get(cid)
             if meta["fileId"] not in fileIdCids:
                 fileIdCids[meta["fileId"]] = []
             fileIdCids[meta["fileId"]].append(cid)
@@ -196,21 +196,6 @@ class SearchEngine():
 
 
 
-
-
-
-
-
-class OrTerm(object):
-
-    def __init__(self):
-        self.__terms = terms
-
-    def parse(self, term):
-        terms = term.replace("OR")
-        self.__terms = terms
-
-
 def prettyPrint(l):
     return "\t" + "\n\t".join([t.replace("\n", "\\n") for t in l])
 
@@ -228,9 +213,6 @@ class CustomPpStep(PreprocessorStep):
         return [(token, position) for token, position in tokenTuples if not token.startswith("//")]
 
 
-
-#searchEngine = SearchEngine()
-#searchEngine.printAssignment2QueryResults()
 
 if __name__ == '__main__':
     se = SearchEngine()

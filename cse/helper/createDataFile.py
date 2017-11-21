@@ -1,11 +1,12 @@
 import os
-
-from cse.indexing import DocumentMap
+from cse.helper.MultiFileMap import MultiFileMap
 from cse.CommentReader import CommentReader
 from cse.CommentWriter import CommentWriter
 
+
 multiFileIndexName = "multiFileIndex.index"
 dataFileName = "comments.data"
+
 
 def createCombinedFile(path):
     fileIndexPath = os.path.join(path, multiFileIndexName)
@@ -13,16 +14,16 @@ def createCombinedFile(path):
     # create index if it does not exist
     if not os.path.exists(fileIndexPath):
         print("multifile index does not exist...creating new one")
-        from helper.createIndex import createMultiFileIndex
+        from cse.helper.createIndex import createMultiFileIndex
         createMultiFileIndex(path)
     
-    documentMap = DocumentMap().loadJson(fileIndexPath)
+    multiFileMap = MultiFileMap().loadJson(fileIndexPath)
     print("multifile index loaded")
 
     # load file ids
     fileIds = set()
-    for cid in documentMap.listCids():
-        fileIds.add(documentMap.get(cid)["fileId"])
+    for cid in multiFileMap.listCids():
+        fileIds.add(multiFileMap.get(cid)["fileId"])
 
     # copy comments from files into single data file
     writer = CommentWriter(os.path.join(path, dataFileName))
@@ -37,7 +38,6 @@ def createCombinedFile(path):
         reader.close()
 
     writer.close()
-
 
 
 

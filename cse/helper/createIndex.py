@@ -1,6 +1,6 @@
 import os
-from cse.indexing import DocumentMap
 from cse.CommentReader import CommentReader
+from cse.helper.MultiFileMap import MultiFileMap
 
 """
 Helper file for creating an index over the multiple csv files
@@ -8,7 +8,7 @@ containing the comments of each article
 """
 
 def createMultiFileIndex(path, name="multiFileIndex.index"):
-    index = DocumentMap()
+    index = MultiFileMap()
     directory = os.fsencode(os.path.join(path, "raw"))
 
     files = os.listdir(directory)
