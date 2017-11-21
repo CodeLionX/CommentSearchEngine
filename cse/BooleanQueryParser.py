@@ -1,12 +1,13 @@
 from enum import Enum
 
-class QueryParser(object):
+class BooleanQueryParser(object):
 
     __queryTokens = []
 
 
     def __init__(self, query):
-        self.__queryTokens = self.__tokenize(query, Operator.NOT)
+        query = query.replace("*", "STAR")
+        self.__queryTokens = self.__tokenize(query, Operator.STAR)
 
 
     def __str__(self):
@@ -36,12 +37,18 @@ class QueryParser(object):
         return tmp
 
 
+
 class Operator(Enum):
-    NOT = 1
-    AND = 2
-    OR = 3
+    STAR = 1
+    NOT = 2
+    AND = 3
+    OR = 4
 
 
 
-query = "bla NOT blas OR blub AND fasel NOT my*"
-print(QueryParser(query))
+if __name__ == '__main__':
+    print(QueryParser("bla NOT blas"))
+    print(QueryParser("blas OR blub"))
+    print(QueryParser("blub AND fasel"))
+    print(QueryParser("fasel NOT my*"))
+    print(QueryParser("x* AND c NOT d"))

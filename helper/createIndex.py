@@ -7,13 +7,15 @@ Helper file for creating an index over the multiple csv files
 containing the comments of each article
 """
 
-def scanRawDir(path, index):
-    directory = os.fsencode(path)
+def createMultiFileIndex(path, name="multiFileIndex.index"):
+    index = DocumentMap()
+    directory = os.fsencode(os.path.join(path, "raw"))
 
     files = os.listdir(directory)
 
     for file in files:
         filename = os.fsdecode(file)
+        print("processing file", filename)
 
         if '\0' in open(os.path.join(os.fsdecode(directory), filename)).read():
             print("   " + filename + "has null byte .. skipping")
@@ -24,15 +26,12 @@ def scanRawDir(path, index):
         articleData = cr.readData()
         cr.close()
         for commentId in articleData["comments"]:
-            index.insert(commentId, {
-                "cid": commentId,
-                "fileId": filename,
-                "articleId": articleData["article_id"],
-                "articleUrl": articleData["article_url"]
-            })
+            index.insert(commentId, filename, articleData["article_id"], articleData["article_url"])
+
+    index.saveJson(os.path.join(path, name))
+    print("saved multifile index to", os.path.join(path, name))
+
 
 
 if __name__ == '__main__':
-    i = DocumentMap()
-    scanRawDir("data/raw", i)
-    i.saveJson("data/index.json")
+    createMultiFileIndex("data")

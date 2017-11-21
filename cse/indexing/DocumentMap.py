@@ -60,8 +60,13 @@ class DocumentMap(object):
         return self
 
 
-    def insert(self, cid, data):
-        self.__index[cid] = data
+    def insert(self, cid, fileId, articleId, articleUrl):
+        self.__index[cid] = {
+            "cid": cid,
+            "fileId": fileId,
+            "articleId": articleId,
+            "articleUrl": articleUrl
+        }
 
 
     def get(self, cid):
