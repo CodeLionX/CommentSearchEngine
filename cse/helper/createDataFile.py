@@ -33,7 +33,7 @@ def createCombinedFile(path):
         print("copying file", fileId)
         reader = CommentReader(os.path.join(path, "raw", fileId))
         reader.open()
-        data = reader.readData()
+        data = reader.readAllData()
         writer.printData(data)
         reader.close()
 

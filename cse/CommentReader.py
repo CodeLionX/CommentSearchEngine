@@ -27,7 +27,7 @@ class CommentReader(object):
         self.__file.close()
 
 
-    def readData(self):
+    def readAllData(self):
         first = True
         second = True
 
@@ -69,3 +69,7 @@ class CommentReader(object):
             "parent_comment_id" : parentId,
             "votes" : votes
         }
+
+
+    def __iter__(self):
+        return self.__reader.__iter__()

@@ -23,7 +23,7 @@ def createMultiFileIndex(path, name="multiFileIndex.index"):
 
         cr = CommentReader(os.path.join(os.fsdecode(directory), filename))
         cr.open()
-        articleData = cr.readData()
+        articleData = cr.readAllData()
         cr.close()
         for commentId in articleData["comments"]:
             index.insert(commentId, filename, articleData["article_id"], articleData["article_url"])
