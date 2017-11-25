@@ -64,48 +64,22 @@ class SearchEngine():
         return []
 
 
-    def __calc(self, cid, posList, cidTuples, offset):
-        for cid2, posList2 in cidTuples:
-            if cid == cid2:
-                for pos in posList:
-                    if pos+offset in posList2:
-                        return [cid]
-        return []
-
-
     def __phraseSearch(self, query):
-        # TODO: implement phrase search
         ii = self.loadIndex("data")
         queryTermTuples = self.__prep.processText(query.replace("'", ""))
 
-        allCids = []
-        allPositions = []
-        for term, _ in queryTermTuples:
-            cidTupleList = ii.retrieve(term)
-            for cid, pos in cidTupleList:
-                allCids.append(cid)
-                allPositions.append(pos)
-
-        allCidTuples = []
-        resultCids = []
+        # determine documents with ordered consecutive query terms
         first = True
-        offset = 1
+        cidTuples = {}
         for term, _ in queryTermTuples:
             if first:
-                allCidTuples = ii.retrieve(term)
+                cidTuples = dict(ii.retrieve(term))
                 first = False
             else:
-                cidTuples = ii.retrieve(term)
-                for cid, posList in allCidTuples:
-                    resultCids = resultCids + self.__calc(cid, posList, cidTuples, offset)
-                for cid, posList in allCidTuples:
-                    if cid not in resultCids:
-                        allCidTuples.remove((cid, posList))
-            offset = offset + 1
+                newCidTuples = dict(ii.retrieve(term))
+                cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
 
-        print(resultCids)
-        
-        return []
+        return self.__loadDocumentTextForCids(cidTuples)
 
 
     def __keywordSearch(self, query):
@@ -119,43 +93,71 @@ class SearchEngine():
             if cidTupleList:
                 allCidTuples = allCidTuples + cidTupleList
 
-        # get comments
+        return self.__loadDocumentTextForCids([cid for cid, _ in allCidTuples])
+
+
+    def __loadDocumentTextForCids(self, cids):
         results = []
         commentPointers = set()
-        documentMap = DocumentMap(os.path.join("data","documentMap.index")).open()
-        for cid, _ in allCidTuples:
-            try:
-                commentPointers.add(documentMap.get(cid))
-            except KeyError:
-                print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
+        # get document pointers
+        with DocumentMap(os.path.join("data", "documentMap.index")).open() as documentMap:
+            for cid in cids:
+                try:
+                    commentPointers.add(documentMap.get(cid))
+                except KeyError:
+                    print(self.__class__.__name__ + ":", "comment", cid, "not found!")
+
+        # load document text
         with CommentReader(os.path.join("data", "comments.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
                     results.append(rowData["comment_text"])
-        
-        print("\n\n##### query for", query, ", comments found:", len(results))
+
         return results
 
 
+
+    def __documentsWithConsecutiveTerms(self, firstTermTuples, secondTermTuples):
+        # documents containing both terms:
+        cids = [cid for cid in firstTermTuples if cid in secondTermTuples]
+
+        # check for consecutive term positions
+        resultCidTuples = {}
+        for cid in cids:
+            for pos in firstTermTuples[cid]:
+                if pos+1 in secondTermTuples[cid]:
+                    resultCidTuples[cid] = secondTermTuples[cid]
+        return resultCidTuples
+
+
     def search(self, query):
+        results = []
         if self.__boolQueryPattern.fullmatch(query):
-            print("Boolean Query Search")
-            return self.__booleanSearch(query)
+            print("\n\n##### Boolean Query Search")
+            results = self.__booleanSearch(query)
+
         elif self.__prefixQueryPattern.fullmatch(query):
-            print("Prefix Search")
-            return self.__prefixSearch(query)
+            print("\n\n##### Prefix Search")
+            results = self.__prefixSearch(query)
+
         elif self.__phraseQueryPattern.fullmatch(query):
-            print("Phrase Search")
-            return self.__phraseSearch(query)
+            print("\n\n##### Phrase Search")
+            results = self.__phraseSearch(query)
+
         else:
             if re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
                 #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
                 return ["*** ERROR ***", "Query not supported. Please use only one of the following Operators or none: '*', 'NOT', 'AND', 'OR'"]
+
             else:
-                print("Keyword Search")
-                return self.__keywordSearch(query)
+                print("\n\n##### Keyword Search")
+                results = self.__keywordSearch(query)
+
+
+        print("##### Query for >>>", query, "<<< returned", len(results), "comments")
+        return results
 
 
     def printAssignment2QueryResults(self):
