@@ -24,9 +24,15 @@ class SearchEngine():
     see: http://whoosh.readthedocs.io/en/latest/stemming.html (stemming from whoosh in separate package: https://pypi.python.org/pypi/stemming/1.0)
     """
     __prep = None
+    __boolQueryPattern = None
+    __prefixQueryPattern = None
+    __phraseQueryPattern = None
+
+    __directory = ""
 
 
-    def __init__(self):
+    def __init__(self, directory):
+        self.__directory = directory
         self.__prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
@@ -40,74 +46,120 @@ class SearchEngine():
         self.__phraseQueryPattern = re.compile('^[^\S\x0a\x0d]*(\'[\w\d]+([^\S\x0a\x0d]*[\w\d]*)*\')[^\S\x0a\x0d]*$', re.I | re.M)
 
 
-    def loadIndex(self, directory):
-        return InvertedIndexReader(directory)
+    def loadIndex(self):
+        return InvertedIndexReader(self.__directory)
 
 
-    def index(self, directory):
-        indexer = FileIndexer(directory, self.__prep)
+    def index(self):
+        indexer = FileIndexer(self.__directory, self.__prep)
         indexer.index()
 
 
-    def __cidSetCombiner(self, op):
-        def notFunc(x, y):
-            return x - y
-        def andFunc(x, y):
-            return x & y
-        def orFunc(x, y):
-            return x | y
+    def search(self, query):
+        results = []
+        if self.__boolQueryPattern.fullmatch(query):
+            print("\n\n##### Boolean Query Search")
+            results = self.__booleanSearch(query)
 
-        switcher = {
-            Operator.NOT: notFunc,
-            Operator.AND: andFunc,
-            Operator.OR:  orFunc
-        }
-        return switcher.get(op)
+        elif self.__phraseQueryPattern.fullmatch(query):
+            print("\n\n##### Phrase Search")
+            results = self.__phraseSearch(query)
+
+        elif re.search('NOT|AND|OR', query):
+                print("*** ERROR ***")
+                #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
+                return ["*** ERROR ***", "Query not supported. Please use only one of the following binary Operators or none: '*', 'NOT', 'AND', 'OR'"]
+
+        else:
+            print("\n\n##### Keyword Search")
+            results = self.__keywordSearch(query)
+
+
+        print("##### Query for >>>", query, "<<< returned", len(results), "comments")
+        return results
 
 
     def __booleanSearch(self, query):
-        # TODO: implement bool query parser
-        ii = self.loadIndex("data")
-        # operator precedence: STAR > NOT > AND > OR
-        p = BooleanQueryParser(query).get()
-        cidSets = []
+        with self.loadIndex() as ii:
+            # operator precedence: STAR > NOT > AND > OR
+            p = BooleanQueryParser(query).get()
+            cidSets = []
 
-        # filter out operators
-        # note: we only support one opperator kind per query at the moment!
-        op = None
-        if Operator.NOT in p:   op = Operator.NOT
-        elif Operator.OR in p:  op = Operator.OR
-        elif Operator.AND in p: op = Operator.AND
-        else:
-            print("No or wrong operator in query!!")
-            return []
-        terms = [term for term in p if term not in Operator]
-
-        # load document set per term
-        for term in terms:
-            cidTuples = []
-            if term.endswith("*"):
-                cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
-
+            # filter out operators
+            # note: we only support one opperator kind per query at the moment!
+            op = None
+            if Operator.NOT in p:   op = Operator.NOT
+            elif Operator.OR in p:  op = Operator.OR
+            elif Operator.AND in p: op = Operator.AND
             else:
-                pTerm = self.__prep.processText(term)
-                if not pTerm or len(pTerm) > 1:
-                    print(
-                        self.__class__.__name__ + ":", "term", term,
-                        "is invalid! Please use only one word for boolean queries."
-                    )
-                    return []
-                cidTuples = ii.retrieve(pTerm[0][0])
+                print("No or wrong operator in query!!")
+                return []
+            terms = [term for term in p if term not in Operator]
 
-            if cidTuples:
-                cidSets.append(set( (cid for cid, _ in cidTuples) ))
+            # load document set per term
+            for term in terms:
+                cidTuples = []
+                if term.endswith("*"):
+                    cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
+
+                else:
+                    pTerm = self.__prep.processText(term)
+                    if not pTerm or len(pTerm) > 1:
+                        print(
+                            self.__class__.__name__ + ":", "term", term,
+                            "is invalid! Please use only one word for boolean queries."
+                        )
+                        return []
+                    cidTuples = ii.retrieve(pTerm[0][0])
+
+                if cidTuples:
+                    cidSets.append(set( (cid for cid, _ in cidTuples) ))
 
         firstCids = cidSets[0]
         cidSets.remove(firstCids)
         cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)  
 
-        ii.close()
         return self.__loadDocumentTextForCids(cids)
+
+
+    def __phraseSearch(self, query):
+        with self.loadIndex() as ii:
+            queryTermTuples = self.__prep.processText(query.replace("'", ""))
+
+            # determine documents with ordered consecutive query terms
+            first = True
+            cidTuples = {}
+            for term, _ in queryTermTuples:
+                if first:
+                    cidTuples = dict(ii.retrieve(term))
+                    first = False
+                else:
+                    newCidTuples = dict(ii.retrieve(term))
+                    cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
+
+        return self.__loadDocumentTextForCids(cidTuples)
+
+
+    def __keywordSearch(self, query):
+        with self.loadIndex() as ii:
+            queryTermTuples = self.__prep.processText(query)
+
+            # assume multiple tokens in query are combined with OR operator
+            allCidTuples = []
+            for term, _ in queryTermTuples:
+                cidTuples = []
+
+                # find prefix query search terms
+                if term.endswith("*"):
+                    cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
+
+                else:
+                    cidTuples = ii.retrieve(term)
+
+                if cidTuples:
+                    allCidTuples = allCidTuples + cidTuples
+
+        return self.__loadDocumentTextForCids(set([cid for cid, _ in allCidTuples]))
 
 
     def __prefixSearchTerm(self, index, term):
@@ -127,48 +179,6 @@ class SearchEngine():
 
         # reconstruct tuple list: [(cid, positionList), (cid2, positionList2)]
         return [(cid, cidTuples[cid]) for cid in cidTuples]
-
-
-    def __phraseSearch(self, query):
-        ii = self.loadIndex("data")
-        queryTermTuples = self.__prep.processText(query.replace("'", ""))
-
-        # determine documents with ordered consecutive query terms
-        first = True
-        cidTuples = {}
-        for term, _ in queryTermTuples:
-            if first:
-                cidTuples = dict(ii.retrieve(term))
-                first = False
-            else:
-                newCidTuples = dict(ii.retrieve(term))
-                cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
-
-        ii.close()
-        return self.__loadDocumentTextForCids(cidTuples)
-
-
-    def __keywordSearch(self, query):
-        ii = self.loadIndex("data")
-        queryTermTuples = self.__prep.processText(query)
-
-        # assume multiple tokens in query are combined with OR operator
-        allCidTuples = []
-        for term, _ in queryTermTuples:
-            cidTuples = []
-
-            # find prefix query search terms
-            if term.endswith("*"):
-                cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
-
-            else:
-                cidTuples = ii.retrieve(term)
-
-            if cidTuples:
-                allCidTuples = allCidTuples + cidTuples
-
-        ii.close()
-        return self.__loadDocumentTextForCids(set([cid for cid, _ in allCidTuples]))
 
 
     def __loadDocumentTextForCids(self, cids):
@@ -208,33 +218,20 @@ class SearchEngine():
         return resultCidTuples
 
 
-    def search(self, query):
-        results = []
-        if self.__boolQueryPattern.fullmatch(query):
-            print("\n\n##### Boolean Query Search")
-            results = self.__booleanSearch(query)
+    def __cidSetCombiner(self, op):
+        def notFunc(x, y):
+            return x - y
+        def andFunc(x, y):
+            return x & y
+        def orFunc(x, y):
+            return x | y
 
-        #elif self.__prefixQueryPattern.fullmatch(query):
-        #    print("\n\n##### Prefix Search")
-        #    results = self.__prefixSearchTerm(query.replace("*", ""))
-
-        elif self.__phraseQueryPattern.fullmatch(query):
-            print("\n\n##### Phrase Search")
-            results = self.__phraseSearch(query)
-
-        else:
-            if re.search('NOT|AND|OR', query):
-                print("*** ERROR ***")
-                #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
-                return ["*** ERROR ***", "Query not supported. Please use only one of the following binary Operators or none: '*', 'NOT', 'AND', 'OR'"]
-
-            else:
-                print("\n\n##### Keyword Search")
-                results = self.__keywordSearch(query)
-
-
-        print("##### Query for >>>", query, "<<< returned", len(results), "comments")
-        return results
+        switcher = {
+            Operator.NOT: notFunc,
+            Operator.AND: andFunc,
+            Operator.OR:  orFunc
+        }
+        return switcher.get(op)
 
 
     def printAssignment2QueryResults(self):
@@ -245,22 +242,27 @@ class SearchEngine():
     
 
     def printAssignment3QueryResults(self):
+        print(prettyPrint(self.search("party AND chancellor")[:1]))
+        print(prettyPrint(self.search("party NOT politics")[:1]))
+        print(prettyPrint(self.search("war OR conflict")[:1]))
+        print(prettyPrint(self.search("euro* NOT europe")[:1]))
+        print(prettyPrint(self.search("publi* OR moderation")[:1]))
+        print(prettyPrint(self.search("'the european union'")[:1]))
+        print(prettyPrint(self.search("'christmas market'")[:1]))
+
+
+    def printTestQueryResults(self):
+        print(prettyPrint(self.search("christmas")[:5]))
+        print(prettyPrint(self.search("christmas market")[:5]))
         #print(prettyPrint(self.search("hate")[:5]))
-        print(prettyPrint(self.search("prefix* help")[:5]))
-        print(prettyPrint(self.search("atta*")[:5]))
+        #print(prettyPrint(self.search("prefix* help")[:5]))
+        #print(prettyPrint(self.search("atta*")[:5]))
         #print(prettyPrint(self.search("party AND chancellor NOT europe")))
         #print(prettyPrint(self.search("NOT hate")[:5]))
         #print(prettyPrint(self.search("Trump AND hate")[:5]))
-
-        #print(prettyPrint(self.search("party AND chancellor")[:5]))
-        #print(prettyPrint(self.search("party NOT politics")[:5]))
-        #print(prettyPrint(self.search("war OR conflict")[:5]))
-        #print(prettyPrint(self.search("euro* NOT europe")[:5]))
-        #print(prettyPrint(self.search("publi* OR moderation")[:5]))
-        #print(prettyPrint(self.search("'the european union'")[:5]))
-        #print(prettyPrint(self.search("'christmas market'")))
         #print(prettyPrint(self.search("'Republican legislation'")))
         #print(prettyPrint(self.search("'truck confederate flag'")))
+        pass
 
 
 
@@ -283,6 +285,8 @@ class CustomPpStep(PreprocessorStep):
 
 
 if __name__ == '__main__':
-    se = SearchEngine()
+    se = SearchEngine("data")
     #se.index("data")
-    se.printAssignment3QueryResults()
+    #se.printAssignment2QueryResults()
+    #se.printAssignment3QueryResults()
+    se.printTestQueryResults()

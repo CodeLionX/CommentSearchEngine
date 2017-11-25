@@ -32,3 +32,11 @@ class InvertedIndexReader(object):
 
     def terms(self):
         return [term for term in self.__dictionary]
+
+
+    def __enter__(self):
+        return self
+
+
+    def __exit__(self, type, value, traceback):
+        self.close()

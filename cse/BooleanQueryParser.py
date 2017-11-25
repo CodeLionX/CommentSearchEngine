@@ -7,7 +7,7 @@ class BooleanQueryParser(object):
 
     def __init__(self, query):
         #query = query.replace("*", "STAR")
-        self.__queryTokens = self.__tokenize(query, Operator.STAR)
+        self.__queryTokens = self.__tokenize(query, Operator.NOT)
 
 
     def __str__(self):
