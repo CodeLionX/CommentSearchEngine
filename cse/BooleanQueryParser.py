@@ -6,7 +6,7 @@ class BooleanQueryParser(object):
 
 
     def __init__(self, query):
-        query = query.replace("*", "STAR")
+        #query = query.replace("*", "STAR")
         self.__queryTokens = self.__tokenize(query, Operator.STAR)
 
 
@@ -39,7 +39,7 @@ class BooleanQueryParser(object):
 
 
 class Operator(Enum):
-    STAR = 1
+    #STAR = 1
     NOT = 2
     AND = 3
     OR = 4

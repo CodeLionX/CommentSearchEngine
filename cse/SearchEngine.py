@@ -72,26 +72,24 @@ class SearchEngine():
         p = BooleanQueryParser(query).get()
         cidSets = []
 
-        
-
-        if Operator.STAR in p:
-            print("STAR operator found: prefixSearch needed")
-            cids = []
-
+        # filter out operators
+        # note: we only support one opperator kind per query at the moment!
+        op = None
+        if Operator.NOT in p:   op = Operator.NOT
+        elif Operator.OR in p:  op = Operator.OR
+        elif Operator.AND in p: op = Operator.AND
         else:
-            # filter out operators
-            # note: we only support one opperator kind per query at the moment!
-            op = None
-            if Operator.NOT in p:   op = Operator.NOT
-            elif Operator.OR in p:  op = Operator.OR
-            elif Operator.AND in p: op = Operator.AND
-            else:
-                print("No or wrong operator in query!!")
-                return []
-            terms = [term for term in p if term not in Operator]
+            print("No or wrong operator in query!!")
+            return []
+        terms = [term for term in p if term not in Operator]
 
-            # load document set per term
-            for term in terms:
+        # load document set per term
+        for term in terms:
+            cidTuples = []
+            if term.endswith("*"):
+                cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
+
+            else:
                 pTerm = self.__prep.processText(term)
                 if not pTerm or len(pTerm) > 1:
                     print(
@@ -99,21 +97,36 @@ class SearchEngine():
                         "is invalid! Please use only one word for boolean queries."
                     )
                     return []
-
                 cidTuples = ii.retrieve(pTerm[0][0])
-                if cidTuples:
-                    cidSets.append(set( (cid for cid, _ in cidTuples) ))
 
-            firstCids = cidSets[0]
-            cidSets.remove(firstCids)
-            cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)  
+            if cidTuples:
+                cidSets.append(set( (cid for cid, _ in cidTuples) ))
 
+        firstCids = cidSets[0]
+        cidSets.remove(firstCids)
+        cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)  
+
+        ii.close()
         return self.__loadDocumentTextForCids(cids)
 
 
-    def __prefixSearch(self, query):
-        # TODO: implement prefix query parser
-        return self.__loadDocumentTextForCids([])
+    def __prefixSearchTerm(self, index, term):
+        # get prefix matching terms
+        matchedTerms = [token for token in index.terms() if token.startswith(term)]
+
+        # load posting list
+        cidTuples = {}
+        for term in matchedTerms:
+            for cid, posList in index.retrieve(term):
+                # there should be NO possibility that we have two terms in one document at the same position
+                # so this operation can be done on simple lists without checking duplicates
+                positions = cidTuples.get(cid, [])
+                positions = positions + posList
+                positions.sort()
+                cidTuples[cid] = positions
+
+        # reconstruct tuple list: [(cid, positionList), (cid2, positionList2)]
+        return [(cid, cidTuples[cid]) for cid in cidTuples]
 
 
     def __phraseSearch(self, query):
@@ -131,6 +144,7 @@ class SearchEngine():
                 newCidTuples = dict(ii.retrieve(term))
                 cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
 
+        ii.close()
         return self.__loadDocumentTextForCids(cidTuples)
 
 
@@ -141,11 +155,20 @@ class SearchEngine():
         # assume multiple tokens in query are combined with OR operator
         allCidTuples = []
         for term, _ in queryTermTuples:
-            cidTupleList = ii.retrieve(term)
-            if cidTupleList:
-                allCidTuples = allCidTuples + cidTupleList
+            cidTuples = []
 
-        return self.__loadDocumentTextForCids([cid for cid, _ in allCidTuples])
+            # find prefix query search terms
+            if term.endswith("*"):
+                cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
+
+            else:
+                cidTuples = ii.retrieve(term)
+
+            if cidTuples:
+                allCidTuples = allCidTuples + cidTuples
+
+        ii.close()
+        return self.__loadDocumentTextForCids(set([cid for cid, _ in allCidTuples]))
 
 
     def __loadDocumentTextForCids(self, cids):
@@ -191,16 +214,16 @@ class SearchEngine():
             print("\n\n##### Boolean Query Search")
             results = self.__booleanSearch(query)
 
-        elif self.__prefixQueryPattern.fullmatch(query):
-            print("\n\n##### Prefix Search")
-            results = self.__prefixSearch(query)
+        #elif self.__prefixQueryPattern.fullmatch(query):
+        #    print("\n\n##### Prefix Search")
+        #    results = self.__prefixSearchTerm(query.replace("*", ""))
 
         elif self.__phraseQueryPattern.fullmatch(query):
             print("\n\n##### Phrase Search")
             results = self.__phraseSearch(query)
 
         else:
-            if re.search('NOT|AND|OR|[*]', query):
+            if re.search('NOT|AND|OR', query):
                 print("*** ERROR ***")
                 #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
                 return ["*** ERROR ***", "Query not supported. Please use only one of the following binary Operators or none: '*', 'NOT', 'AND', 'OR'"]
@@ -223,10 +246,11 @@ class SearchEngine():
 
     def printAssignment3QueryResults(self):
         #print(prettyPrint(self.search("hate")[:5]))
-        #print(prettyPrint(self.search("prefix*")[:5]))
+        print(prettyPrint(self.search("prefix* help")[:5]))
+        print(prettyPrint(self.search("atta*")[:5]))
         #print(prettyPrint(self.search("party AND chancellor NOT europe")))
-        print(prettyPrint(self.search("NOT hate")[:5]))
-        print(prettyPrint(self.search("Trump AND hate")[:5]))
+        #print(prettyPrint(self.search("NOT hate")[:5]))
+        #print(prettyPrint(self.search("Trump AND hate")[:5]))
 
         #print(prettyPrint(self.search("party AND chancellor")[:5]))
         #print(prettyPrint(self.search("party NOT politics")[:5]))
