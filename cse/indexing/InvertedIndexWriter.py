@@ -55,6 +55,6 @@ class InvertedIndexWriter(object):
 
     def deltaMerge(self):
         print("!! delta merge !!")
-        print("  delta estimated size:", self.__dIndex.estimatedSize() / 1024 / 1024, "mb")
+        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / 1024 / 1024, "mb")
         self.__mIndex.mergeInDeltaIndex(self.__dIndex)
         self.__dIndex.clear()

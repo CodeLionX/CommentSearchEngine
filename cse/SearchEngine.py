@@ -1,10 +1,14 @@
 import os
+import re
+import functools
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
-from cse.indexing import (InvertedIndexWriter, InvertedIndexReader)
-from cse.indexing import DocumentMap
+from cse.indexing import (InvertedIndexReader, DocumentMap)
+from cse.indexing.FileIndexer import FileIndexer
 from cse.CommentReader import CommentReader
+from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
+from cse.helper.MultiFileMap import MultiFileMap
 
 
 class SearchEngine():
@@ -20,9 +24,15 @@ class SearchEngine():
     see: http://whoosh.readthedocs.io/en/latest/stemming.html (stemming from whoosh in separate package: https://pypi.python.org/pypi/stemming/1.0)
     """
     __prep = None
+    __boolQueryPattern = None
+    __prefixQueryPattern = None
+    __phraseQueryPattern = None
+
+    __directory = ""
 
 
-    def __init__(self):
+    def __init__(self, directory):
+        self.__directory = directory
         self.__prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
@@ -31,102 +41,197 @@ class SearchEngine():
             .addCustomStepToEnd(CustomPpStep())
             .build()
         )
+        self.__boolQueryPattern = re.compile('^([\w\d*]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*]+)+$', re.M)
+        self.__prefixQueryPattern = re.compile('^[^\S\x0a\x0d]*([\w\d]*\*)[^\S\x0a\x0d]*$', re.I | re.M)
+        self.__phraseQueryPattern = re.compile('^[^\S\x0a\x0d]*(\'[\w\d]+([^\S\x0a\x0d]*[\w\d]*)*\')[^\S\x0a\x0d]*$', re.I | re.M)
 
 
-    def index(self, directory):
-        # lookup for article file ids
-        documentMap = DocumentMap()
-        documentMap.loadJson(os.path.join(directory, "index.json"))
-
-        # to be created inverted index
-        ii = InvertedIndexWriter(directory)
+    def loadIndex(self):
+        return InvertedIndexReader(self.__directory)
 
 
-        # for just one article
-        """
-        randomCid = documentMap.listCids()[0:1][0]
-        filename = documentMap.get(randomCid)["fileId"]
-        self.__createIndexForArticle(ii, prep, filename)
-        ii.close()
-        """
-
-        # for all articles
-        filenames = []
-        for cid in documentMap.listCids():
-            filenames.append(documentMap.get(cid)["fileId"])
-
-        for filename in set(filenames):
-            print("Processing file", filename)
-            self.__createIndexForArticle(ii, filename)
-
-        ii.close()
-
-
-    def __createIndexForArticle(self, index, filename):
-        cr = CommentReader(os.path.join("data", "raw", filename))
-        cr.open()
-        fileData = cr.readData()
-
-        for cid in fileData["comments"]:
-            tokenTuples = self.__prep.processText(fileData["comments"][cid]["comment_text"])
-
-            tokenDict = {}
-            for token, position in tokenTuples:
-                positionList = tokenDict.get(token, [])
-                positionList.append(position)
-                positionList.sort()
-                tokenDict[token] = positionList
-            
-            for token in tokenDict:
-                index.insert(token, cid, tokenDict[token]) # and also positionList = tokenDict[token]
-
-        cr.close()
-
-
-    def loadIndex(self, directory):
-        return InvertedIndexReader(directory)
+    def index(self):
+        indexer = FileIndexer(self.__directory, self.__prep)
+        indexer.index()
 
 
     def search(self, query):
-        ii = self.loadIndex("data")
-        queryTermTuples = self.__prep.processText(query)
-
-        # assume multiple tokens in query are combined with OR operator
-        allCids = []
-        for term, position in queryTermTuples:
-            cidTupleList = ii.retrieve(term)
-            if cidTupleList:
-                allCids = allCids + cidTupleList
-
-        #print("found", len(allCids), "documents")
-
-        # read info from files
-        documentMap = DocumentMap().loadJson(os.path.join("data", "index.json"))
-        fileIdCids = {}
-        for cid, _ in allCids:
-            meta = documentMap.get(cid)
-            if meta["fileId"] not in fileIdCids:
-                fileIdCids[meta["fileId"]] = []
-            fileIdCids[meta["fileId"]].append(cid)
-
-        #print("distributed in", len(fileIdCids), "files")
-
-        # get comments
         results = []
-        for fileId in fileIdCids:
-            #print("  processing file", fileId)
-            cr = CommentReader(os.path.join("data", "raw", fileId))
-            cr.open()
-            fileData = cr.readData()
+        if self.__boolQueryPattern.fullmatch(query):
+            print("\n\n##### Boolean Query Search")
+            results = self.__booleanSearch(query)
 
-            for cid in fileData["comments"]:
-                if(cid in set(fileIdCids[fileId])):
-                    results.append(fileData["comments"][cid]["comment_text"])
+        elif self.__phraseQueryPattern.fullmatch(query):
+            print("\n\n##### Phrase Search")
+            results = self.__phraseSearch(query)
 
-            cr.close()
-        
-        print("\n\n##### query for", query, ", comments found:", len(results))
+        elif re.search('NOT|AND|OR', query):
+                print("*** ERROR ***")
+                #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
+                return ["*** ERROR ***", "Query not supported. Please use only one of the following binary Operators or none: '*', 'NOT', 'AND', 'OR'"]
+
+        else:
+            print("\n\n##### Keyword Search")
+            results = self.__keywordSearch(query)
+
+
+        print("##### Query for >>>", query, "<<< returned", len(results), "comments")
         return results
+
+
+    def __booleanSearch(self, query):
+        with self.loadIndex() as ii:
+            # operator precedence: STAR > NOT > AND > OR
+            p = BooleanQueryParser(query).get()
+            cidSets = []
+
+            # filter out operators
+            # note: we only support one opperator kind per query at the moment!
+            op = None
+            if Operator.NOT in p:   op = Operator.NOT
+            elif Operator.OR in p:  op = Operator.OR
+            elif Operator.AND in p: op = Operator.AND
+            else:
+                print("No or wrong operator in query!!")
+                return []
+            terms = [term for term in p if term not in Operator]
+
+            # load document set per term
+            for term in terms:
+                cidTuples = []
+                if term.endswith("*"):
+                    cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
+
+                else:
+                    pTerm = self.__prep.processText(term)
+                    if not pTerm or len(pTerm) > 1:
+                        print(
+                            self.__class__.__name__ + ":", "term", term,
+                            "is invalid! Please use only one word for boolean queries."
+                        )
+                        return []
+                    cidTuples = ii.retrieve(pTerm[0][0])
+
+                if cidTuples:
+                    cidSets.append(set( (cid for cid, _ in cidTuples) ))
+
+        firstCids = cidSets[0]
+        cidSets.remove(firstCids)
+        cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)  
+
+        return self.__loadDocumentTextForCids(cids)
+
+
+    def __phraseSearch(self, query):
+        with self.loadIndex() as ii:
+            queryTermTuples = self.__prep.processText(query.replace("'", ""))
+
+            # determine documents with ordered consecutive query terms
+            first = True
+            cidTuples = {}
+            for term, _ in queryTermTuples:
+                if first:
+                    cidTuples = dict(ii.retrieve(term))
+                    first = False
+                else:
+                    newCidTuples = dict(ii.retrieve(term))
+                    cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
+
+        return self.__loadDocumentTextForCids(cidTuples)
+
+
+    def __keywordSearch(self, query):
+        with self.loadIndex() as ii:
+            queryTermTuples = self.__prep.processText(query)
+
+            # assume multiple tokens in query are combined with OR operator
+            allCidTuples = []
+            for term, _ in queryTermTuples:
+                cidTuples = []
+
+                # find prefix query search terms
+                if term.endswith("*"):
+                    cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
+
+                else:
+                    cidTuples = ii.retrieve(term)
+
+                if cidTuples:
+                    allCidTuples = allCidTuples + cidTuples
+
+        return self.__loadDocumentTextForCids(set([cid for cid, _ in allCidTuples]))
+
+
+    def __prefixSearchTerm(self, index, term):
+        # get prefix matching terms
+        matchedTerms = [token for token in index.terms() if token.startswith(term)]
+
+        # load posting list
+        cidTuples = {}
+        for term in matchedTerms:
+            for cid, posList in index.retrieve(term):
+                # there should be NO possibility that we have two terms in one document at the same position
+                # so this operation can be done on simple lists without checking duplicates
+                positions = cidTuples.get(cid, [])
+                positions = positions + posList
+                positions.sort()
+                cidTuples[cid] = positions
+
+        # reconstruct tuple list: [(cid, positionList), (cid2, positionList2)]
+        return [(cid, cidTuples[cid]) for cid in cidTuples]
+
+
+    def __loadDocumentTextForCids(self, cids):
+        results = []
+        commentPointers = set()
+
+        if not cids:
+            return results
+
+        # get document pointers
+        with DocumentMap(os.path.join("data", "documentMap.index")).open() as documentMap:
+            for cid in cids:
+                try:
+                    commentPointers.add(documentMap.get(cid))
+                except KeyError:
+                    print(self.__class__.__name__ + ":", "comment", cid, "not found!")
+
+        # load document text
+        with CommentReader(os.path.join("data", "comments.data")).open() as cr:
+            for pointer, rowData in enumerate(cr):
+                if pointer in commentPointers:
+                    results.append(rowData["comment_text"])
+
+        return results
+
+
+    def __documentsWithConsecutiveTerms(self, firstTermTuples, secondTermTuples):
+        # documents containing both terms:
+        cids = [cid for cid in firstTermTuples if cid in secondTermTuples]
+
+        # check for consecutive term positions
+        resultCidTuples = {}
+        for cid in cids:
+            for pos in firstTermTuples[cid]:
+                if pos+1 in secondTermTuples[cid]:
+                    resultCidTuples[cid] = secondTermTuples[cid]
+        return resultCidTuples
+
+
+    def __cidSetCombiner(self, op):
+        def notFunc(x, y):
+            return x - y
+        def andFunc(x, y):
+            return x & y
+        def orFunc(x, y):
+            return x | y
+
+        switcher = {
+            Operator.NOT: notFunc,
+            Operator.AND: andFunc,
+            Operator.OR:  orFunc
+        }
+        return switcher.get(op)
 
 
     def printAssignment2QueryResults(self):
@@ -134,6 +239,30 @@ class SearchEngine():
         print(prettyPrint(self.search("jobs")[:5]))
         print(prettyPrint(self.search("Trump")[:5]))
         print(prettyPrint(self.search("hate")[:5]))
+    
+
+    def printAssignment3QueryResults(self):
+        print(prettyPrint(self.search("party AND chancellor")[:1]))
+        print(prettyPrint(self.search("party NOT politics")[:1]))
+        print(prettyPrint(self.search("war OR conflict")[:1]))
+        print(prettyPrint(self.search("euro* NOT europe")[:1]))
+        print(prettyPrint(self.search("publi* OR moderation")[:1]))
+        print(prettyPrint(self.search("'the european union'")[:1]))
+        print(prettyPrint(self.search("'christmas market'")[:1]))
+
+
+    def printTestQueryResults(self):
+        print(prettyPrint(self.search("christmas")[:5]))
+        print(prettyPrint(self.search("christmas market")[:5]))
+        #print(prettyPrint(self.search("hate")[:5]))
+        #print(prettyPrint(self.search("prefix* help")[:5]))
+        #print(prettyPrint(self.search("atta*")[:5]))
+        #print(prettyPrint(self.search("party AND chancellor NOT europe")))
+        #print(prettyPrint(self.search("NOT hate")[:5]))
+        #print(prettyPrint(self.search("Trump AND hate")[:5]))
+        #print(prettyPrint(self.search("'Republican legislation'")))
+        #print(prettyPrint(self.search("'truck confederate flag'")))
+        pass
 
 
 
@@ -155,10 +284,9 @@ class CustomPpStep(PreprocessorStep):
 
 
 
-#searchEngine = SearchEngine()
-#searchEngine.printAssignment2QueryResults()
-
 if __name__ == '__main__':
-    se = SearchEngine()
-    se.index("data")
-    se.printAssignment2QueryResults()
+    se = SearchEngine("data")
+    #se.index("data")
+    #se.printAssignment2QueryResults()
+    #se.printAssignment3QueryResults()
+    se.printTestQueryResults()
