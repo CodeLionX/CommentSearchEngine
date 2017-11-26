@@ -7,6 +7,7 @@ from scrapy.selector import Selector
 from scrapy import signals
 
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
+from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
 from cse.CommentWriter import CommentWriter
 
 class CommentSpider(SitemapSpider):
@@ -17,6 +18,7 @@ class CommentSpider(SitemapSpider):
     
     #sitemap_follow = ['/web-sitemap-index','/news-sitemap-index','/real-estate/sitemap']#news-sitemap-index']
     __pbs = None
+    __pbsOld = None
     __writer = None
 
 
@@ -24,6 +26,8 @@ class CommentSpider(SitemapSpider):
         super().__init__(self)
         self.__pbs = PipelineBootstrap()
         self.__pbs.setupPipeline()
+        self.__pbsOld = PipelineBootstrapOld()
+        self.__pbsOld.setupPipeline()
         self.__setupFileWriter("comments.csv")
 
 
@@ -39,11 +43,13 @@ class CommentSpider(SitemapSpider):
         writer.open()
         writer.printHeader()
         self.__pbs.registerDataListener(writer.printData)
+        self.__pbsOld.registerDataListener(writer.printData)
         self.__writer = writer
 
 
     def __teardownFileWriter(self):
         self.__pbs.unregisterDataListener(self.__writer.printData)
+        self.__pbsOld.unregisterDataListener(self.__writer.printData)
         self.__writer.close()
 
 
@@ -59,7 +65,14 @@ class CommentSpider(SitemapSpider):
             self.__pbs.crawlComments(url)
             #todo call another pipeline with oldApi Adapter or integrate oldApiAdapter into exisiting pipeline (attention: what happens when one adapter fetches comments of other api?)
         except:
-            print('fail\n')
+            print('fail New Api\n')
+
+        try:
+            url = url[0]
+            self.__pbsOld.crawlComments(url)
+            #todo call another pipeline with oldApi Adapter or integrate oldApiAdapter into exisiting pipeline (attention: what happens when one adapter fetches comments of other api?)
+        except:
+            print('fail Old Api\n')
 
 
 
