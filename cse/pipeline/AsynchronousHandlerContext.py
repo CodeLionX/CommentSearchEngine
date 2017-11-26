@@ -1,4 +1,4 @@
-class SynchronousHandlerContext(object):
+class AsynchronousHandlerContext(object):
     handler = None
     pipeline = None
     nxt = None
@@ -11,6 +11,8 @@ class SynchronousHandlerContext(object):
 
 
     def write(self, msg):
+        if str(self.handler) == "WpApiAdapter":
+            print("API Adapter writes to pipeline")
         self.__invokeNextRead(self.__findNextNode(), msg)
 
 
@@ -19,8 +21,10 @@ class SynchronousHandlerContext(object):
 
 
     def invokeRead(self, msg):
+        print(str(self), "received invokeRead")
+        # asynchronous over pipeline scheduler
         try:
-            self.handler.process(self, msg)
+            self.pipeline.schedule(self.handler.process, self, msg)
         except Exception as e:
             print("Exception during processing of handler '" + str(self.handler) + "', cause: " + str(e))
 
@@ -30,4 +34,4 @@ class SynchronousHandlerContext(object):
 
 
     def __str__(self):
-        return "SynchronousHandlerContext for " + str(self.handler)
+        return "AsynchronousHandlerContext for " + str(self.handler)

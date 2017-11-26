@@ -1,4 +1,6 @@
 import abc
+import concurrent.futures
+
 
 class Pipeline(object):
 
@@ -6,10 +8,27 @@ class Pipeline(object):
     __tail = None
 
     __ctxFactory = None
+    __threadPoolExecutor = None
 
 
-    def __init__(self, ctxFactory):
+    def __init__(self, ctxFactory, threads=None):
         self.__ctxFactory = ctxFactory
+        self.__threadPoolExecutor = concurrent.futures.ThreadPoolExecutor(max_workers=threads)
+
+
+    def schedule(self, task, ctx, msg):
+        # returns a Future
+        return self.__threadPoolExecutor.submit(task, ctx, msg)
+
+
+    def shutdown(self):
+        # this method is blocking!
+        if self.__threadPoolExecutor:
+            self.__threadPoolExecutor.shutdown()
+
+
+    def write(self, dataToPass):
+        self.__head.invokeRead(dataToPass)
 
 
     def addLast(self, handler):
@@ -81,7 +100,3 @@ class Pipeline(object):
         ctx = self.__ctxFactory.createCtx(handler, self)
         handler.registeredAt(ctx)
         return ctx
-
-
-    def write(self, dataToPass):
-        self.__head.invokeRead(dataToPass)

@@ -21,6 +21,10 @@ class Handler(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def process(self, ctx, data):
+        """
+        Calls to this method can be asynchronous and form different threads
+        if AsynchronousHandlerContext is used. Be aware of that!
+        """
         raise NotImplementedError(
             "Class %s doesn't implement process(), please do that yourself" %
             (self.__class__.__name__)

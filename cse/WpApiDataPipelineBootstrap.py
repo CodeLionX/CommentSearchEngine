@@ -1,26 +1,18 @@
 from threading import Lock
 from cse.WpApiAdapter import WpApiAdapter
 from cse.WpApiParser import WpApiParser
-from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
+from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, AsyncedHandlerContextFactory, Handler)
 from cse.pipeline.wpHandler import (DuplicateHandler, RemoveDuplicatesHandler)
 
 class WpApiDataPipelineBootstrap(Handler):
 
-    __wasPipeBuild = False
-    __wpApiAdapter = None
-    __pipeline = None
-
-    __listeners = []
-    __listenersLock = None
-
-    __countHandler = None
-    __duplicateHandler = None
-
 
     def __init__(self):
         super(WpApiDataPipelineBootstrap, self).__init__("PipelineBootstrap for data listeners")
+        self.__pipeline = None
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
+        self.__listeners = []
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
 
@@ -29,18 +21,16 @@ class WpApiDataPipelineBootstrap(Handler):
         if self.__wasPipeBuild:
             return
 
-        ctxFactory = None
         if not asynchronous:
-            ctxFactory = SyncedHandlerContextFactory()
+            self.__pipeline = Pipeline(SyncedHandlerContextFactory())
         else:
-            raise Exception("Currently not supported")
-            
-        self.__pipeline = Pipeline(ctxFactory)
+            self.__pipeline = Pipeline(AsyncedHandlerContextFactory(), 4)
+            #raise Exception("Currently not supported")
+
         self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> recursive datastructures
         self.__pipeline.addLast(WpApiParser()) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
-        #self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
-        self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
+        #self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
         #self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
         self.__pipeline.addLast(self) # _ -> listeners
 
@@ -52,6 +42,8 @@ class WpApiDataPipelineBootstrap(Handler):
         with self.__listenersLock:
             for callback in self.__listeners:
                 callback(data)
+        
+        print("wrote to csv")
 
 
     def crawlComments(self, url):
@@ -59,7 +51,7 @@ class WpApiDataPipelineBootstrap(Handler):
             raise Exception("Pipeline uninitialized! First init pipeline with setupPipeline()")
         self.__countHandler.reset()
         self.__wpApiAdapter.loadComments(url)
-        print("Processed comments with new API: " + str(self.__countHandler.get()))
+        #print("Processed comments with new API: " + str(self.__countHandler.get()))
 
 
     def registerDataListener(self, listener):
@@ -73,19 +65,29 @@ class WpApiDataPipelineBootstrap(Handler):
             self.__listeners.remove(listener)
 
 
+    def shutdown(self):
+        self.__pipeline.shutdown()
+
+
 
 class CountHandler(Handler):
-    __count = 0
+    
+    def __init__(self, name):
+        super(CountHandler, self).__init__(name)
+        self.__count = 0
+        self.__lock = Lock()
 
     def get(self):
         return self.__count
 
     def reset(self):
-        self.__count = 0
+        with self.__lock:
+            self.__count = 0
 
     def process(self, ctx, data):
-        self.__count = self.__count + len(data["comments"])
         ctx.write(data)
+        with self.__lock:
+            self.__count = self.__count + len(data["comments"])
 
 
 
@@ -97,10 +99,43 @@ class DebugHandler(Handler):
 
 
 
-# just for testing
-if __name__ == "__main__":
+def perfTest():
+    import time
+    from datetime import timedelta
     from cse.CommentWriter import CommentWriter
-    writer = CommentWriter("data/file1")
+
+    firstStart = time.clock()
+    writer = CommentWriter("data/perfTest1")
+    writer.open()
+    writer.printHeader()
+    bs = WpApiDataPipelineBootstrap()
+    bs.registerDataListener(writer.printData)
+    bs.setupPipeline(asynchronous=False)
+    bs.crawlComments(url='https://www.washingtonpost.com/politics/the-shrinking-profile-of-jared-kushner/2017/11/25/5baf7068-c103-11e7-af84-d3e2ee4b2af1_story.html')
+    writer.close()
+    bs.shutdown()
+    firstEnd = time.clock()
+
+    secondStart = time.clock()
+    writer = CommentWriter("data/perfTest2")
+    writer.open()
+    writer.printHeader()
+    bs = WpApiDataPipelineBootstrap()
+    bs.registerDataListener(writer.printData)
+    bs.setupPipeline(asynchronous=True)
+    bs.crawlComments(url='https://www.washingtonpost.com/politics/the-shrinking-profile-of-jared-kushner/2017/11/25/5baf7068-c103-11e7-af84-d3e2ee4b2af1_story.html')
+    writer.close()
+    bs.shutdown()
+    secondEnd = time.clock()
+
+    print("\nTimings:")
+    print("Synchronous:  " + str(timedelta(seconds=firstEnd-firstStart)))
+    print("Asynchronous: " + str(timedelta(seconds=secondEnd-secondStart)))
+
+
+def dataListenerTest():
+    from cse.CommentWriter import CommentWriter
+    writer = CommentWriter("data/dataListenerTest1")
     writer.open()
     writer.printHeader()
     bs = WpApiDataPipelineBootstrap()
@@ -112,9 +147,46 @@ if __name__ == "__main__":
     writer.close()
 
     ## try changing data listener
-    writer = CommentWriter("data/file2")
+    writer = CommentWriter("data/dataListenerTest2")
     writer.open()
     writer.printHeader()
     bs.registerDataListener(writer.printData)
-    bs.crawlComments(url='https://www.washingtonpost.com/news/wonk/wp/2017/11/02/winners-and-losers-in-the-gop-tax-plan/?hpid=hp_hp-top-table-main_tax-winnerslosers-230pm%3Ahomepage%2Fstory&utm_term=.d2381570c5bc')
+    bs.crawlComments(url='https://www.washingtonpost.com/news/wonk/wp/2017/11/02/winners-and-losers-in-the-gop-tax-plan/')
     writer.close()
+    print("shutting down...")
+    bs.shutdown()
+    print("..finished")
+
+
+def syncTest():
+    from cse.CommentWriter import CommentWriter
+    writer = CommentWriter("data/syncTest")
+    writer.open()
+    writer.printHeader()
+    bs = WpApiDataPipelineBootstrap()
+    bs.registerDataListener(writer.printData)
+    bs.setupPipeline()
+    bs.crawlComments(url='https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html')
+    writer.close()
+    bs.shutdown()
+
+
+def asyncTest():
+    import time
+    from cse.CommentWriter import CommentWriter
+    writer = CommentWriter("data/asyncTest")
+    writer.open()
+    writer.printHeader()
+    bs = WpApiDataPipelineBootstrap()
+    bs.registerDataListener(writer.printData)
+    bs.setupPipeline(asynchronous=True)
+    bs.crawlComments(url='https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html')
+    writer.close()
+    time.sleep(10)
+    bs.shutdown()
+
+
+# just for testing
+if __name__ == "__main__":
+    #syncTest()
+    asyncTest()

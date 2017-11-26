@@ -8,6 +8,7 @@ simple pipeline for data processing
 import abc
 
 from cse.pipeline.SynchronousHandlerContext import SynchronousHandlerContext
+from cse.pipeline.AsynchronousHandlerContext import AsynchronousHandlerContext
 from cse.pipeline.Pipeline import Pipeline
 from cse.pipeline.stdHandler import (SimpleConsolePrintHandler, SimpleForwardHandler, SinkHandler)
 from cse.pipeline.Handler import Handler
@@ -16,6 +17,10 @@ from cse.pipeline.Handler import Handler
 class SyncedHandlerContextFactory:
     def createCtx(self, handler, pipeline):
         return SynchronousHandlerContext(handler, pipeline)
+
+class AsyncedHandlerContextFactory:
+    def createCtx(self, handler, pipeline):
+        return AsynchronousHandlerContext(handler, pipeline)
 
 
 if __name__ == '__main__':
