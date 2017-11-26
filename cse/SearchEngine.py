@@ -286,7 +286,7 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine("data")
-    #se.index("data")
+    #se.index()
     #se.printAssignment2QueryResults()
-    #se.printAssignment3QueryResults()
-    se.printTestQueryResults()
+    se.printAssignment3QueryResults()
+    #se.printTestQueryResults()
