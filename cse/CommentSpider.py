@@ -14,8 +14,8 @@ class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
     #sitemap_urls = ['https://www.washingtonpost.com/robots.txt']
-    sitemap_urls = ['https://www.washingtonpost.com/web-sitemap-index.xml', 'https://www.washingtonpost.com/news-sitemap-index.xml']
-    
+    #sitemap_urls = ['https://www.washingtonpost.com/web-sitemap-index.xml', 'https://www.washingtonpost.com/news-sitemap-index.xml']
+    other_urls = ['https://www.washingtonpost.com/news/morning-mix/wp/2017/11/06/an-unlikely-hero-describes-gun-battle-and-95-mph-chase-with-texas-shooting-suspect/']
     #sitemap_follow = ['/web-sitemap-index','/news-sitemap-index','/real-estate/sitemap']#news-sitemap-index']
     __pbs = None
     __pbsOld = None
@@ -37,6 +37,10 @@ class CommentSpider(SitemapSpider):
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
 
+    def start_requests(self):
+        requests = list(super(CommentSpider, self).start_requests())
+        requests += [scrapy.Request(x, self.parse) for x in self.other_urls]
+        return requests
 
     def __setupFileWriter(self, filename):
         writer = CommentWriter(os.path.join("data", filename))
@@ -62,17 +66,19 @@ class CommentSpider(SitemapSpider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
         try:
             url = url[0]
-            self.__pbs.crawlComments(url)
+            self.__pbs.crawlComments(response.url)
             #todo call another pipeline with oldApi Adapter or integrate oldApiAdapter into exisiting pipeline (attention: what happens when one adapter fetches comments of other api?)
         except:
             print('fail New Api\n')
 
         try:
-            url = url[0]
-            self.__pbsOld.crawlComments(url)
+            #url = url[0]
+            print(response.url)
+            self.__pbsOld.crawlComments(response.url)
             #todo call another pipeline with oldApi Adapter or integrate oldApiAdapter into exisiting pipeline (attention: what happens when one adapter fetches comments of other api?)
         except:
             print('fail Old Api\n')
+            print("Unexpected error:", sys.exc_info()[0])
 
 
 
