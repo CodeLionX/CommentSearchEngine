@@ -13,7 +13,7 @@ class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
     #sitemap_urls = ['https://www.washingtonpost.com/robots.txt']
-    sitemap_urls = ['http://www.washingtonpost.com/news-politics-sitemap.xml', 'http://www.washingtonpost.com/news-opinions-sitemap.xml','http://www.washingtonpost.com/news-local-sitemap.xml','http://www.washingtonpost.com/news-national-sitemap.xml']
+    sitemap_urls = ['https://www.washingtonpost.com/web-sitemap-index.xml', 'https://www.washingtonpost.com/news-sitemap-index.xml']
     
     #sitemap_follow = ['/web-sitemap-index','/news-sitemap-index','/real-estate/sitemap']#news-sitemap-index']
     __pbs = None
@@ -56,9 +56,8 @@ class CommentSpider(SitemapSpider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
         try:
             url = url[0]
-            writer = self.__setupFileWriter(url)
             self.__pbs.crawlComments(url)
-            self.__teardownFileWriter(writer)
+            #todo call another pipeline with oldApi Adapter or integrate oldApiAdapter into exisiting pipeline (attention: what happens when one adapter fetches comments of other api?)
         except:
             print('fail\n')
 
