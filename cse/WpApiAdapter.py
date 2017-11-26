@@ -63,8 +63,7 @@ class WpApiAdapter(Handler):
         data = Util.fromJsonString(response.text)
         assetId = data['data']['asset']['id']
         commentsNode = data['data']['asset']['comments']
-        
-        comments = self.__processComments(commentsNode, url, assetId)
+        self.__processComments(commentsNode, url, assetId)
 
 
     def __buildInitialRequstPayload(self, url):
@@ -115,13 +114,11 @@ class WpApiAdapter(Handler):
             replies = com['replies']['nodes']
 
             if(repliesHasNextPage):
-                com['replies']['nodes'] = replies + self.__loadMoreReplies(url, assetId, repliesCursor, repliesParentId)
+                self.__loadMoreReplies(url, assetId, repliesCursor, repliesParentId)
 
         # check for another page
         if(commentsHasNextPage):
-            comments = comments + self.__loadMoreComments(url, assetId, commentsCursor)
-
-        return comments
+            self.__loadMoreComments(url, assetId, commentsCursor)
 
 
     def __loadMoreComments(self, url, assetId, cursor):
@@ -135,8 +132,7 @@ class WpApiAdapter(Handler):
 
         data = Util.fromJsonString(response.text)
         commentsNode = data['data']['comments']
-
-        return self.__processComments(commentsNode, url, assetId)
+        self.__processComments(commentsNode, url, assetId)
 
 
     def __loadMoreReplies(self, url, assetId, cursor, parentId):
@@ -150,8 +146,7 @@ class WpApiAdapter(Handler):
 
         data = Util.fromJsonString(response.text)
         commentsNode = data['data']['comments']
-
-        return self.__processComments(commentsNode, url, assetId, parentId)
+        self.__processComments(commentsNode, url, assetId, parentId)
 
 
     # inherited from cse.pipeline.Handler

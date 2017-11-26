@@ -20,7 +20,6 @@ class WpOldApiDataPipelineBootstrap(Handler):
         super(WpOldApiDataPipelineBootstrap, self).__init__("PipelineBootstrapOld for data listeners")
         self.__wpApiAdapter = WpOldApiAdapter()
         self.__countHandler = CountHandler("CounterOld")
-        self.__duplicateHandler = DuplicateHandler()
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
 
@@ -59,7 +58,6 @@ class WpOldApiDataPipelineBootstrap(Handler):
         self.__countHandler.reset()
         self.__wpApiAdapter.loadComments(url)
         print("Processed comments with old API: " + str(self.__countHandler.get()))
-        self.__duplicateHandler.getDuplicates()
 
 
 
@@ -104,7 +102,7 @@ if __name__ == "__main__":
     writer = CommentWriter("data/file1")
     writer.open()
     writer.printHeader()
-    bs = WpApiDataPipelineBootstrap()
+    bs = WpOldApiDataPipelineBootstrap()
     printListener = writer.printData
     bs.registerDataListener(printListener)
     bs.setupPipeline()

@@ -21,7 +21,6 @@ class WpApiDataPipelineBootstrap(Handler):
         super(WpApiDataPipelineBootstrap, self).__init__("PipelineBootstrap for data listeners")
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
-        self.__duplicateHandler = DuplicateHandler()
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
 
@@ -60,9 +59,7 @@ class WpApiDataPipelineBootstrap(Handler):
             raise Exception("Pipeline uninitialized! First init pipeline with setupPipeline()")
         self.__countHandler.reset()
         self.__wpApiAdapter.loadComments(url)
-        print("Processed comments: " + str(self.__countHandler.get()))
-        self.__duplicateHandler.getDuplicates()
-
+        print("Processed comments with new API: " + str(self.__countHandler.get()))
 
 
     def registerDataListener(self, listener):

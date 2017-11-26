@@ -14,7 +14,7 @@ class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
     #sitemap_urls = ['https://www.washingtonpost.com/robots.txt']
-    #sitemap_urls = ['https://www.washingtonpost.com/web-sitemap-index.xml', 'https://www.washingtonpost.com/news-sitemap-index.xml']
+    sitemap_urls = ['https://www.washingtonpost.com/web-sitemap-index.xml', 'https://www.washingtonpost.com/news-sitemap-index.xml']
     other_urls = ['https://www.washingtonpost.com/news/morning-mix/wp/2017/11/06/an-unlikely-hero-describes-gun-battle-and-95-mph-chase-with-texas-shooting-suspect/']
     #sitemap_follow = ['/web-sitemap-index','/news-sitemap-index','/real-estate/sitemap']#news-sitemap-index']
     __pbs = None
@@ -64,6 +64,8 @@ class CommentSpider(SitemapSpider):
         # parse an article page and watch out for comments on this page and for linked pages
         sel = Selector(response)
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
+
+        print("#### processing new url:", url[0])
         try:
             url = url[0]
             self.__pbs.crawlComments(response.url)
@@ -73,7 +75,6 @@ class CommentSpider(SitemapSpider):
 
         try:
             #url = url[0]
-            print(response.url)
             self.__pbsOld.crawlComments(response.url)
             #todo call another pipeline with oldApi Adapter or integrate oldApiAdapter into exisiting pipeline (attention: what happens when one adapter fetches comments of other api?)
         except:
