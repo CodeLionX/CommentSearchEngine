@@ -139,7 +139,7 @@ class WpOldApiAdapter(Handler):
             'appkey':'prod.washpost.com',
             "q": t.safe_substitute(qParams)
         }
-
+        r = requests.get(self.API_SEARCH_ENDPOINT, params=getParams)
         data = Util.fromJsonString(r.text)
         
         return data
