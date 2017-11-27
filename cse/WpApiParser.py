@@ -34,7 +34,8 @@ class WpApiParser(Handler):
                 "comment_text" : comment["body"],
                 "timestamp" : comment["created_at"],
                 "parent_comment_id" : parentId,
-                "votes" : votes
+                "upvotes" : votes,
+                "downvotes": 0
             }
 
             try:

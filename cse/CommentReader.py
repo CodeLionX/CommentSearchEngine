@@ -44,7 +44,7 @@ class CommentReader(object):
 
             if second:
                 articleUrl = row[1]
-                articleId = row[7]
+                articleId = row[8]
                 second = False
 
             commentId = row[0]
@@ -62,14 +62,16 @@ class CommentReader(object):
         text = row[3].replace("\\n", "\n")
         timestamp = row[4]
         parentId = row[5]
-        votes = int(row[6])
+        upvotes = int(row[6])
+        downvotes = int(row[7])
 
         return {
             "comment_author": author,
             "comment_text" : text,
             "timestamp" : timestamp,
             "parent_comment_id" : parentId,
-            "votes" : votes
+            "upvotes" : upvotes,
+            "downvotes": downvotes
         }
 
 
@@ -80,8 +82,9 @@ class CommentReader(object):
         text = row[3].replace("\\n", "\n")
         timestamp = row[4]
         parentId = row[5]
-        votes = int(row[6])
-        articleId = row[7]
+        upvotes = int(row[6])
+        downvotes = int(row[7])
+        articleId = row[8]
 
         return {
             "commentId": commentId,
@@ -91,7 +94,8 @@ class CommentReader(object):
             "comment_text" : text,
             "timestamp" : timestamp,
             "parent_comment_id" : parentId,
-            "votes" : votes
+            "upvotes" : upvotes,
+            "downvotes": downvotes
         }
 
 
