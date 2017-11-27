@@ -21,13 +21,14 @@ class CommentReader(object):
 
         self.__file = open(self.__filepath, 'r', newline='')
         self.__reader = csv.reader(self.__file, delimiter=self.__delimiter)
+        return self
 
 
     def close(self):
         self.__file.close()
 
 
-    def readData(self):
+    def readAllData(self):
         first = True
         second = True
 
@@ -35,6 +36,7 @@ class CommentReader(object):
         articleId = ""
         comments = {}
 
+        self.__file.seek(0)
         for row in self.__reader:
             if first:
                 first = False
@@ -71,3 +73,58 @@ class CommentReader(object):
             "upvotes" : upvotes,
             "downvotes": downvotes
         }
+
+
+    def __parseIterRow(self, row):
+        commentId = row[0]
+        articleUrl = row[1]
+        author = row[2]
+        text = row[3].replace("\\n", "\n")
+        timestamp = row[4]
+        parentId = row[5]
+        upvotes = int(row[6])
+        downvotes = int(row[7])
+        articleId = row[8]
+
+        return {
+            "commentId": commentId,
+            "article_url": articleUrl,
+            "article_id": articleId,
+            "comment_author": author,
+            "comment_text" : text,
+            "timestamp" : timestamp,
+            "parent_comment_id" : parentId,
+            "upvotes" : upvotes,
+            "downvotes": downvotes
+        }
+
+
+    def __iter__(self):
+        self.__file.seek(0)
+        self.__reader.__iter__()
+        # skip csv header in iteration mode:
+        self.__reader.__next__()
+        return self
+
+
+    def __next__(self):
+        return self.__parseIterRow(self.__reader.__next__())
+
+
+    def __enter__(self):
+        return self.open()
+
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+
+
+if __name__ == "__main__":
+    with CommentReader("data/comments.data") as reader:
+        #print(len(reader))
+        print(len(reader.readAllData()["comments"]))
+        count = 0
+        for e in reader:
+            count = count + 1
+        print(count)

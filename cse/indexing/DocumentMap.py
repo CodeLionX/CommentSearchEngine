@@ -1,5 +1,4 @@
 import os
-import csv
 
 from cse.util import Util
 
@@ -8,69 +7,55 @@ from cse.util import Util
 class DocumentMap(object):
 
 
+    __filePathname = ""
     __index = {}
 
 
-    def __init__(self):
-        pass
-
-
-    def saveCsv(self, filepath):
-        if not os.path.exists(os.path.dirname(filepath)):
+    def __init__(self, filepathname):
+        if not os.path.exists(os.path.dirname(filepathname)):
             try:
-                os.makedirs(os.path.dirname(filepath))
+                os.makedirs(os.path.dirname(filepathname))
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
-
-        index = open(filepath, 'w', newline='')
-        writer = csv.writer(index)
-
-        # write header
-        writer.writerow(["cid", "fileId", "articleId", "articleUrl"])
-
-        # write index
-        for record in self.__index:
-            writer.writerow([
-                str(record["cid"]),
-                str(record["fileId"]),
-                str(record["articleId"]),
-                record["articleUrl"]
-            ])
-
-
-    def saveJson(self, filepath):
-        if not os.path.exists(os.path.dirname(filepath)):
-            try:
-                os.makedirs(os.path.dirname(filepath))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-        with open(filepath, 'w', newline='') as file:
-            file.write(Util.toJsonString(self.__index))
-
-
-    def loadJson(self, filepath):
-        if not os.path.exists(os.path.dirname(filepath)):
-                raise Exception("file not found:" + filepath)
         
-        with open(filepath, 'r', newline='') as file:
-            self.__index = Util.fromJsonString(file.read())
+        self.__filePathname = filepathname
+
+    
+    def open(self):
+        # a+ = read and append (file is created if it does not exist)
+        with open(self.__filePathname, 'a+', newline='') as file:
+            file.seek(0)
+            fileContent = file.read()
+            if fileContent:
+                self.__index = Util.fromJsonString(fileContent)
+            else:
+                print(self.__class__.__name__ + ":", "No DocumentMap available...creating new one")
+                self.__index = {}
         return self
 
 
-    def insert(self, cid, data):
-        self.__index[cid] = data
+    def close(self):
+        with open(self.__filePathname, 'w', newline='') as file:
+            file.seek(0)
+            file.write(Util.toJsonString(self.__index))
+
+
+    def insert(self, cid, pointer):
+        self.__index[cid] = pointer
 
 
     def get(self, cid):
-        try:
-            return self.__index[cid]
-        except KeyError as ex:
-            print("key " + cid + " not found in Index: " + ex)
-            return None
+        return self.__index[cid]
 
 
     def listCids(self):
         return [cid for cid in self.__index]
+
+
+    def __enter__(self):
+        return self.open()
+
+
+    def __exit__(self, type, value, traceback):
+        self.close()

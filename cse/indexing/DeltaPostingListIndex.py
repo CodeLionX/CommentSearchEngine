@@ -70,3 +70,7 @@ class DeltaPostingListIndex(object):
         return int(getsizeof(self.__postingLists)
                 + self.__cidSize * self.__numCommentIds
                 + self.__margin)
+
+
+    def __len__(self):
+        return self.__postingLists.__len__()
