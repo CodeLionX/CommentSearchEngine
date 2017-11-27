@@ -84,15 +84,15 @@ class FileIndexer(object):
     def __processComment(self, cid, comment):
         tokenTuples = self.__prep.processText(comment)
 
-        tokenDict = {}
+        tokenPositionsDict = {}
         for token, position in tokenTuples:
-            positionList = tokenDict.get(token, [])
+            positionList = tokenPositionsDict.get(token, [])
             positionList.append(position)
             positionList.sort()
-            tokenDict[token] = positionList
+            tokenPositionsDict[token] = positionList
 
         for token in tokenDict:
-            self.__index.insert(token, cid, tokenDict[token])
+            self.__index.insert(token, cid, tokenPositionsDict[token])
 
 
 
