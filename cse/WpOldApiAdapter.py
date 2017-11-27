@@ -22,7 +22,7 @@ class WpOldApiAdapter(Handler):
 
     def loadComments(self, url):
         if self.__handlerContext is None:
-            raise Exception("WpApiAdapter must be used within a WpApiAdapterHandler to use pipelining functionality!")
+            raise Exception("WpOldApiAdapter must be used within a processing pipeline")
         
         data = self.__loadInitialRootComments(url)
         
