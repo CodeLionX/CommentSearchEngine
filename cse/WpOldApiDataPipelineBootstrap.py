@@ -13,14 +13,13 @@ class WpOldApiDataPipelineBootstrap(Handler):
     __listenersLock = None
 
     __countHandler = None
-    __duplicateHandler = None
 
 
     def __init__(self):
         super(WpOldApiDataPipelineBootstrap, self).__init__("PipelineBootstrapOld for data listeners")
         self.__wpApiAdapter = WpOldApiAdapter()
         self.__countHandler = CountHandler("CounterOld")
-        self.__duplicateHandler = DuplicateHandler()
+        self.__listeners = []
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
 
@@ -38,9 +37,7 @@ class WpOldApiDataPipelineBootstrap(Handler):
         self.__pipeline = Pipeline(ctxFactory)
         self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
-        #self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
-        #self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
         self.__pipeline.addLast(self) # _ -> listeners
 
         self.__wasPipeBuild = True
@@ -86,14 +83,6 @@ class CountHandler(Handler):
 
     def process(self, ctx, data):
         self.__count = self.__count + len(data["comments"])
-        ctx.write(data)
-
-
-
-class DebugHandler(Handler):
-    def process(self, ctx, data):
-        print(str(data)[0:50] + "[...]", len(data["comments"]))
-        #print(data["url"][0:50], data["assetId"], len(data["comments"]), data["parentId"])
         ctx.write(data)
 
 
