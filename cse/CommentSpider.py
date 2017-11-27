@@ -72,8 +72,8 @@ class CommentSpider(scrapy.Spider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
         url = url[0]
 
-        # todo:check which pipeline needs to be called
         self.__pbs.crawlComments(url)
+        self.__pbsOld.crawlComments(url)
 
 
         """
