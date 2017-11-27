@@ -68,7 +68,8 @@ class WpOldApiAdapter(Handler):
                 "comment_text" : comment_text,
                 "timestamp" : timestamp,
                 "parent_comment_id" : parent_comment_id,
-                "votes" : votes
+                "upvotes" : votes,
+                "downvotes": 0
             }
             try:
                 directReplies = self.__loadReplies(entry["object"]["id"], entry["object"]["accumulators"]["repliesCount"], entry["pageAfter"])
