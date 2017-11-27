@@ -21,21 +21,17 @@ class WpOldApiAdapter(Handler):
         super()
 
     def loadComments(self, url):
-        # if self.__handlerContext is None:
-        #     raise Exception("WpApiAdapter must be used within a WpApiAdapterHandler to use pipelining functionality!")
+        if self.__handlerContext is None:
+            raise Exception("WpApiAdapter must be used within a WpApiAdapterHandler to use pipelining functionality!")
         
         data = self.__loadInitialRootComments(url)
         
-        comments = self.__processComments(data, url)
-        #print(comments)
+        self.__processComments(data, url)
 
         while data['hasMoreChildren'] == "true":
             data = self.__loadMoreRootComments(url, data['nextPageAfter'])
-            comments.update(self.__processComments(data, url))
+            self.__processComments(data, url)
 
-        commentsList = self.__buildDataSkeleton(url)
-        commentsList["comments"] = comments
-        print(len(comments))
 
     def __buildDataSkeleton(self, url, assetId=None):
         return {
@@ -76,11 +72,14 @@ class WpOldApiAdapter(Handler):
             }
             try:
                 directReplies = self.__loadReplies(entry["object"]["id"], entry["object"]["accumulators"]["repliesCount"], entry["pageAfter"])
-                commentList.update(self.__processComments(directReplies, url))
+                self.__processComments(directReplies, url)
             except KeyError:
                 pass
 
-        return commentList
+        # write comments to pipeline
+        commentsObject = self.__buildDataSkeleton(url)
+        commentsObject["comments"] = commentList
+        self.__handlerContext.write(commentsObject)
 
     def __extractCid(self,url):
         path = urlparse(url).path
@@ -139,7 +138,7 @@ class WpOldApiAdapter(Handler):
             'appkey':'prod.washpost.com',
             "q": t.safe_substitute(qParams)
         }
-
+        r = requests.get(self.API_SEARCH_ENDPOINT, params=getParams)
         data = Util.fromJsonString(r.text)
         
         return data
