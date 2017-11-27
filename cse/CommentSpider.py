@@ -5,6 +5,7 @@ from scrapy.selector import Selector
 from scrapy import signals
 
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
+from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
 from cse.CommentWriter import CommentWriter
 
 class CommentSpider(scrapy.Spider):
@@ -17,12 +18,15 @@ class CommentSpider(scrapy.Spider):
     ]
 
     __pbs = None
+    __pbsOld = None
     __writer = None
 
 
     def __init__(self):
         self.__pbs = PipelineBootstrap()
         self.__pbs.setupPipeline()
+        self.__pbsOld = PipelineBootstrapOld()
+        self.__pbsOld.setupPipeline()
         self.__setupFileWriter("comments.csv")
 
 
@@ -38,11 +42,13 @@ class CommentSpider(scrapy.Spider):
         writer.open()
         writer.printHeader()
         self.__pbs.registerDataListener(writer.printData)
+        self.__pbsOld.registerDataListener(writer.printData)
         self.__writer = writer
 
 
     def __teardownFileWriter(self):
         self.__pbs.unregisterDataListener(self.__writer.printData)
+        self.__pbsOld.unregisterDataListener(self.__writer.printData)
         self.__writer.close()
 
 
@@ -66,8 +72,8 @@ class CommentSpider(scrapy.Spider):
         url = sel.xpath('//meta[@property="og:url"]/@content').extract() #ToDo: Check if url has an value
         url = url[0]
 
-        
         self.__pbs.crawlComments(url)
+        self.__pbsOld.crawlComments(url)
 
 
         """
