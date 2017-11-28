@@ -48,7 +48,7 @@ class WpApiAdapter(Handler):
         return countInList(comments, 0)
 
 
-    def loadComments(self, url):
+    def loadComments(self, url, id):
         if self.__handlerContext is None:
             raise Exception("WpApiAdapter must be used within a WpApiAdapterHandler to use pipelining functionality!")
         
@@ -61,7 +61,7 @@ class WpApiAdapter(Handler):
         )
 
         data = Util.fromJsonString(response.text)
-        assetId = data['data']['asset']['id']
+        assetId = id
         commentsNode = data['data']['asset']['comments']
         
         comments = self.__processComments(commentsNode, url, assetId)

@@ -55,11 +55,11 @@ class WpApiDataPipelineBootstrap(Handler):
                 callback(data)
 
 
-    def crawlComments(self, url):
+    def crawlComments(self, url, id):
         if not self.__wasPipeBuild:
             raise Exception("Pipeline uninitialized! First init pipeline with setupPipeline()")
         self.__countHandler.reset()
-        self.__wpApiAdapter.loadComments(url)
+        self.__wpApiAdapter.loadComments(url, id)
         print("Processed comments: " + str(self.__countHandler.get()))
         self.__duplicateHandler.getDuplicates()
 
