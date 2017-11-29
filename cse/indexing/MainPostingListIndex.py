@@ -1,4 +1,5 @@
 import os
+
 from os import remove
 from tempfile import mkstemp
 from shutil import move
@@ -42,7 +43,7 @@ class MainPostingListIndex(object):
         # result type:      list[tuple[string, int, list[int]]]
         return list(
             map(
-                lambda l: (l[0], int(l[1]), [int(pos) for pos in l[2].split(",")]),
+                lambda l: (l[0], float(l[1]), [int(pos) for pos in l[2].split(",")]),
                 map(
                     lambda s: s.split("|"),
                     list(line.replace("\n", "").split(";"))
@@ -58,7 +59,7 @@ class MainPostingListIndex(object):
         return ";".join([
             termTuple[0]
                 + "|"
-                + termTuple[1]
+                + str(termTuple[1])
                 + "|"
                 + ",".join(
                     str(position) for position in termTuple[2]
@@ -87,7 +88,7 @@ class MainPostingListIndex(object):
         return self.__sizeof__()
 
 
-    def mergeInDeltaIndex(self, dIndex):
+    def mergeInDeltaIndex(self, dIndex, idfCalculationCallback):
         if not dIndex:
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
@@ -98,18 +99,20 @@ class MainPostingListIndex(object):
 
         with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
             for i, plLine in enumerate(self.__postingLists):
+                postingList = self.__decodePlLine(plLine)
                 if i in dIndex:
-                    postingList = self.__decodePlLine(plLine)
                     postingList = postingList + dIndex[i]
                     postingList.sort(key=lambda x: x[0]) # sort based on cid
-                    tempFile.write(self.__encodePlLine(postingList))
                     #print("merging pointer", i)
-                else:
-                    tempFile.write(plLine)
+
+                idfCalculationCallback(i, len(postingList))
+                tempFile.write(self.__encodePlLine(postingList))
                 visited.add(i)
             for pointer in sorted(dIndex):
                 if pointer not in visited:
-                    tempFile.write(self.__encodePlLine(dIndex[pointer]))
+                    postingList = dIndex[pointer]
+                    idfCalculationCallback(pointer, len(postingList))
+                    tempFile.write(self.__encodePlLine(postingList))
                     #print("adding pointer", pointer)
 
         tempFile.close()

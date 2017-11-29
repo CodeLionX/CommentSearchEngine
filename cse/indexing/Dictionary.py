@@ -19,7 +19,7 @@ class Dictionary(object):
     def __init__(self, filename):
         self.__filename = filename
         self.__open()
-        self.__nextPointerCache = max(self.__dictionary.values()[0], default=-1) + 1
+        self.__nextPointerCache = max(self.__dictionary.values(), default=(-1, 0))[0] + 1
 
 
     def __open(self):
@@ -51,11 +51,11 @@ class Dictionary(object):
     def retrieve(self, term):
         if str(term) not in self.__dictionary:
             return None
-        return int(self.__dictionary[term])
+        return self.__dictionary[term]
 
 
     def insert(self, term, pointer, idf):
-        self.__dictionary[str(term)] = (int(pointer), int(idf))
+        self.__dictionary[str(term)] = (int(pointer), float(idf))
 
 
     def nextFreeLinePointer(self):

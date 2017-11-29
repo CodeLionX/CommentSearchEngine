@@ -33,6 +33,7 @@ class FileIndexer(object):
                 except KeyError:
                     tokens = self.__processComment(data["commentId"], data["comment_text"])
                     documentMap.insert(data["commentId"], pointer, tokens)
+                    self.__index.incDocumentCounter()
 
         #print("Saving index...")
         documentMap.close()
@@ -93,7 +94,7 @@ class FileIndexer(object):
             tokenPositionsDict[token] = positionList
 
         for token in tokenPositionsDict:
-            self.__index.insert(token, cid, tokenPositionsDict[token])
+            self.__index.insert(token, cid, tokens, tokenPositionsDict[token])
 
         return tokens
 
