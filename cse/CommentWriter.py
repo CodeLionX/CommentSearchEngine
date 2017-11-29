@@ -1,5 +1,6 @@
 import csv
 import os
+from cse.AuthorMappingWriter import AuthorMappingWriter
 
 class CommentWriter(object):
 
@@ -7,6 +8,10 @@ class CommentWriter(object):
     __filepath = ""
     __file = None
     __writer = None
+    __nextCommentId = 0
+    __nextAuthorId = 0
+    __authorIdMapping = {}
+
 
     def __init__(self, filepath, delimiter=','):
         self.__delimiter = delimiter
@@ -30,11 +35,19 @@ class CommentWriter(object):
 
     def close(self):
         self.__file.close()
+        mappingWrtier = AuthorMappingWriter(os.path.join(os.path.dirname(self.__filepath), 'authorMapping.csv'))
+        mappingWrtier.open()
+        mappingWrtier.printHeader()
+        mappingWrtier.printData(self.__authorIdMapping)
+        mappingWrtier.close()
+
+        
+        
 
 
     def printHeader(self, template=None):
         if template is None:
-            self.__writer.writerow(["cid", "url", "author", "text", "time", "parent", "upvotes", "downvotes", "article_id"])
+            self.__writer.writerow(["cid", "url", "author_id", "text", "time", "parent", "upvotes", "downvotes", "article_id"])
         else:
             self.__writer.writerow(template)
         self.__file.flush()
@@ -45,10 +58,18 @@ class CommentWriter(object):
         article_id = data["article_id"]
 
         for commentId in data["comments"]:
+            author = data["comments"][commentId]["comment_author"]
+            if author in self.__authorIdMapping:
+                authorId = self.__authorIdMapping[author]
+            else:
+                authorId = self.__nextAuthorId
+                self.__authorIdMapping[author] = authorId
+                self.__nextAuthorId = self.__nextAuthorId + 1
+            
             self.__writer.writerow([
                 str(commentId),
                 article_url,
-                data["comments"][commentId]["comment_author"],
+                authorId,
                 data["comments"][commentId]["comment_text"].replace("\n", "\\n"),
                 data["comments"][commentId]["timestamp"],
                 str(data["comments"][commentId]["parent_comment_id"]),
