@@ -8,7 +8,6 @@ class CommentWriter(object):
     __filepath = ""
     __file = None
     __writer = None
-    __nextCommentId = 0
     __nextAuthorId = 0
     __authorIdMapping = {}
 
