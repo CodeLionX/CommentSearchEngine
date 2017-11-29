@@ -4,12 +4,12 @@ from cse.util import Util
 
 
 
-"""
-Dictionary (in memory)
-Structure: Term -> Postinglist Line Number (referred to as pointer)
-"""
 class Dictionary(object):
-
+    """
+    Dictionary (in memory)
+    Structure: Term -> 3Tuple
+    3Tuple consists of Postinglist Line Number (referred to as pointer), inverse document frequency
+    """
 
     __filename = ""
     __dictionary = None
@@ -19,7 +19,7 @@ class Dictionary(object):
     def __init__(self, filename):
         self.__filename = filename
         self.__open()
-        self.__nextPointerCache = max(self.__dictionary.values(), default=-1) + 1
+        self.__nextPointerCache = max(self.__dictionary.values()[0], default=-1) + 1
 
 
     def __open(self):
@@ -54,14 +54,18 @@ class Dictionary(object):
         return int(self.__dictionary[term])
 
 
-    def insert(self, term, pointer):
-        self.__dictionary[str(term)] = int(pointer)
+    def insert(self, term, pointer, idf):
+        self.__dictionary[str(term)] = (int(pointer), int(idf))
 
 
     def nextFreeLinePointer(self):
         nextPointer = self.__nextPointerCache
         self.__nextPointerCache = self.__nextPointerCache + 1
         return nextPointer
+
+
+    def __len__(self):
+        return self.__dictionary.__len__()
 
 
     def __getitem__(self, key):
@@ -72,7 +76,11 @@ class Dictionary(object):
 
 
     def __setitem__(self, key, value):
-        self.insert(key, value)
+        """
+        value[0]: pointer
+        value[1]: idf
+        """
+        self.insert(key, value[0], value[1])
 
 
     def iterkeys(self): self.__iter__()

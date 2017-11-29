@@ -41,8 +41,8 @@ class DocumentMap(object):
             file.write(Util.toJsonString(self.__index))
 
 
-    def insert(self, cid, pointer):
-        self.__index[cid] = pointer
+    def insert(self, cid, pointer, numberOfTokens):
+        self.__index[cid] = (pointer, numberOfTokens)
 
 
     def get(self, cid):

@@ -31,8 +31,8 @@ class FileIndexer(object):
                 try:
                     documentMap.get(data["commentId"])
                 except KeyError:
-                    documentMap.insert(data["commentId"], pointer)
-                    self.__processComment(data["commentId"], data["comment_text"])
+                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    documentMap.insert(data["commentId"], pointer, tokens)
 
         #print("Saving index...")
         documentMap.close()
@@ -83,6 +83,7 @@ class FileIndexer(object):
 
     def __processComment(self, cid, comment):
         tokenTuples = self.__prep.processText(comment)
+        tokens = len(tokenTuples)
 
         tokenPositionsDict = {}
         for token, position in tokenTuples:
@@ -91,8 +92,10 @@ class FileIndexer(object):
             positionList.sort()
             tokenPositionsDict[token] = positionList
 
-        for token in tokenDict:
+        for token in tokenPositionsDict:
             self.__index.insert(token, cid, tokenPositionsDict[token])
+
+        return tokens
 
 
 

@@ -7,6 +7,9 @@ from shutil import move
 """
 Inverted Index (main - on disk)
 Structure: Line Number in File -> Posting List
+Posting List Entry: (cid, tf, positionsList)
+Positions List: [pos1, pos2, ...]
+--> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]
 """
 class MainPostingListIndex(object):
 
@@ -34,24 +37,31 @@ class MainPostingListIndex(object):
 
 
     def __decodePlLine(self, line):
-        # postingList line: <cid1>|<pos1>,<pos2>,<pos3>;<cid2>|<pos1>,<pos2>\n
-        # result:           [(cid1, [pos1, pos2, pos3]), (cid2, [pos1, pos2])]
-        # result type:      list[tuple[string, list[int]]]
-        return list(map(
-            lambda s: (s.split("|")[0], [int(pos) for pos in s.split("|")[1].split(",")]),
-            list(line.replace("\n", "").split(";"))
-        ))
+        # postingList line: <cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
+        # result:           [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
+        # result type:      list[tuple[string, int, list[int]]]
+        return list(
+            map(
+                lambda l: (l[0], int(l[1]), [int(pos) for pos in l[2].split(",")]),
+                map(
+                    lambda s: s.split("|"),
+                    list(line.replace("\n", "").split(";"))
+                )
+            )
+        )
 
 
     def __encodePlLine(self, postingList):
-        # postingList:      [(cid1, [pos1, pos2, pos3]), (cid2, [pos1, pos2])]
-        # postingList type: list[tuple[string, list[int]]]
-        # result:           <cid1>|<pos1>,<pos2>,<pos3>;<cid2>|<pos1>,<pos2>\n
+        # postingList:      [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
+        # postingList type: list[tuple[string, int, list[int]]]
+        # result:           <cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
         return ";".join([
             termTuple[0]
                 + "|"
+                + termTuple[1]
+                + "|"
                 + ",".join(
-                    str(position) for position in termTuple[1]
+                    str(position) for position in termTuple[2]
                 )
             for termTuple in postingList
         ]) + "\n"

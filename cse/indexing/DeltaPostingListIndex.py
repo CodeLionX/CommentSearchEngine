@@ -4,6 +4,9 @@ from sys import getsizeof
 """
 Inverted Index (delta - in memory)
 Structure: Line Number in File -> Posting List
+Posting List Entry: (cid, tf, positionsList)
+Positions List: [pos1, pos2, ...]
+--> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]
 """
 class DeltaPostingListIndex(object):
 
@@ -14,7 +17,7 @@ class DeltaPostingListIndex(object):
     __numCommentIds = 0
 
 
-    def __init__(self, cidSize=42): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
+    def __init__(self, cidSize=51): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
         self.__postingLists = {}
         self.__cidSize = cidSize
         self.__numCommentIds = 0
@@ -26,10 +29,10 @@ class DeltaPostingListIndex(object):
         return self.__postingLists[pointer]
 
 
-    def insert(self, pointer, commentId, positions):
+    def insert(self, pointer, commentId, tf, positions):
         if pointer not in self.__postingLists:
             self.__postingLists[pointer] = []
-        self.__postingLists[pointer].append((commentId, positions))
+        self.__postingLists[pointer].append((commentId, tf, positions))
         self.__postingLists[pointer].sort()
         self.__numCommentIds = self.__numCommentIds + 1
 
@@ -55,7 +58,8 @@ class DeltaPostingListIndex(object):
 
 
     def __setitem__(self, key, value):
-        self.insert(key, value[0], value[1])
+        #           key, cid     , tf      , positionsList
+        self.insert(key, value[0], value[1], value[2])
 
 
     def __iter__(self):
