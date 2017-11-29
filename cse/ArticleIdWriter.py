@@ -41,13 +41,11 @@ class ArticleIdWriter(object):
 
 
     def printData(self, data):
-        i = 0
-        for articleUrl in data:
+        for i, articleUrl in enumerate(data):
             self.__writer.writerow([
                 str(i),
                 articleUrl,
             ])
-            i = i+1
         self.__file.flush()
 
 
