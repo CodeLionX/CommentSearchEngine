@@ -10,6 +10,7 @@ class CommentIdWriter(object):
 
     __commentIdMap = {}
     __nextCommentId = 0
+    __currentArticle = None
 
 
     def __init__(self, filepath, delimiter=','):
@@ -39,6 +40,10 @@ class CommentIdWriter(object):
 
         
     def processCommentIds(self, data):
+        if self.__currentArticle is not data["article_id"]:
+            self.printData()
+            self.__currentArticle = data["article_id"]
+
         tempCommentData = {}
         for commentId in data["comments"]:
             if commentId not in self.__commentIdMap:
@@ -59,7 +64,6 @@ class CommentIdWriter(object):
 
         data["comments"] = tempCommentData
         data
-        # todo: Flush CommenIdMap after every article
 
 
     def printHeader(self, template=None):
