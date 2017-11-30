@@ -4,6 +4,8 @@ from os import remove
 from tempfile import mkstemp
 from shutil import move
 
+from cse.WeightCalculation import idf as calcIdf
+
 
 """
 Inverted Index (main - on disk)
@@ -90,7 +92,7 @@ class MainPostingListIndex(object):
         return self.__sizeof__()
 
 
-    def mergeInDeltaIndex(self, dIndex, idfCalculationCallback):
+    def mergeInDeltaIndex(self, dIndex, nAllDocuments):
         if not dIndex:
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
@@ -107,14 +109,14 @@ class MainPostingListIndex(object):
                     postingList.sort(key=lambda x: x[0]) # sort based on cid
                     #print("merging pointer", i)
 
-                idf = idfCalculationCallback(i, len(postingList))
+                idf = calcIdf(nAllDocuments, len(postingList))
                 tempFile.write(self.__encodePlLine(idf, postingList))
                 visited.add(i)
 
             for pointer in sorted(dIndex):
                 if pointer not in visited:
                     postingList = dIndex[pointer]
-                    idf = idfCalculationCallback(pointer, len(postingList))
+                    idf = calcIdf(nAllDocuments, len(postingList))
                     tempFile.write(self.__encodePlLine(idf, postingList))
                     #print("adding pointer", pointer)
 

@@ -62,6 +62,7 @@ class FileIndexer(object):
         for filename in set(filenames):
             print("Processing file", filename)
             self.__createIndexForArticle(filename)
+            self.__index.incDocumentCounter()
 
         self.__index.close()
 

@@ -1,6 +1,7 @@
 import os
 import math
 
+from cse.WeightCalculation import tf as calcTf
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
 from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex
@@ -24,14 +25,6 @@ class InvertedIndexWriter(object):
             self.__calls = -1
 
 
-    def __calculateTf(self, nAllTerms, nTerm):
-        return math.log10(nTerm/float(nAllTerms))
-
-
-    def calculateIdf(self, pointer, nTermDocuments):
-        return math.log10(self.__nDocuments/float(nTermDocuments))
-
-
     def close(self):
         self.deltaMerge()
         self.__dictionary.close()
@@ -48,7 +41,7 @@ class InvertedIndexWriter(object):
         self.__dIndex.insert(
             pointer, 
             commentId, 
-            self.__calculateTf(nTerms, len(positions)), 
+            calcTf(nTerms, len(positions)), 
             positions
         )
 
@@ -65,7 +58,7 @@ class InvertedIndexWriter(object):
     def deltaMerge(self):
         print("!! delta merge !!")
         print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / 1024 / 1024, "mb")
-        self.__mIndex.mergeInDeltaIndex(self.__dIndex, self.calculateIdf)
+        self.__mIndex.mergeInDeltaIndex(self.__dIndex, self.__nDocuments)
         self.__dIndex.clear()
 
 
