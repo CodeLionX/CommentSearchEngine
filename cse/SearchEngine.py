@@ -9,6 +9,7 @@ from cse.indexing.FileIndexer import FileIndexer
 from cse.CommentReader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
 from cse.helper.MultiFileMap import MultiFileMap
+from cse.Ranker import Ranker
 
 
 class SearchEngine():
@@ -55,7 +56,7 @@ class SearchEngine():
         indexer.index()
 
 
-    def search(self, query):
+    def search(self, query, topK=10):
         results = []
         if self.__boolQueryPattern.fullmatch(query):
             print("\n\n##### Boolean Query Search")
@@ -72,7 +73,7 @@ class SearchEngine():
 
         else:
             print("\n\n##### Keyword Search")
-            results = self.__keywordSearch(query)
+            results = self.__keywordSearch(query, topK)
 
 
         print("##### Query for >>>", query, "<<< returned", len(results), "comments")
@@ -110,14 +111,17 @@ class SearchEngine():
                             "is invalid! Please use only one word for boolean queries."
                         )
                         return []
-                    cidTuples = ii.retrieve(pTerm[0][0])
+                    cidTuples = ii.retrievePostingList(pTerm[0][0])
 
                 if cidTuples:
                     cidSets.append(set( (cid for cid, _ in cidTuples) ))
 
+        if not cidSets:
+            return []
+
         firstCids = cidSets[0]
         cidSets.remove(firstCids)
-        cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)  
+        cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)
 
         return self.__loadDocumentTextForCids(cids)
 
@@ -130,17 +134,22 @@ class SearchEngine():
             first = True
             cidTuples = {}
             for term, _ in queryTermTuples:
-                if first:
-                    cidTuples = dict(ii.retrieve(term))
+                pl = ii.retrievePostingList(term)
+
+                if not pl:
+                    cidTuples = {}
+                    return []
+                elif first:
+                    cidTuples = dict(pl)
                     first = False
                 else:
-                    newCidTuples = dict(ii.retrieve(term))
+                    newCidTuples = dict(pl)
                     cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
 
         return self.__loadDocumentTextForCids(cidTuples)
 
 
-    def __keywordSearch(self, query):
+    def __keywordSearch(self, query, topK):
         with self.loadIndex() as ii:
             queryTermTuples = self.__prep.processText(query)
 
@@ -154,7 +163,7 @@ class SearchEngine():
                     cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
 
                 else:
-                    cidTuples = ii.retrieve(term)
+                    cidTuples = ii.retrievePostingList(term)
 
                 if cidTuples:
                     allCidTuples = allCidTuples + cidTuples
@@ -169,7 +178,7 @@ class SearchEngine():
         # load posting list
         cidTuples = {}
         for term in matchedTerms:
-            for cid, posList in index.retrieve(term):
+            for cid, posList in index.retrievePostingList(term):
                 # there should be NO possibility that we have two terms in one document at the same position
                 # so this operation can be done on simple lists without checking duplicates
                 positions = cidTuples.get(cid, [])
@@ -192,7 +201,7 @@ class SearchEngine():
         with DocumentMap(os.path.join("data", "documentMap.index")).open() as documentMap:
             for cid in cids:
                 try:
-                    commentPointers.add(documentMap.get(cid))
+                    commentPointers.add(documentMap.getPointer(cid))
                 except KeyError:
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
@@ -286,7 +295,7 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine("data")
-    #se.index("data")
-    #se.printAssignment2QueryResults()
-    #se.printAssignment3QueryResults()
+    #se.index()
+    se.printAssignment2QueryResults()
+    se.printAssignment3QueryResults()
     se.printTestQueryResults()

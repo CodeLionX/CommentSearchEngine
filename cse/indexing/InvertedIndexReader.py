@@ -33,7 +33,7 @@ class InvertedIndexReader(object):
     def retrievePostingList(self, term):
         if term in self.__dictionary:
             pointer = self.__dictionary[term]
-            return self.__mIndex[pointer][1]
+            return [(cid, posList) for cid, tf, posList in self.__mIndex[pointer][1]]
         else:
             return None
 
