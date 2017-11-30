@@ -35,7 +35,7 @@ sudo pip install --upgrade dist/CommentSearchEngine-0.1.0.tar.gz
   crawl <TODO>
   ```
 
-- For testing you can use `python cse` to start the crawler (without installing the project)
+- For testing you can use `python cse` to start the crawler (without installing the project). `python cse -h` will give you a hint about the different parameters.
 ## Vagrant
 
 This project uses vagrant for environment setup and testing. Use `vagrant up` to start the testing environment.
