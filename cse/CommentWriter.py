@@ -46,14 +46,13 @@ class CommentWriter(object):
 
     def printHeader(self, template=None):
         if template is None:
-            self.__writer.writerow(["cid", "url", "author_id", "text", "time", "parent", "upvotes", "downvotes", "article_id"])
+            self.__writer.writerow(["cid", "article_id", "author_id", "text", "time", "parent", "upvotes", "downvotes", ])
         else:
             self.__writer.writerow(template)
         self.__file.flush()
 
 
     def printData(self, data):
-        article_url = data["article_url"]
         article_id = data["article_id"]
 
         for commentId in data["comments"]:
@@ -67,14 +66,13 @@ class CommentWriter(object):
             
             self.__writer.writerow([
                 str(commentId),
-                article_url,
+                article_id,
                 authorId,
                 data["comments"][commentId]["comment_text"].replace("\n", "\\n"),
                 data["comments"][commentId]["timestamp"],
                 str(data["comments"][commentId]["parent_comment_id"]),
                 data["comments"][commentId]["upvotes"],
-                data["comments"][commentId]["downvotes"],
-                article_id
+                data["comments"][commentId]["downvotes"]
             ])
         self.__file.flush()
 
