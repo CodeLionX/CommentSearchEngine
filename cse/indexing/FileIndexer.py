@@ -18,7 +18,9 @@ class FileIndexer(object):
         self.__dictionaryPath       = os.path.join(directory, "dictionary.index")
         self.__postingListsPath     = os.path.join(directory, "postingLists.index")
         self.__dataFolderPath       = os.path.join(directory, "raw")
-        self.__dataFilePath         = os.path.join(directory, "comments.data")
+        self.__commentsFilePath     = os.path.join(directory, "comments.data")
+        self.__articleFilePath      = os.path.join(directory, "articleIds.data")
+        self.__authorsFilePath      = os.path.join(directory, "authorMapping.data")
 
 
     def index(self):
@@ -26,7 +28,7 @@ class FileIndexer(object):
         documentMap = DocumentMap(self.__documentMapPath).open()
 
         #print("Starting indexing...")
-        with CommentReader(self.__dataFilePath) as dataFile:
+        with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
             for pointer, data in enumerate(dataFile):
                 try:
                     documentMap.get(data["commentId"])
@@ -41,6 +43,7 @@ class FileIndexer(object):
 
 
     def indexMultiFile(self):
+        raise DeprecationWarning("deprecated and not longer supported")
         # load multi file index
         if not os.path.exists(self.__multiFileIndexPath):
             print("multifile index does not exist...creating new one")
@@ -91,7 +94,7 @@ class FileIndexer(object):
             positionList.sort()
             tokenPositionsDict[token] = positionList
 
-        for token in tokenDict:
+        for token in tokenPositionsDict:
             self.__index.insert(token, cid, tokenPositionsDict[token])
 
 

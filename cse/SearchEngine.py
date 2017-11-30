@@ -158,7 +158,6 @@ class SearchEngine():
 
                 if cidTuples:
                     allCidTuples = allCidTuples + cidTuples
-
         return self.__loadDocumentTextForCids(set([cid for cid, _ in allCidTuples]))
 
 
@@ -185,7 +184,7 @@ class SearchEngine():
         results = []
         commentPointers = set()
 
-        if not cids:
+        if cids is None or cids is []:
             return results
 
         # get document pointers
@@ -197,7 +196,7 @@ class SearchEngine():
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
         # load document text
-        with CommentReader(os.path.join("data", "comments.data")).open() as cr:
+        with CommentReader(os.path.join("data", "comments.data"),os.path.join("data", "articleIds.data"),os.path.join("data", "authorMapping.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
                     results.append(rowData["comment_text"])
@@ -286,7 +285,8 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine("data")
-    #se.index("data")
+    # se.index()
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
-    se.printTestQueryResults()
+    #se.printTestQueryResults()
+    print(se.search("microsoft")[:5])
