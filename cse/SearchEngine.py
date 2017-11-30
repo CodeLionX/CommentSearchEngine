@@ -174,8 +174,8 @@ class SearchEngine():
         # calculate query term weights
         ranker.queryTerms(queryTerms, idfs)
         rankedCids = ranker.rank()
-        print(rankedCids)
 
+        #print(rankedCids)
         return self.__loadDocumentTextForCids(set([cid for _, cid in rankedCids]))
 
 
@@ -280,6 +280,12 @@ class SearchEngine():
         #print(prettyPrint(self.search("'Republican legislation'")))
         #print(prettyPrint(self.search("'truck confederate flag'")))
         pass
+    
+    def printAssignment4QueryResults(self):
+        print(prettyPrint(self.search("christmas market", 5)))
+        #print(prettyPrint(self.search("catalonia independence", 5)))
+        #print(prettyPrint(self.search("'european union'")[:5]))
+        #print(prettyPrint(self.search("negotiate", 5)))
 
 
 
@@ -304,6 +310,7 @@ class CustomPpStep(PreprocessorStep):
 if __name__ == '__main__':
     se = SearchEngine("data")
     #se.index()
-    se.printAssignment2QueryResults()
+    #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
     #se.printTestQueryResults()
+    se.printAssignment4QueryResults()
