@@ -63,7 +63,6 @@ class CommentIdWriter(object):
                 pass
 
         data["comments"] = tempCommentData
-        data
 
 
     def printHeader(self, template=None):
