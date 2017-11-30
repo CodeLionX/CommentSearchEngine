@@ -1,6 +1,7 @@
 import csv
 import os
 from cse.AuthorMappingWriter import AuthorMappingWriter
+from collections import OrderedDict
 
 class CommentWriter(object):
 
@@ -9,7 +10,7 @@ class CommentWriter(object):
     __file = None
     __writer = None
     __nextAuthorId = 0
-    __authorIdMapping = {}
+    __authorIdMapping = OrderedDict()
 
 
     def __init__(self, filepath, delimiter=','):
