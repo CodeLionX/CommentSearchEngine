@@ -42,4 +42,3 @@ class Ranker(object):
 
         #return [(i+1, rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs[:self.__limit])]
         return [(i+1, rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs)]
-    

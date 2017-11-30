@@ -50,7 +50,7 @@ class Dictionary(object):
     def retrieve(self, term):
         if str(term) not in self.__dictionary:
             return None
-        return self.__dictionary[term]
+        return int(self.__dictionary[term])
 
 
     def insert(self, term, pointer):
