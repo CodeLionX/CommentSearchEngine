@@ -22,10 +22,18 @@ class InvertedIndexReader(object):
         self.__mIndex.close()
 
 
+    def retrieveAll(self, term):
+        if term in self.__dictionary:
+            pointer = self.__dictionary[term]
+            return self.__mIndex[pointer]
+        else:
+            return None
+
+
     def retrievePostingList(self, term):
         if term in self.__dictionary:
-            pointer, _ = self.__dictionary[term]
-            return self.__mIndex[pointer]
+            pointer = self.__dictionary[term]
+            return self.__mIndex[pointer][1]
         else:
             return None
 
@@ -34,8 +42,8 @@ class InvertedIndexReader(object):
         if term not in self.__dictionary:
             return 0
 
-        pointer, _ = self.__dictionary[term]
-        pl = self.__mIndex[pointer]
+        pointer = self.__dictionary[term]
+        _, pl = self.__mIndex[pointer]
         for cid, tf, _ in pl:
             if cid == commentId:
                 return tf
@@ -44,15 +52,20 @@ class InvertedIndexReader(object):
 
 
     def idf(self, term):
-        return self.__dictionary.retrieve(term)[1]
+        if term not in self.__dictionary:
+            return 0
+
+        pointer = self.__dictionary[term]
+        idf, _ = self.__mIndex[pointer]
+        return idf
 
 
     def tfIdf(self, term, commentId):
         if term not in self.__dictionary:
             return None
 
-        pointer, idf = self.__dictionary.retrieve(term)
-        pl = self.__mIndex[pointer]
+        pointer = self.__dictionary.retrieve(term)
+        idf, pl = self.__mIndex[pointer]
         for cid, tf, _ in pl:
             if cid == commentId:
                 return (tf, idf)
