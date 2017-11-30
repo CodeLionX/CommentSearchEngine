@@ -81,7 +81,7 @@ class CommentSpider(SitemapSpider):
         self.__writeArcticleIds()
 
     def __writeArcticleIds(self):
-        writer = ArticleIdWriter(os.path.join("data", 'arcticleIds.csv'))
+        writer = ArticleIdWriter(os.path.join("data", 'articleIds.csv'))
         writer.open()
         writer.printHeader()
         writer.printData(self.__visitedURLs)
