@@ -7,6 +7,7 @@ Structure: Line Number in File -> Posting List
 Posting List Entry: (cid, tf, positionsList)
 Positions List: [pos1, pos2, ...]
 --> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]
+idf is not calculated until a delta merge is performed (see MainPostingListIndex for that)
 """
 class DeltaPostingListIndex(object):
 
@@ -17,7 +18,7 @@ class DeltaPostingListIndex(object):
     __numCommentIds = 0
 
 
-    def __init__(self, cidSize=51): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
+    def __init__(self, cidSize=15):
         self.__postingLists = {}
         self.__cidSize = cidSize
         self.__numCommentIds = 0

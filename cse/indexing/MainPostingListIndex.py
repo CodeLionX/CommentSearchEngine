@@ -38,25 +38,27 @@ class MainPostingListIndex(object):
 
 
     def __decodePlLine(self, line):
-        # postingList line: <cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
-        # result:           [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
-        # result type:      list[tuple[string, int, list[int]]]
-        return list(
+        # postingList line: <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
+        # result:           (idf, [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])])
+        # result type:      tuple[float, list[tuple[string, float, list[int]]]]
+        plList = list(line.replace("\n", "").split(";"))
+        return (float(plList[0]), list(
             map(
                 lambda l: (l[0], float(l[1]), [int(pos) for pos in l[2].split(",")]),
                 map(
                     lambda s: s.split("|"),
-                    list(line.replace("\n", "").split(";"))
+                    plList[1:]
                 )
             )
-        )
+        ))
 
 
-    def __encodePlLine(self, postingList):
+    def __encodePlLine(self, idf, postingList):
+        # idf:              idf
         # postingList:      [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
         # postingList type: list[tuple[string, int, list[int]]]
-        # result:           <cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
-        return ";".join([
+        # result:           <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
+        return ";".join([str(idf)] + [
             termTuple[0]
                 + "|"
                 + str(termTuple[1])
@@ -99,20 +101,21 @@ class MainPostingListIndex(object):
 
         with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
             for i, plLine in enumerate(self.__postingLists):
-                postingList = self.__decodePlLine(plLine)
+                idf, postingList = self.__decodePlLine(plLine)
                 if i in dIndex:
                     postingList = postingList + dIndex[i]
                     postingList.sort(key=lambda x: x[0]) # sort based on cid
                     #print("merging pointer", i)
 
-                idfCalculationCallback(i, len(postingList))
-                tempFile.write(self.__encodePlLine(postingList))
+                idf = idfCalculationCallback(i, len(postingList))
+                tempFile.write(self.__encodePlLine(idf, postingList))
                 visited.add(i)
+
             for pointer in sorted(dIndex):
                 if pointer not in visited:
                     postingList = dIndex[pointer]
-                    idfCalculationCallback(pointer, len(postingList))
-                    tempFile.write(self.__encodePlLine(postingList))
+                    idf = idfCalculationCallback(pointer, len(postingList))
+                    tempFile.write(self.__encodePlLine(idf, postingList))
                     #print("adding pointer", pointer)
 
         tempFile.close()

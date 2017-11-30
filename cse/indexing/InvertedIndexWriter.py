@@ -29,21 +29,7 @@ class InvertedIndexWriter(object):
 
 
     def calculateIdf(self, pointer, nTermDocuments):
-        """
-        First approach!!!
-        TODO: Optimize this!
-              Solution could be to move the idf value also to the postingLists file, before the real postingList
-              for each term. E.g. `(idf, [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])])` or
-              `[idf, (cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]`
-        """
-        idf = math.log10(self.__nDocuments/float(nTermDocuments))
-        for term in self.__dictionary:
-            p, _ = self.__dictionary[term]
-            if p == pointer:
-                self.__dictionary[term] = (p, idf)
-                return
-
-        raise ValueError("term for pointer", pointer, "not found!!!")
+        return math.log10(self.__nDocuments/float(nTermDocuments))
 
 
     def close(self):
@@ -54,11 +40,10 @@ class InvertedIndexWriter(object):
 
     def insert(self, term, commentId, nTerms, positions):
         if term in self.__dictionary:
-            pointer, _ = self.__dictionary[term]
+            pointer = self.__dictionary[term]
         else:
             pointer = self.__dictionary.nextFreeLinePointer()
-            # initialize idf with 0
-            self.__dictionary[term] = (pointer, 0)
+            self.__dictionary[term] = pointer
 
         self.__dIndex.insert(
             pointer, 

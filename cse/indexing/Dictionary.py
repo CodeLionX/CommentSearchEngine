@@ -7,8 +7,7 @@ from cse.util import Util
 class Dictionary(object):
     """
     Dictionary (in memory)
-    Structure: Term -> 3Tuple
-    3Tuple consists of Postinglist Line Number (referred to as pointer), inverse document frequency
+    Structure: Term -> Postinglist Line Number (referred to as pointer)
     """
 
     __filename = ""
@@ -19,7 +18,7 @@ class Dictionary(object):
     def __init__(self, filename):
         self.__filename = filename
         self.__open()
-        self.__nextPointerCache = max(self.__dictionary.values(), default=(-1, 0))[0] + 1
+        self.__nextPointerCache = max(self.__dictionary.values(), default=-1) + 1
 
 
     def __open(self):
@@ -54,8 +53,8 @@ class Dictionary(object):
         return self.__dictionary[term]
 
 
-    def insert(self, term, pointer, idf):
-        self.__dictionary[str(term)] = (int(pointer), float(idf))
+    def insert(self, term, pointer):
+        self.__dictionary[str(term)] = int(pointer)
 
 
     def nextFreeLinePointer(self):
@@ -77,10 +76,9 @@ class Dictionary(object):
 
     def __setitem__(self, key, value):
         """
-        value[0]: pointer
-        value[1]: idf
+        value: pointer
         """
-        self.insert(key, value[0], value[1])
+        self.insert(key, value)
 
 
     def iterkeys(self): self.__iter__()
