@@ -10,6 +10,8 @@ def main(args=None):
     # parse args
     parser = argparse.ArgumentParser(description='Crawl a specific news website for comments')
     parser.add_argument('--version', action='version', version=__title__ + __version__)
+    parser.add_argument('-s','--sitemap', action='append', dest='sitemaps', default=[], help='sitemaps that should be crawled. can be used multiple times.')
+    parser.add_argument('-u','--url', action='append', dest='urls', default=[],  help='specific URLs that should be crawled. can be used multiple times.')
     args = parser.parse_args()
 
     print("This is the main routine.")
@@ -24,7 +26,7 @@ def crawl(args=None):
         'LOG_LEVEL': 'ERROR'
     })
 
-    process.crawl(CommentSpider)
+    process.crawl(CommentSpider, sitemaps=args.sitemaps, urls=args.urls)
     process.start() # the script will block here until the crawling is finished
 
 
