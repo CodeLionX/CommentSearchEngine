@@ -1,7 +1,7 @@
 import os
 import math
 
-from cse.WeightCalculation import tf as calcTf
+from cse.WeightCalculation import calcTf
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
 from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex

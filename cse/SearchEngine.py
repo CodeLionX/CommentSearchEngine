@@ -66,7 +66,7 @@ class SearchEngine():
             print("\n\n##### Phrase Search")
             results = self.__phraseSearch(query)
 
-        elif re.search('NOT|AND|OR', query):
+        elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
                 #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
                 return ["*** ERROR ***", "Query not supported. Please use only one of the following binary Operators or none: '*', 'NOT', 'AND', 'OR'"]
@@ -150,25 +150,33 @@ class SearchEngine():
 
 
     def __keywordSearch(self, query, topK):
+        idfs = {}
+        queryTerms = []
+        # use ranking:
+        ranker = Ranker(topK)
+
         with self.loadIndex() as ii:
             queryTermTuples = self.__prep.processText(query)
+            queryTerms = [term for term, _ in queryTermTuples]
 
-            # assume multiple tokens in query are combined with OR operator
             allCidTuples = []
-            for term, _ in queryTermTuples:
-                cidTuples = []
-
-                # find prefix query search terms
-                if term.endswith("*"):
-                    cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
-
-                else:
-                    cidTuples = ii.retrievePostingList(term)
+            for term in queryTerms:
+                idf, cidTuples = ii.retrieveAll(term)
+                
+                if idf:
+                    idfs[term] = idf
 
                 if cidTuples:
+                    for cid, tf, _ in cidTuples:
+                        ranker.documentTerm(cid, tf, idf)
                     allCidTuples = allCidTuples + cidTuples
 
-        return self.__loadDocumentTextForCids(set([cid for cid, _ in allCidTuples]))
+        # calculate query term weights
+        ranker.queryTerms(queryTerms, idfs)
+        rankedCids = ranker.rank()
+        print(rankedCids)
+
+        return self.__loadDocumentTextForCids(set([cid for _, cid in rankedCids]))
 
 
     def __prefixSearchTerm(self, index, term):
@@ -297,5 +305,5 @@ if __name__ == '__main__':
     se = SearchEngine("data")
     #se.index()
     se.printAssignment2QueryResults()
-    se.printAssignment3QueryResults()
-    se.printTestQueryResults()
+    #se.printAssignment3QueryResults()
+    #se.printTestQueryResults()

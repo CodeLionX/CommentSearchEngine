@@ -27,7 +27,7 @@ class InvertedIndexReader(object):
             pointer = self.__dictionary[term]
             return self.__mIndex[pointer]
         else:
-            return None
+            return (None, None)
 
 
     def retrievePostingList(self, term):
