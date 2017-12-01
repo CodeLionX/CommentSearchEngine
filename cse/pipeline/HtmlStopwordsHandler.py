@@ -11,7 +11,7 @@ class HtmlStopwordsHandler(Handler):
 
 
     def __init__(self):
-        pass
+        super(HtmlStopwordsHandler, self).__init__("HTML Stopword Handler")
 
 
     def process(self, ctx, data):

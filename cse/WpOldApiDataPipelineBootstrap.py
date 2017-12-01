@@ -1,6 +1,6 @@
 from threading import Lock
 from cse.WpOldApiAdapter import WpOldApiAdapter
-from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler)
+from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler, HtmlStopwordsHandler)
 from cse.pipeline.wpHandler import (DuplicateHandler, RemoveDuplicatesHandler)
 
 class WpOldApiDataPipelineBootstrap(Handler):
@@ -37,6 +37,7 @@ class WpOldApiDataPipelineBootstrap(Handler):
         self.__pipeline = Pipeline(ctxFactory)
         self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
+        self.__pipeline.addLast(HtmlStopwordsHandler())
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
         self.__pipeline.addLast(self) # _ -> listeners
 
