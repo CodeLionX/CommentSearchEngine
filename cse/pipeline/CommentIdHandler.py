@@ -2,7 +2,7 @@ import csv
 import os
 from cse.pipeline.Handler import Handler
 
-class CommentIdWriter(Handler):
+class CommentIdHandler(Handler):
 
     __delimiter = ''
     __filepath = ""

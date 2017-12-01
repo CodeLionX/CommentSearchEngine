@@ -8,7 +8,7 @@ from scrapy.crawler import CrawlerProcess
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
 from cse.CommentWriter import CommentWriter
-from cse.CommentIdWriter import CommentIdWriter
+from cse.pipeline.CommentIdHandler import CommentIdHandler
 from cse.ArticleIdWriter import ArticleIdWriter
 
 class CommentSpider(SitemapSpider):
@@ -20,7 +20,7 @@ class CommentSpider(SitemapSpider):
     __pbs = None
     __pbsOld = None
     __writer = None
-    __commentIdWriter = None
+    __commentIdHandler = None
     __visitedURLs = []
     __nextArcticleId = 0
 
@@ -32,9 +32,9 @@ class CommentSpider(SitemapSpider):
         self.other_urls = urls
 
         self.__setupCommentIdWriter("commentIdMap.csv")
-        self.__pbs = PipelineBootstrap(self.__commentIdWriter)
+        self.__pbs = PipelineBootstrap(self.__commentIdHandler)
         self.__pbs.setupPipeline()
-        self.__pbsOld = PipelineBootstrapOld(self.__commentIdWriter)
+        self.__pbsOld = PipelineBootstrapOld(self.__commentIdHandler)
         self.__pbsOld.setupPipeline()
         self.__setupFileWriter("comments.csv")
 
@@ -52,12 +52,12 @@ class CommentSpider(SitemapSpider):
 
 
     def __setupCommentIdWriter(self, filename):
-        writer = CommentIdWriter(os.path.join("data", filename))
-        self.__commentIdWriter = writer
+        writer = CommentIdHandler(os.path.join("data", filename))
+        self.__commentIdHandler = writer
 
 
     def __teardownCommentIdWriter(self):
-        self.__commentIdWriter.close()
+        self.__commentIdHandler.close()
 
 
     def __setupFileWriter(self, filename):
