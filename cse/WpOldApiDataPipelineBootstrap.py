@@ -59,7 +59,6 @@ class WpOldApiDataPipelineBootstrap(Handler):
         self.__countHandler.reset()
         self.__wpApiAdapter.loadComments(url, id)
         print("Processed comments with old API: " + str(self.__countHandler.get()))
-        self.__duplicateHandler.getDuplicates()
 
 
 
