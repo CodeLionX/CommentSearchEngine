@@ -50,35 +50,6 @@ class CommentReader(object):
 
     def readAllData(self):
         raise DeprecationWarning("deprecated and not longer supported")
-        if not self.__authors:
-            self.__loadAuthors()
-        return
-        first = True
-
-        articleUrl = ""
-        articleId = ""
-        comments = {}
-
-        self.__commentsFile.seek(0)
-        self.__articlesFile.seek(0)
-        articlesFormat = next(self.__articlesReader)
-        currentArticle = next(self.__articlesReader)
-        for row in self.__commentReader:
-            if first:
-                first = False
-                continue
-
-            articleUrl = row[1]
-            articleId = row[8]
-
-            commentId = row[0]
-            comments[commentId] = self.__parseRow(row)
-
-        return {
-            "article_url": articleUrl,
-            "article_id": articleId,
-            "comments": comments
-        }
 
     
     def __loadAuthors(self):
@@ -94,24 +65,6 @@ class CommentReader(object):
 
     def __parseRow(self, row):
         raise DeprecationWarning("deprecated and not longer supported")
-        if not self.__authors:
-            self.__loadAuthors()
-        author = row[2]
-        text = row[3].replace("\\n", "\n")
-        timestamp = row[4]
-        parentId = row[5]
-        upvotes = int(row[6])
-        downvotes = int(row[7])
-
-        return {
-            "comment_author": author,
-            "comment_text" : text,
-            "timestamp" : timestamp,
-            "parent_comment_id" : parentId,
-            "upvotes" : upvotes,
-            "downvotes": downvotes
-        }
-
 
     def __parseIterRow(self, row):
         if not self.__authors:

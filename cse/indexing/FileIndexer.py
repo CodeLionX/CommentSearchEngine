@@ -44,28 +44,6 @@ class FileIndexer(object):
 
     def indexMultiFile(self):
         raise DeprecationWarning("deprecated and not longer supported")
-        # load multi file index
-        if not os.path.exists(self.__multiFileIndexPath):
-            print("multifile index does not exist...creating new one")
-            self.__createMultiFileIndex()
-
-        multiFileMap = MultiFileMap()
-        multiFileMap.loadJson(self.__multiFileIndexPath)
-        self.__index = InvertedIndexWriter(self.__directory)
-
-        print("multifile index and inverted index instance loaded")
-
-        # load all article ids = filenames
-        filenames = []
-        for cid in multiFileMap.listCids():
-            filenames.append(multiFileMap.get(cid)["fileId"])
-
-        # process each file
-        for filename in set(filenames):
-            print("Processing file", filename)
-            self.__createIndexForArticle(filename)
-
-        self.__index.close()
 
 
     def __createMultiFileIndex(self):
