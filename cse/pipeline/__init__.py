@@ -11,6 +11,7 @@ from cse.pipeline.SynchronousHandlerContext import SynchronousHandlerContext
 from cse.pipeline.Pipeline import Pipeline
 from cse.pipeline.stdHandler import (SimpleConsolePrintHandler, SimpleForwardHandler, SinkHandler)
 from cse.pipeline.Handler import Handler
+from cse.pipeline.CommentIdHandler import CommentIdHandler
 
 
 class SyncedHandlerContextFactory:
