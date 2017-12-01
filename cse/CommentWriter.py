@@ -35,11 +35,11 @@ class CommentWriter(object):
 
     def close(self):
         self.__file.close()
-        mappingWrtier = AuthorMappingWriter(os.path.join(os.path.dirname(self.__filepath), 'authorMapping.csv'))
-        mappingWrtier.open()
-        mappingWrtier.printHeader()
-        mappingWrtier.printData(self.__authorIdMapping)
-        mappingWrtier.close()
+        mappingWriter = AuthorMappingWriter(os.path.join(os.path.dirname(self.__filepath), 'authorMapping.csv'))
+        mappingWriter.open()
+        mappingWriter.printHeader()
+        mappingWriter.printData(self.__authorIdMapping)
+        mappingWriter.close()
 
         
         
