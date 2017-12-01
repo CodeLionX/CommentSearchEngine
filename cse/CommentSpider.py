@@ -31,11 +31,11 @@ class CommentSpider(SitemapSpider):
         self.sitemap_urls = sitemaps
         self.other_urls = urls
 
-        self.__pbs = PipelineBootstrap()
-        self.__pbs.setupPipeline()
-        self.__pbsOld = PipelineBootstrapOld()
-        self.__pbsOld.setupPipeline()
         self.__setupCommentIdWriter("commentIdMap.csv")
+        self.__pbs = PipelineBootstrap(self.__commentIdWriter)
+        self.__pbs.setupPipeline()
+        self.__pbsOld = PipelineBootstrapOld(self.__commentIdWriter)
+        self.__pbsOld.setupPipeline()
         self.__setupFileWriter("comments.csv")
 
     def start_requests(self):
@@ -50,16 +50,13 @@ class CommentSpider(SitemapSpider):
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
 
+
     def __setupCommentIdWriter(self, filename):
         writer = CommentIdWriter(os.path.join("data", filename))
-        self.__pbs.registerDataListener(writer.processCommentIds)
-        self.__pbsOld.registerDataListener(writer.processCommentIds)
         self.__commentIdWriter = writer
-    
+
 
     def __teardownCommentIdWriter(self):
-        self.__pbs.unregisterDataListener(self.__commentIdWriter.processCommentIds)
-        self.__pbsOld.unregisterDataListener(self.__commentIdWriter.processCommentIds)
         self.__commentIdWriter.close()
 
 
@@ -79,9 +76,9 @@ class CommentSpider(SitemapSpider):
 
 
     def spider_closed(self, spider):
-        self.__teardownCommentIdWriter()
         self.__teardownFileWriter()
         self.__writeArcticleIds()
+        self.__teardownCommentIdWriter()
 
     def __writeArcticleIds(self):
         writer = ArticleIdWriter(os.path.join("data", 'articleIds.csv'))

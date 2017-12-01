@@ -15,15 +15,17 @@ class WpApiDataPipelineBootstrap(Handler):
 
     __countHandler = None
     __duplicateHandler = None
+    __commentIdHandler = None
 
 
-    def __init__(self):
+    def __init__(self, commentIdHandler):
         super(WpApiDataPipelineBootstrap, self).__init__("PipelineBootstrap for data listeners")
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
         self.__duplicateHandler = DuplicateHandler()
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
+        self.__commentIdHandler = commentIdHandler
 
 
     def setupPipeline(self, asynchronous=False):
@@ -41,6 +43,7 @@ class WpApiDataPipelineBootstrap(Handler):
         self.__pipeline.addLast(WpApiParser()) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
         #self.__pipeline.addLast(self.__duplicateHandler) # debug: count comment ids
+        self.__pipeline.addLast(self.__commentIdHandler)
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
         #self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
         self.__pipeline.addLast(self) # _ -> listeners

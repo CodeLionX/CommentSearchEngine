@@ -1,7 +1,8 @@
 import csv
 import os
+from cse.pipeline.Handler import Handler
 
-class CommentIdWriter(object):
+class CommentIdWriter(Handler):
 
     __delimiter = ''
     __filepath = ""
@@ -39,7 +40,7 @@ class CommentIdWriter(object):
         self.__file.close()
 
         
-    def processCommentIds(self, data):
+    def process(self, ctx, data):
         if self.__currentArticle is not data["article_id"]:
             self.printData()
             self.__currentArticle = data["article_id"]
@@ -63,6 +64,8 @@ class CommentIdWriter(object):
                 pass
 
         data["comments"] = tempCommentData
+
+        ctx.write(data)
 
 
     def printHeader(self, template=None):
