@@ -15,6 +15,7 @@ class CommentIdHandler(Handler):
 
 
     def __init__(self, filepath, delimiter=','):
+        super(CommentIdHandler, self).__init__("Custom Comment Id Handler")
         self.__delimiter = delimiter
         self.__filepath = filepath
 
