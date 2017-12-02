@@ -12,6 +12,7 @@ from cse.pipeline.Pipeline import Pipeline
 from cse.pipeline.stdHandler import (SimpleConsolePrintHandler, SimpleForwardHandler, SinkHandler)
 from cse.pipeline.Handler import Handler
 from cse.pipeline.CommentIdHandler import CommentIdHandler
+from cse.pipeline.HtmlStopwordsHandler import HtmlStopwordsHandler
 
 
 class SyncedHandlerContextFactory:
