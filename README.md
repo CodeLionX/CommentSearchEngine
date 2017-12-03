@@ -10,6 +10,9 @@
 
 <!-- | `data` | downloaded data of the web crawler | -->
 
+## Submodules
+
+This project uses submodules. Use `git clone --recursive https://github.com/CodeLionX/CommentSearchEngine.git` when cloning the project or `git submodule update --init` if you've already cloned the repo.
 
 ## Get it running
 
