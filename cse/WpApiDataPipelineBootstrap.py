@@ -14,14 +14,16 @@ class WpApiDataPipelineBootstrap(Handler):
     __listenersLock = None
 
     __countHandler = None
+    __commentIdHandler = None
 
 
-    def __init__(self):
+    def __init__(self, commentIdHandler):
         super(WpApiDataPipelineBootstrap, self).__init__("PipelineBootstrap for data listeners")
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
+        self.__commentIdHandler = commentIdHandler
 
 
     def setupPipeline(self, asynchronous=False):
@@ -38,6 +40,7 @@ class WpApiDataPipelineBootstrap(Handler):
         self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> recursive datastructures
         self.__pipeline.addLast(WpApiParser()) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
+        self.__pipeline.addLast(self.__commentIdHandler)
         self.__pipeline.addLast(HtmlStopwordsHandler())
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
         #self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
@@ -53,11 +56,11 @@ class WpApiDataPipelineBootstrap(Handler):
                 callback(data)
 
 
-    def crawlComments(self, url):
+    def crawlComments(self, url, id):
         if not self.__wasPipeBuild:
             raise Exception("Pipeline uninitialized! First init pipeline with setupPipeline()")
         self.__countHandler.reset()
-        self.__wpApiAdapter.loadComments(url)
+        self.__wpApiAdapter.loadComments(url, id)
         print("Processed comments: " + str(self.__countHandler.get()))
 
 

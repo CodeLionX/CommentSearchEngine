@@ -20,17 +20,17 @@ class WpOldApiAdapter(Handler):
     def __init__(self):
         super()
 
-    def loadComments(self, url):
+    def loadComments(self, url, id):
         if self.__handlerContext is None:
             raise Exception("WpOldApiAdapter must be used within a processing pipeline")
         
         data = self.__loadInitialRootComments(url)
         
-        self.__processComments(data, url)
+        self.__processComments(data, url, id)
 
         while data['hasMoreChildren'] == "true":
             data = self.__loadMoreRootComments(url, data['nextPageAfter'])
-            self.__processComments(data, url)
+            self.__processComments(data, url, id)
 
 
     def __buildDataSkeleton(self, url, assetId=None):
@@ -40,7 +40,7 @@ class WpOldApiAdapter(Handler):
             "comments" : []
         }
 
-    def __processComments(self, data, url):
+    def __processComments(self, data, url, id):
         commentList = {}
 
         for entry in data["entries"]:
@@ -73,12 +73,12 @@ class WpOldApiAdapter(Handler):
             }
             try:
                 directReplies = self.__loadReplies(entry["object"]["id"], entry["object"]["accumulators"]["repliesCount"], entry["pageAfter"])
-                self.__processComments(directReplies, url)
+                self.__processComments(directReplies, url, id)
             except KeyError:
                 pass
 
         # write comments to pipeline
-        commentsObject = self.__buildDataSkeleton(url)
+        commentsObject = self.__buildDataSkeleton(url, id)
         commentsObject["comments"] = commentList
         self.__handlerContext.write(commentsObject)
 
