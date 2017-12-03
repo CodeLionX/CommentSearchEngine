@@ -73,7 +73,7 @@ class WpOldApiAdapter(Handler):
             }
             try:
                 directReplies = self.__loadReplies(entry["object"]["id"], entry["object"]["accumulators"]["repliesCount"], entry["pageAfter"])
-                self.__processComments(directReplies, url)
+                self.__processComments(directReplies, url, id)
             except KeyError:
                 pass
 
