@@ -12,8 +12,7 @@ from cse.CommentWriter import CommentWriter
 class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
-    #sitemap_urls = ['https://www.washingtonpost.com/robots.txt']
-    sitemap_urls = ['http://www.washingtonpost.com/news-politics-sitemap.xml', 'http://www.washingtonpost.com/news-opinions-sitemap.xml','http://www.washingtonpost.com/news-local-sitemap.xml','http://www.washingtonpost.com/news-national-sitemap.xml']
+    sitemap_urls = []
     other_urls = []
 
     __pbs = None
@@ -21,8 +20,12 @@ class CommentSpider(SitemapSpider):
     __writer = None
 
 
-    def __init__(self):
+    def __init__(self, sitemaps=[], urls=[], *args, **kwargs):
         super().__init__(self)
+
+        self.sitemap_urls = sitemaps
+        self.other_urls = urls
+
         self.__pbs = PipelineBootstrap()
         self.__pbs.setupPipeline()
         self.__pbsOld = PipelineBootstrapOld()
