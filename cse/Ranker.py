@@ -31,17 +31,21 @@ class Ranker(object):
         print(self.__terms, self.__wq)
 
 
-    def documentTerm(self, cid, tf, idf):
-        wd = self.__wdi.get(cid, [])
-        wd.append(wc.calcWeight(tf, idf))
+    def documentTerm(self, cid, term, tf, idf):
+        wd = self.__wdi.get(cid, {})
+        wd[term] = wc.calcWeight(tf, idf)
         self.__wdi[cid] = wd
 
 
     def rank(self):
-        self.__fillDocumentWeights()
         rankedDocs = []
         for cid in self.__wdi:
-            rankedDocs.append((wc.cosineSimilarity(self.__wdi[cid], self.__wq), cid))
+            wd = []
+            for term in self.__terms:
+                wd.append(self.__wdi[cid].get(term, wc.missingTermWeight()))
+            score = wc.cosineSimilarity(wd, self.__wq)
+            rankedDocs.append((score, cid))
+            print((score, cid))
         rankedDocs.sort(key=lambda x: -x[0])
 
         return [(i+1, rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs[:self.__limit])]

@@ -168,7 +168,7 @@ class SearchEngine():
 
                 if cidTuples:
                     for cid, tf, _ in cidTuples:
-                        ranker.documentTerm(cid, tf, idf)
+                        ranker.documentTerm(cid, term, tf, idf)
                     allCidTuples = allCidTuples + cidTuples
 
         # calculate query term weights
@@ -210,6 +210,7 @@ class SearchEngine():
             for cid in cids:
                 try:
                     commentPointers.add(documentMap.getPointer(cid))
+                    print(cid)
                 except KeyError:
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
@@ -278,6 +279,7 @@ class SearchEngine():
         #print(prettyPrint(self.search("NOT hate")[:5]))
         #print(prettyPrint(self.search("Trump AND hate")[:5]))
         #print(prettyPrint(self.search("'Republican legislation'")))
+        #print(prettyPrint(self.search("Trump President Russia Russia Russia", 5)))
         #print(prettyPrint(self.search("'truck confederate flag'")))
         pass
     
@@ -286,6 +288,7 @@ class SearchEngine():
         #print(prettyPrint(self.search("catalonia independence", 5)))
         #print(prettyPrint(self.search("'european union'")[:5]))
         #print(prettyPrint(self.search("negotiate", 5)))
+        
 
 
 

@@ -33,9 +33,18 @@ def missingTermWeight():
 def cosineSimilarity(docWeights, queryWeights):
     dj = np.array(docWeights)
     q = np.array(queryWeights)
-    print(q, dj)
+    #print(q, dj)
     score = np.dot(dj, q) / (np.linalg.norm(dj) * np.linalg.norm(q))
-    print(score)
+    #print(score)
+    return float(score)
+
+
+def euclDistance(docWeights, queryWeights):
+    dj = np.array(docWeights)
+    q = np.array(queryWeights)
+    #print(q, dj)
+    score = np.linalg.norm(dj - q)
+    #print(score)
     return float(score)
 
 
