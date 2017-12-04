@@ -2,10 +2,27 @@ import csv
 import os
 
 from cse.CommentWriter import CommentWriter
-from cse.CommentReader import CommentReader
 from cse.pipeline import HtmlStopwordsHandler
 
 class OldCommentReader(object):
+    """
+    OldCommentReader for older version of the comment data files.
+
+    Specify a version to support different kinds of data files.
+
+    Version = 1: <currently not supported> data is divided into
+                 multiply files, which all contain comments from
+                 a single article
+
+    Version = 2: comment data file does not contain separated fields
+                 for upvotes and downvotes, just a single votes-field
+
+    Version = 3: comment data file has separated upvotes and downvotes
+                 but could contain html tags in comment texts
+    """
+    V1 = 1
+    V2 = 2
+    V3 = 3
 
     __delimiter = ''
     __filepath = ""
@@ -13,9 +30,13 @@ class OldCommentReader(object):
     __reader = None
 
 
-    def __init__(self, filepath, delimiter=','):
+    def __init__(self, version, filepath, delimiter=','):
         self.__delimiter = delimiter
         self.__filepath = filepath
+        self.__version = version
+
+        if self.__version == self.V1:
+            raise ValueError("V1 not supported")
 
 
     def __parseIterRow(self, row):
@@ -25,8 +46,17 @@ class OldCommentReader(object):
         text = row[3].replace("\\n", "\n")
         timestamp = row[4]
         parentId = row[5]
-        upvotes = int(row[6])
-        articleId = row[7]
+
+        if self.__version == self.V1:
+            raise ValueError("V1 not supported")
+        if self.__version == self.V2:
+            upvotes = int(row[6])
+            downvotes = 0
+            articleId = row[7]
+        elif self.__version == self.V3:
+            upvotes = int(row[6])
+            downvotes = int(row[7])
+            articleId = row[8]
 
         return {
             "commentId": commentId,
@@ -37,7 +67,7 @@ class OldCommentReader(object):
             "timestamp" : timestamp,
             "parent_comment_id" : parentId,
             "upvotes" : upvotes,
-            "downvotes": 0
+            "downvotes": downvotes
         }
 
 
@@ -76,7 +106,7 @@ class CtxHelper(object):
 
 
 def fromVotesToUpAndDownvotes(oldFile, newFile):
-    with OldCommentReader(oldfile) as oldReader:
+    with OldCommentReader(OldCommentReader.V2, oldfile) as oldReader:
         with CommentWriter(newFile) as writer:
             writer.printHeader()
             for row in oldReader:
@@ -96,7 +126,7 @@ def fromVotesToUpAndDownvotes(oldFile, newFile):
 
 
 def removeHtmlTags(oldFile, newFile):
-    with CommentReader(oldfile) as reader:
+    with OldCommentReader(OldCommentReader.V3, oldfile) as reader:
         with CommentWriter(newFile) as writer:
             writer.printHeader()
             handler = HtmlStopwordsHandler()
@@ -113,5 +143,5 @@ def removeHtmlTags(oldFile, newFile):
 
 if __name__ == "__main__":
     oldfile = os.path.join("data", "comments.data")
-    newFile = os.path.join("data", "comments2.data")
+    newFile = os.path.join("data", "comments_without_html.data")
     removeHtmlTags(oldfile, newFile)
