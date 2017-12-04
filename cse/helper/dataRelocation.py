@@ -2,6 +2,8 @@ import csv
 import os
 
 from cse.CommentWriter import CommentWriter
+from cse.CommentReader import CommentReader
+from cse.pipeline import HtmlStopwordsHandler
 
 class OldCommentReader(object):
 
@@ -63,6 +65,16 @@ class OldCommentReader(object):
     def __exit__(self, type, value, traceback):
         self.__file.close()
 
+
+class CtxHelper(object):
+    
+    def __init__(self, writer):
+        self.__writer = writer
+    
+    def write(self, data):
+        self.__writer.printData(data)
+
+
 def fromVotesToUpAndDownvotes(oldFile, newFile):
     with OldCommentReader(oldfile) as oldReader:
         with CommentWriter(newFile) as writer:
@@ -83,8 +95,23 @@ def fromVotesToUpAndDownvotes(oldFile, newFile):
                 writer.printData(data)
 
 
+def removeHtmlTags(oldFile, newFile):
+    with CommentReader(oldfile) as reader:
+        with CommentWriter(newFile) as writer:
+            writer.printHeader()
+            handler = HtmlStopwordsHandler()
+            ctx = CtxHelper(writer)
+            for row in reader:
+                data = {
+                    "article_url": row["article_url"],
+                    "article_id": row["article_id"],
+                    "comments": {}
+                }
+                data["comments"][row["commentId"]] = row
+                handler.process(ctx, data)
+
 
 if __name__ == "__main__":
-    oldfile = os.path.join("data", "Backup", "comments.data")
-    newFile = os.path.join("data", "comments.data")
-    fromVotesToUpAndDownvotes(oldfile, newFile)
+    oldfile = os.path.join("data", "comments_with_downvotes.data")
+    newFile = os.path.join("data", "comments_without_html.data")
+    removeHtmlTags(oldfile, newFile)

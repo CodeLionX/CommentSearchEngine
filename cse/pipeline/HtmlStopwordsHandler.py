@@ -53,7 +53,7 @@ class HtmlStopwordsHandler(Handler):
 
 class CtxHelper(object):
     
-    def __init(self):
+    def __init__(self):
         pass
     
     def write(self, data):
