@@ -64,7 +64,7 @@ class SearchEngine():
 
         elif self.__phraseQueryPattern.fullmatch(query):
             print("\n\n##### Phrase Search")
-            results = self.__phraseSearch(query)
+            results = self.__phraseSearch(query, topK)
 
         elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
@@ -126,27 +126,44 @@ class SearchEngine():
         return self.__loadDocumentTextForCids(cids)
 
 
-    def __phraseSearch(self, query):
-        with self.loadIndex() as ii:
-            queryTermTuples = self.__prep.processText(query.replace("'", ""))
+    def __phraseSearch(self, query, topK):
+        queryTermTuples = self.__prep.processText(query.replace("'", ""))
+        queryTerms = [term for term, _ in queryTermTuples]
+        # use ranking:
+        idfs = {}
+        ranker = Ranker(topK)
 
+        with self.loadIndex() as ii:
             # determine documents with ordered consecutive query terms
             first = True
-            cidTuples = {}
-            for term, _ in queryTermTuples:
-                pl = ii.retrievePostingList(term)
+            cidPosTuples = {}
+            for term in queryTerms:
+                idf, pl = ii.retrieveAll(term)
+
+                if idf:
+                    idfs[term] = idf
 
                 if not pl:
-                    cidTuples = {}
+                    cidPosTuples = {}
                     return []
                 elif first:
-                    cidTuples = dict(pl)
+                    for cid, tf, posList in pl:
+                        cidPosTuples[cid] = posList
+                        ranker.documentTerm(cid, term, tf, idf)
                     first = False
                 else:
-                    newCidTuples = dict(pl)
-                    cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
+                    newCidPosTuples = {}
+                    for cid, tf, posList in pl:
+                        newCidPosTuples[cid] = posList
+                        ranker.documentTerm(cid, term, tf, idf)
+                    cidPosTuples = self.__documentsWithConsecutiveTerms(cidPosTuples, newCidPosTuples)
+                    
+        
+        ranker.queryTerms(queryTerms, idfs)
+        ranker.filterDocumentTermWeightsBy(lambda cid: cid in cidPosTuples)
+        rankedCids = ranker.rank()
 
-        return self.__loadDocumentTextForCids(cidTuples)
+        return self.__loadDocumentTextForCids(set([cid for _, _, cid in rankedCids]))
 
 
     def __keywordSearch(self, query, topK):
@@ -285,10 +302,10 @@ class SearchEngine():
 
 
     def printAssignment4QueryResults(self):
-        print(prettyPrint(self.search("christmas market", 5)))
-        print(prettyPrint(self.search("catalonia independence", 5)))
+        #print(prettyPrint(self.search("christmas market", 5)))
+        #print(prettyPrint(self.search("catalonia independence", 5)))
         print(prettyPrint(self.search("'european union'")[:5]))
-        print(prettyPrint(self.search("negotiate", 5)))
+        #print(prettyPrint(self.search("negotiate", 5)))
 
 
 

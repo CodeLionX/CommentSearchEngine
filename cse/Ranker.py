@@ -36,6 +36,14 @@ class Ranker(object):
         self.__wdi[cid] = wd
 
 
+    def filterDocumentTermWeightsBy(self, filterClause):
+        newWdi = {}
+        for cid in self.__wdi:
+            if filterClause(cid):
+                newWdi[cid] = self.__wdi[cid]
+        self.__wdi = newWdi
+
+
     def rank(self):
         rankedDocs = []
         for cid in self.__wdi:
