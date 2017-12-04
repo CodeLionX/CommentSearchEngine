@@ -28,7 +28,6 @@ class Ranker(object):
                 wc.calcTf(len(terms), termCounts[term]),
                 idf
             ))
-        print(self.__terms, self.__wq)
 
 
     def documentTerm(self, cid, term, tf, idf):
@@ -45,10 +44,9 @@ class Ranker(object):
                 wd.append(self.__wdi[cid].get(term, wc.missingTermWeight()))
             score = wc.cosineSimilarity(wd, self.__wq)
             rankedDocs.append((score, cid))
-            print((score, cid))
         rankedDocs.sort(key=lambda x: -x[0])
 
-        return [(i+1, rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs[:self.__limit])]
+        return [(i+1, rankedDoc[0], rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs[:self.__limit])]
         #return [(i+1, rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs)]
 
 

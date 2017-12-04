@@ -175,8 +175,9 @@ class SearchEngine():
         ranker.queryTerms(queryTerms, idfs)
         rankedCids = ranker.rank()
 
-        #print(rankedCids)
-        return self.__loadDocumentTextForCids(set([cid for _, cid in rankedCids]))
+        #for r, s, c in rankedCids:
+        #    print(r, s, c)
+        return self.__loadDocumentTextForCids(set([cid for _, _, cid in rankedCids]))
 
 
     def __prefixSearchTerm(self, index, term):
@@ -199,7 +200,7 @@ class SearchEngine():
 
 
     def __loadDocumentTextForCids(self, cids):
-        results = []
+        results = {}
         commentPointers = set()
 
         if not cids:
@@ -210,7 +211,6 @@ class SearchEngine():
             for cid in cids:
                 try:
                     commentPointers.add(documentMap.getPointer(cid))
-                    print(cid)
                 except KeyError:
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
@@ -218,9 +218,9 @@ class SearchEngine():
         with CommentReader(os.path.join("data", "comments.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
-                    results.append(rowData["comment_text"])
+                    results[pointer] = rowData["comment_text"]
 
-        return results
+        return list(map(results.get, commentPointers))
 
 
     def __documentsWithConsecutiveTerms(self, firstTermTuples, secondTermTuples):
@@ -282,13 +282,14 @@ class SearchEngine():
         #print(prettyPrint(self.search("Trump President Russia Russia Russia", 5)))
         #print(prettyPrint(self.search("'truck confederate flag'")))
         pass
-    
+
+
     def printAssignment4QueryResults(self):
         print(prettyPrint(self.search("christmas market", 5)))
-        #print(prettyPrint(self.search("catalonia independence", 5)))
-        #print(prettyPrint(self.search("'european union'")[:5]))
-        #print(prettyPrint(self.search("negotiate", 5)))
-        
+        print(prettyPrint(self.search("catalonia independence", 5)))
+        print(prettyPrint(self.search("'european union'")[:5]))
+        print(prettyPrint(self.search("negotiate", 5)))
+
 
 
 
