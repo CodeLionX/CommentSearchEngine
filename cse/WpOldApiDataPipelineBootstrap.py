@@ -13,15 +13,17 @@ class WpOldApiDataPipelineBootstrap(Handler):
     __listenersLock = None
 
     __countHandler = None
+    __commentIdHandler = None
 
 
-    def __init__(self):
+    def __init__(self, commentIdHandler):
         super(WpOldApiDataPipelineBootstrap, self).__init__("PipelineBootstrapOld for data listeners")
         self.__wpApiAdapter = WpOldApiAdapter()
         self.__countHandler = CountHandler("CounterOld")
         self.__listeners = []
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
+        self.__commentIdHandler = commentIdHandler
 
 
     def setupPipeline(self, asynchronous=False):
@@ -37,6 +39,7 @@ class WpOldApiDataPipelineBootstrap(Handler):
         self.__pipeline = Pipeline(ctxFactory)
         self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
+        self.__pipeline.addLast(self.__commentIdHandler)
         self.__pipeline.addLast(HtmlStopwordsHandler())
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
         self.__pipeline.addLast(self) # _ -> listeners
@@ -51,13 +54,12 @@ class WpOldApiDataPipelineBootstrap(Handler):
                 callback(data)
 
 
-    def crawlComments(self, url):
+    def crawlComments(self, url, id):
         if not self.__wasPipeBuild:
             raise Exception("Pipeline uninitialized! First init pipeline with setupPipeline()")
         self.__countHandler.reset()
-        self.__wpApiAdapter.loadComments(url)
+        self.__wpApiAdapter.loadComments(url, id)
         print("Processed comments with old API: " + str(self.__countHandler.get()))
-        self.__duplicateHandler.getDuplicates()
 
 
 

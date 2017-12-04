@@ -203,7 +203,7 @@ class SearchEngine():
         results = {}
         commentPointers = set()
 
-        if not cids:
+        if cids is None or cids is []:
             return results
 
         # get document pointers
@@ -215,7 +215,7 @@ class SearchEngine():
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
         # load document text
-        with CommentReader(os.path.join("data", "comments.data")).open() as cr:
+        with CommentReader(os.path.join("data", "comments.data"),os.path.join("data", "articleIds.data"),os.path.join("data", "authorMapping.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
                     results[pointer] = rowData["comment_text"]
