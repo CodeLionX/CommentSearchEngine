@@ -5,10 +5,11 @@ import warnings
 class CommentReader(object):
 
     __delimiter = ''
+
     __commentsFilepath = ""
     __commentsFile = None
     __commentReader = None
-    
+
     __articlesFilepath = None
     __articlesFile = None
     __articlesReader = None
@@ -22,12 +23,26 @@ class CommentReader(object):
 
     def __init__(self, commentsFilepath, arcticlesFilepath, authorsFilepath, delimiter=','):
         self.__delimiter = delimiter
+
         self.__commentsFilepath = commentsFilepath
+        self.__commentsFile = None
+        self.__commentReader = None
+
         self.__articlesFilepath = arcticlesFilepath
+        self.__articlesFile = None
+        self.__articlesReader = None
+        self.__currentArticle = None
+
         self.__authorsFilepath = authorsFilepath
+        self.__authorsFile = None
+        self.__authorsReader = None
+        self.__authors = None
+
 
     def open(self):
-        if not os.path.exists(os.path.dirname(self.__commentsFilepath)):
+        if (not os.path.exists(os.path.dirname(self.__commentsFilepath)) or
+                not os.path.exists(os.path.dirname(self.__articlesFilepath)) or
+                not os.path.exists(os.path.dirname(self.__authorsFilepath))):
             raise Exception("file not found!")
 
         self.__commentsFile = open(self.__commentsFilepath, 'r', newline='')
@@ -55,16 +70,15 @@ class CommentReader(object):
     def __loadAuthors(self):
         self.__authors = {}
         self.__authorsFile.seek(0)
-        fileFormat = next(self.__authorsReader)
+        _ = next(self.__authorsReader)
 
         for row in self.__authorsReader: # todo: don't load each author name. instead load seek offsets for each author id (less memory consumption). With delta encoding if necessary
             self.__authors[row[0]] = row[1]
 
 
-
-
     def __parseRow(self, row):
         raise DeprecationWarning("deprecated and not longer supported")
+
 
     def __parseIterRow(self, row):
         if not self.__authors:
@@ -81,10 +95,10 @@ class CommentReader(object):
 
         if not self.__currentArticle:
             self.__articlesFile.seek(0)
-            articlesFormat = next(self.__articlesReader)
+            _ = next(self.__articlesReader)
             self.__currentArticle = next(self.__articlesReader)
 
-        while self.__currentArticle[0] is not articleId:
+        while int(self.__currentArticle[0]) is not int(articleId):
             self.__currentArticle = next(self.__articlesReader)
         articleUrl = self.__currentArticle[1]
 
@@ -102,6 +116,7 @@ class CommentReader(object):
 
 
     def __iter__(self):
+        del self.__currentArticle
         self.__commentsFile.seek(0)
         self.__commentReader.__iter__()
         # skip csv header in iteration mode:
