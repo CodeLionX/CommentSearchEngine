@@ -1,4 +1,4 @@
-import cse.WeightCalculation as wc
+from cse.weightCalculation import *
 
 class Ranker(object):
 
@@ -24,15 +24,15 @@ class Ranker(object):
             except KeyError:
                 idf = 0
 
-            self.__wq.append(wc.calcWeight(
-                wc.calcTf(len(terms), termCounts[term]),
+            self.__wq.append(calcWeight(
+                calcTf(len(terms), termCounts[term]),
                 idf
             ))
 
 
     def documentTerm(self, cid, term, tf, idf):
         wd = self.__wdi.get(cid, {})
-        wd[term] = wc.calcWeight(tf, idf)
+        wd[term] = calcWeight(tf, idf)
         self.__wdi[cid] = wd
 
 
@@ -41,8 +41,8 @@ class Ranker(object):
         for cid in self.__wdi:
             wd = []
             for term in self.__terms:
-                wd.append(self.__wdi[cid].get(term, wc.missingTermWeight()))
-            score = wc.cosineSimilarity(wd, self.__wq)
+                wd.append(self.__wdi[cid].get(term, missingTermWeight()))
+            score = cosineSimilarity(wd, self.__wq)
             rankedDocs.append((score, cid))
         rankedDocs.sort(key=lambda x: -x[0])
 
@@ -52,7 +52,7 @@ class Ranker(object):
 
     def __fillDocumentWeights(self):
         nTerms = len(self.__terms)
-        filler = wc.missingTermWeight()
+        filler = missingTermWeight()
         for cid in self.__wdi:
             for _ in range(nTerms - len(self.__wdi[cid])):
                 self.__wdi[cid].append(filler)

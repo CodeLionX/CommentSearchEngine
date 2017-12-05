@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+
 def calcTf(nAllTermsInDoc, nTermInDoc):
     """
     # to unstable (most values are near to each other for all docs)
