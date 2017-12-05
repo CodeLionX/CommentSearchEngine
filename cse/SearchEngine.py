@@ -111,7 +111,7 @@ class SearchEngine():
                             "is invalid! Please use only one word for boolean queries."
                         )
                         return []
-                    cidTuples = ii.retrievePostingList(pTerm[0][0])
+                    cidTuples = ii.postingList(pTerm[0][0])
 
                 if cidTuples:
                     cidSets.append(set( (cid for cid, _ in cidTuples) ))
@@ -134,7 +134,7 @@ class SearchEngine():
             first = True
             cidTuples = {}
             for term, _ in queryTermTuples:
-                pl = ii.retrievePostingList(term)
+                pl = ii.postingList(term)
 
                 if not pl:
                     cidTuples = {}
@@ -161,8 +161,8 @@ class SearchEngine():
 
             allCidTuples = []
             for term in queryTerms:
-                idf, cidTuples = ii.retrieveAll(term)
-                
+                idf, cidTuples = ii.retrieve(term)
+
                 if idf:
                     idfs[term] = idf
 
@@ -187,7 +187,7 @@ class SearchEngine():
         # load posting list
         cidTuples = {}
         for term in matchedTerms:
-            for cid, posList in index.retrievePostingList(term):
+            for cid, posList in index.postingList(term):
                 # there should be NO possibility that we have two terms in one document at the same position
                 # so this operation can be done on simple lists without checking duplicates
                 positions = cidTuples.get(cid, [])

@@ -22,7 +22,7 @@ class InvertedIndexReader(object):
         self.__mIndex.close()
 
 
-    def retrieveAll(self, term):
+    def retrieve(self, term):
         if term in self.__dictionary:
             pointer = self.__dictionary[term]
             return self.__mIndex[pointer]
@@ -30,7 +30,7 @@ class InvertedIndexReader(object):
             return (None, None)
 
 
-    def retrievePostingList(self, term):
+    def postingList(self, term):
         if term in self.__dictionary:
             pointer = self.__dictionary[term]
             return [(cid, posList) for cid, _, posList in self.__mIndex[pointer][1]]
