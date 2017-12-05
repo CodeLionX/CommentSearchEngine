@@ -8,6 +8,8 @@ from scrapy.crawler import CrawlerProcess
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
 from cse.CommentWriter import CommentWriter
+from cse.pipeline.CommentIdHandler import CommentIdHandler
+from cse.ArticleIdWriter import ArticleIdWriter
 
 class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
@@ -18,6 +20,9 @@ class CommentSpider(SitemapSpider):
     __pbs = None
     __pbsOld = None
     __writer = None
+    __commentIdHandler = None
+    __visitedURLs = []
+    __nextArcticleId = 0
 
 
     def __init__(self, sitemaps=[], urls=[], *args, **kwargs):
@@ -26,9 +31,10 @@ class CommentSpider(SitemapSpider):
         self.sitemap_urls = sitemaps
         self.other_urls = urls
 
-        self.__pbs = PipelineBootstrap()
+        self.__setupCommentIdWriter("commentIdMap.csv")
+        self.__pbs = PipelineBootstrap(self.__commentIdHandler)
         self.__pbs.setupPipeline()
-        self.__pbsOld = PipelineBootstrapOld()
+        self.__pbsOld = PipelineBootstrapOld(self.__commentIdHandler)
         self.__pbsOld.setupPipeline()
         self.__setupFileWriter("comments.csv")
 
@@ -43,6 +49,15 @@ class CommentSpider(SitemapSpider):
         spider = super(CommentSpider, cls).from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
+
+
+    def __setupCommentIdWriter(self, filename):
+        writer = CommentIdHandler(os.path.join("data", filename))
+        self.__commentIdHandler = writer
+
+
+    def __teardownCommentIdWriter(self):
+        self.__commentIdHandler.close()
 
 
     def __setupFileWriter(self, filename):
@@ -62,15 +77,27 @@ class CommentSpider(SitemapSpider):
 
     def spider_closed(self, spider):
         self.__teardownFileWriter()
+        self.__writeArcticleIds()
+        self.__teardownCommentIdWriter()
+
+    def __writeArcticleIds(self):
+        writer = ArticleIdWriter(os.path.join("data", 'articleIds.csv'))
+        writer.open()
+        writer.printHeader()
+        writer.printData(self.__visitedURLs)
+        writer.close()
 
 
     def parse(self, response):
         try:
-            self.__pbs.crawlComments(response.url)
+            self.__pbs.crawlComments(response.url, self.__nextArcticleId)
         except:
             print('fail new API\n')
 
         try:
-            self.__pbsOld.crawlComments(response.url)
+            self.__pbsOld.crawlComments(response.url, self.__nextArcticleId)
         except:
             print('fail old API\n')
+        
+        self.__visitedURLs.append(response.url)
+        self.__nextArcticleId = self.__nextArcticleId + 1

@@ -111,7 +111,7 @@ class SearchEngine():
                             "is invalid! Please use only one word for boolean queries."
                         )
                         return []
-                    cidTuples = ii.retrievePostingList(pTerm[0][0])
+                    cidTuples = ii.postingList(pTerm[0][0])
 
                 if cidTuples:
                     cidSets.append(set( (cid for cid, _ in cidTuples) ))
@@ -138,7 +138,7 @@ class SearchEngine():
             first = True
             cidPosTuples = {}
             for term in queryTerms:
-                idf, pl = ii.retrieveAll(term)
+                idf, pl = ii.retrieve(term)
 
                 if idf:
                     idfs[term] = idf
@@ -178,8 +178,8 @@ class SearchEngine():
 
             allCidTuples = []
             for term in queryTerms:
-                idf, cidTuples = ii.retrieveAll(term)
-                
+                idf, cidTuples = ii.retrieve(term)
+
                 if idf:
                     idfs[term] = idf
 
@@ -204,7 +204,7 @@ class SearchEngine():
         # load posting list
         cidTuples = {}
         for term in matchedTerms:
-            for cid, posList in index.retrievePostingList(term):
+            for cid, posList in index.postingList(term):
                 # there should be NO possibility that we have two terms in one document at the same position
                 # so this operation can be done on simple lists without checking duplicates
                 positions = cidTuples.get(cid, [])
@@ -220,7 +220,7 @@ class SearchEngine():
         results = {}
         commentPointers = set()
 
-        if not cids:
+        if cids is None or cids is []:
             return results
 
         # get document pointers
@@ -232,7 +232,7 @@ class SearchEngine():
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
         # load document text
-        with CommentReader(os.path.join("data", "comments.data")).open() as cr:
+        with CommentReader(os.path.join("data", "comments.data"),os.path.join("data", "articleIds.data"),os.path.join("data", "authorMapping.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
                     results[pointer] = rowData["comment_text"]

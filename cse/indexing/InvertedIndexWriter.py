@@ -1,6 +1,6 @@
 import os
 
-from cse.WeightCalculation import calcTf
+from cse.weightCalculation import calcTf
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
 from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex

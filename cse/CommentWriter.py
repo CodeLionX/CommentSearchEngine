@@ -1,5 +1,7 @@
 import csv
 import os
+from cse.AuthorMappingWriter import AuthorMappingWriter
+from collections import OrderedDict
 
 class CommentWriter(object):
 
@@ -7,6 +9,9 @@ class CommentWriter(object):
     __filepath = ""
     __file = None
     __writer = None
+    __nextAuthorId = 0
+    __authorIdMapping = OrderedDict()
+
 
     def __init__(self, filepath, delimiter=','):
         self.__delimiter = delimiter
@@ -30,31 +35,45 @@ class CommentWriter(object):
 
     def close(self):
         self.__file.close()
+        mappingWriter = AuthorMappingWriter(os.path.join(os.path.dirname(self.__filepath), 'authorMapping.csv'))
+        mappingWriter.open()
+        mappingWriter.printHeader()
+        mappingWriter.printData(self.__authorIdMapping)
+        mappingWriter.close()
+
+        
+        
 
 
     def printHeader(self, template=None):
         if template is None:
-            self.__writer.writerow(["cid", "url", "author", "text", "time", "parent", "upvotes", "downvotes", "article_id"])
+            self.__writer.writerow(["cid", "article_id", "author_id", "text", "time", "parent", "upvotes", "downvotes", ])
         else:
             self.__writer.writerow(template)
         self.__file.flush()
 
 
     def printData(self, data):
-        article_url = data["article_url"]
         article_id = data["article_id"]
 
         for commentId in data["comments"]:
+            author = data["comments"][commentId]["comment_author"]
+            if author in self.__authorIdMapping:
+                authorId = self.__authorIdMapping[author]
+            else:
+                authorId = self.__nextAuthorId
+                self.__authorIdMapping[author] = authorId
+                self.__nextAuthorId = self.__nextAuthorId + 1
+            
             self.__writer.writerow([
                 str(commentId),
-                article_url,
-                data["comments"][commentId]["comment_author"],
+                article_id,
+                authorId,
                 data["comments"][commentId]["comment_text"].replace("\n", "\\n"),
                 data["comments"][commentId]["timestamp"],
                 str(data["comments"][commentId]["parent_comment_id"]),
                 data["comments"][commentId]["upvotes"],
-                data["comments"][commentId]["downvotes"],
-                article_id
+                data["comments"][commentId]["downvotes"]
             ])
         self.__file.flush()
 
