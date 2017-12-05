@@ -75,9 +75,6 @@ class Dictionary(object):
 
 
     def __setitem__(self, key, value):
-        """
-        value: pointer
-        """
         self.insert(key, value)
 
 
