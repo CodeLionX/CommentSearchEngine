@@ -1,12 +1,18 @@
 import os
+
 from os import remove
 from tempfile import mkstemp
 from shutil import move
+
+from cse.weightCalculation import calcIdf
 
 
 """
 Inverted Index (main - on disk)
 Structure: Line Number in File -> Posting List
+Posting List Entry: (cid, tf, positionsList)
+Positions List: [pos1, pos2, ...]
+--> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]
 """
 class MainPostingListIndex(object):
 
@@ -34,24 +40,33 @@ class MainPostingListIndex(object):
 
 
     def __decodePlLine(self, line):
-        # postingList line: <cid1>|<pos1>,<pos2>,<pos3>;<cid2>|<pos1>,<pos2>\n
-        # result:           [(cid1, [pos1, pos2, pos3]), (cid2, [pos1, pos2])]
-        # result type:      list[tuple[string, list[int]]]
-        return list(map(
-            lambda s: (s.split("|")[0], [int(pos) for pos in s.split("|")[1].split(",")]),
-            list(line.replace("\n", "").split(";"))
+        # postingList line: <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
+        # result:           (idf, [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])])
+        # result type:      tuple[float, list[tuple[string, float, list[int]]]]
+        plList = list(line.replace("\n", "").split(";"))
+        return (float(plList[0]), list(
+            map(
+                lambda l: (l[0], float(l[1]), [int(pos) for pos in l[2].split(",")]),
+                map(
+                    lambda s: s.split("|"),
+                    plList[1:]
+                )
+            )
         ))
 
 
-    def __encodePlLine(self, postingList):
-        # postingList:      [(cid1, [pos1, pos2, pos3]), (cid2, [pos1, pos2])]
-        # postingList type: list[tuple[string, list[int]]]
-        # result:           <cid1>|<pos1>,<pos2>,<pos3>;<cid2>|<pos1>,<pos2>\n
-        return ";".join([
+    def __encodePlLine(self, idf, postingList):
+        # idf:              idf
+        # postingList:      [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
+        # postingList type: list[tuple[string, int, list[int]]]
+        # result:           <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
+        return ";".join([str(idf)] + [
             termTuple[0]
                 + "|"
+                + str(termTuple[1])
+                + "|"
                 + ",".join(
-                    str(position) for position in termTuple[1]
+                    str(position) for position in termTuple[2]
                 )
             for termTuple in postingList
         ]) + "\n"
@@ -77,7 +92,7 @@ class MainPostingListIndex(object):
         return self.__sizeof__()
 
 
-    def mergeInDeltaIndex(self, dIndex):
+    def mergeInDeltaIndex(self, dIndex, nAllDocuments):
         if not dIndex:
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
@@ -88,18 +103,21 @@ class MainPostingListIndex(object):
 
         with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
             for i, plLine in enumerate(self.__postingLists):
+                idf, postingList = self.__decodePlLine(plLine)
                 if i in dIndex:
-                    postingList = self.__decodePlLine(plLine)
                     postingList = postingList + dIndex[i]
                     postingList.sort(key=lambda x: x[0]) # sort based on cid
-                    tempFile.write(self.__encodePlLine(postingList))
                     #print("merging pointer", i)
-                else:
-                    tempFile.write(plLine)
+
+                idf = calcIdf(nAllDocuments, len(postingList))
+                tempFile.write(self.__encodePlLine(idf, postingList))
                 visited.add(i)
+
             for pointer in sorted(dIndex):
                 if pointer not in visited:
-                    tempFile.write(self.__encodePlLine(dIndex[pointer]))
+                    postingList = dIndex[pointer]
+                    idf = calcIdf(nAllDocuments, len(postingList))
+                    tempFile.write(self.__encodePlLine(idf, postingList))
                     #print("adding pointer", pointer)
 
         tempFile.close()

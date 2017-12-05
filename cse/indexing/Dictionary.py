@@ -4,12 +4,11 @@ from cse.util import Util
 
 
 
-"""
-Dictionary (in memory)
-Structure: Term -> Postinglist Line Number (referred to as pointer)
-"""
 class Dictionary(object):
-
+    """
+    Dictionary (in memory)
+    Structure: Term -> Postinglist Line Number (referred to as pointer)
+    """
 
     __filename = ""
     __dictionary = None
@@ -62,6 +61,10 @@ class Dictionary(object):
         nextPointer = self.__nextPointerCache
         self.__nextPointerCache = self.__nextPointerCache + 1
         return nextPointer
+
+
+    def __len__(self):
+        return self.__dictionary.__len__()
 
 
     def __getitem__(self, key):

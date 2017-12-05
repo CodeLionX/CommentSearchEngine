@@ -9,6 +9,7 @@ from cse.indexing.FileIndexer import FileIndexer
 from cse.CommentReader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
 from cse.helper.MultiFileMap import MultiFileMap
+from cse.Ranker import Ranker
 
 
 class SearchEngine():
@@ -55,7 +56,7 @@ class SearchEngine():
         indexer.index()
 
 
-    def search(self, query):
+    def search(self, query, topK=10):
         results = []
         if self.__boolQueryPattern.fullmatch(query):
             print("\n\n##### Boolean Query Search")
@@ -65,14 +66,14 @@ class SearchEngine():
             print("\n\n##### Phrase Search")
             results = self.__phraseSearch(query)
 
-        elif re.search('NOT|AND|OR', query):
+        elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
                 #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
                 return ["*** ERROR ***", "Query not supported. Please use only one of the following binary Operators or none: '*', 'NOT', 'AND', 'OR'"]
 
         else:
             print("\n\n##### Keyword Search")
-            results = self.__keywordSearch(query)
+            results = self.__keywordSearch(query, topK)
 
 
         print("##### Query for >>>", query, "<<< returned", len(results), "comments")
@@ -110,14 +111,17 @@ class SearchEngine():
                             "is invalid! Please use only one word for boolean queries."
                         )
                         return []
-                    cidTuples = ii.retrieve(pTerm[0][0])
+                    cidTuples = ii.postingList(pTerm[0][0])
 
                 if cidTuples:
                     cidSets.append(set( (cid for cid, _ in cidTuples) ))
 
+        if not cidSets:
+            return []
+
         firstCids = cidSets[0]
         cidSets.remove(firstCids)
-        cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)  
+        cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)
 
         return self.__loadDocumentTextForCids(cids)
 
@@ -130,35 +134,50 @@ class SearchEngine():
             first = True
             cidTuples = {}
             for term, _ in queryTermTuples:
-                if first:
-                    cidTuples = dict(ii.retrieve(term))
+                pl = ii.postingList(term)
+
+                if not pl:
+                    cidTuples = {}
+                    return []
+                elif first:
+                    cidTuples = dict(pl)
                     first = False
                 else:
-                    newCidTuples = dict(ii.retrieve(term))
+                    newCidTuples = dict(pl)
                     cidTuples = self.__documentsWithConsecutiveTerms(cidTuples, newCidTuples)
 
         return self.__loadDocumentTextForCids(cidTuples)
 
 
-    def __keywordSearch(self, query):
+    def __keywordSearch(self, query, topK):
+        idfs = {}
+        queryTerms = []
+        # use ranking:
+        ranker = Ranker(topK)
+
         with self.loadIndex() as ii:
             queryTermTuples = self.__prep.processText(query)
+            queryTerms = [term for term, _ in queryTermTuples]
 
-            # assume multiple tokens in query are combined with OR operator
             allCidTuples = []
-            for term, _ in queryTermTuples:
-                cidTuples = []
+            for term in queryTerms:
+                idf, cidTuples = ii.retrieve(term)
 
-                # find prefix query search terms
-                if term.endswith("*"):
-                    cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
-
-                else:
-                    cidTuples = ii.retrieve(term)
+                if idf:
+                    idfs[term] = idf
 
                 if cidTuples:
+                    for cid, tf, _ in cidTuples:
+                        ranker.documentTerm(cid, term, tf, idf)
                     allCidTuples = allCidTuples + cidTuples
-        return self.__loadDocumentTextForCids(set([cid for cid, _ in allCidTuples]))
+
+        # calculate query term weights
+        ranker.queryTerms(queryTerms, idfs)
+        rankedCids = ranker.rank()
+
+        #for r, s, c in rankedCids:
+        #    print(r, s, c)
+        return self.__loadDocumentTextForCids(set([cid for _, _, cid in rankedCids]))
 
 
     def __prefixSearchTerm(self, index, term):
@@ -168,7 +187,7 @@ class SearchEngine():
         # load posting list
         cidTuples = {}
         for term in matchedTerms:
-            for cid, posList in index.retrieve(term):
+            for cid, posList in index.postingList(term):
                 # there should be NO possibility that we have two terms in one document at the same position
                 # so this operation can be done on simple lists without checking duplicates
                 positions = cidTuples.get(cid, [])
@@ -181,7 +200,7 @@ class SearchEngine():
 
 
     def __loadDocumentTextForCids(self, cids):
-        results = []
+        results = {}
         commentPointers = set()
 
         if cids is None or cids is []:
@@ -191,7 +210,7 @@ class SearchEngine():
         with DocumentMap(os.path.join("data", "documentMap.index")).open() as documentMap:
             for cid in cids:
                 try:
-                    commentPointers.add(documentMap.get(cid))
+                    commentPointers.add(documentMap.getPointer(cid))
                 except KeyError:
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
@@ -199,9 +218,9 @@ class SearchEngine():
         with CommentReader(os.path.join("data", "comments.data"),os.path.join("data", "articleIds.data"),os.path.join("data", "authorMapping.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
-                    results.append(rowData["comment_text"])
+                    results[pointer] = rowData["comment_text"]
 
-        return results
+        return list(map(results.get, commentPointers))
 
 
     def __documentsWithConsecutiveTerms(self, firstTermTuples, secondTermTuples):
@@ -260,8 +279,17 @@ class SearchEngine():
         #print(prettyPrint(self.search("NOT hate")[:5]))
         #print(prettyPrint(self.search("Trump AND hate")[:5]))
         #print(prettyPrint(self.search("'Republican legislation'")))
+        #print(prettyPrint(self.search("Trump President Russia Russia Russia", 5)))
         #print(prettyPrint(self.search("'truck confederate flag'")))
         pass
+
+
+    def printAssignment4QueryResults(self):
+        print(prettyPrint(self.search("christmas market", 5)))
+        print(prettyPrint(self.search("catalonia independence", 5)))
+        print(prettyPrint(self.search("'european union'")[:5]))
+        print(prettyPrint(self.search("negotiate", 5)))
+
 
 
 
@@ -285,8 +313,8 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine("data")
-    # se.index()
+    #se.index()
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
     #se.printTestQueryResults()
-    print(se.search("microsoft")[:5])
+    se.printAssignment4QueryResults()

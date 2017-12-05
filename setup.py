@@ -66,6 +66,7 @@ setup(
         'requests',
         'scrapy>=1.4.0',
         'nltk>=3.2.0',
+        'numpy',
         #'pandas>=0.21.0',
         # additional
         'cffi>=1.7',
