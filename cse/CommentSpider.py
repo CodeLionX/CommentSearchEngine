@@ -7,7 +7,7 @@ from scrapy.spiders import SitemapSpider
 from scrapy.crawler import CrawlerProcess
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
-from cse.CommentWriter import CommentWriter
+from cse.writer import CommentWriter
 from cse.pipeline.CommentIdHandler import CommentIdHandler
 from cse.ArticleIdWriter import ArticleIdWriter
 
@@ -26,7 +26,7 @@ class CommentSpider(SitemapSpider):
 
 
     def __init__(self, sitemaps=[], urls=[], *args, **kwargs):
-        super().__init__(self)
+        super(CommentSpider, self).__init__(self)
 
         self.sitemap_urls = sitemaps
         self.other_urls = urls
@@ -37,6 +37,7 @@ class CommentSpider(SitemapSpider):
         self.__pbsOld = PipelineBootstrapOld(self.__commentIdHandler)
         self.__pbsOld.setupPipeline()
         self.__setupFileWriter("comments.csv")
+
 
     def start_requests(self):
         requests = list(super(CommentSpider, self).start_requests())

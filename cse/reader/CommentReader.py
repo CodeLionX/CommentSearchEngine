@@ -14,8 +14,7 @@ class CommentReader(object):
         self.__commentReader = None
 
         self.__commentsFilepath = commentsFilepath
-        self.__authorsFilepath = authorsFilepath
-        self.__authorsReader = None
+        self.__authorsReader = AuthorMappingReader(authorsFilepath)
         self.__articlesReader = ArticleMappingReader(arcticlesFilepath)
 
 
@@ -27,7 +26,6 @@ class CommentReader(object):
         self.__commentReader = csv.reader(self.__commentsFile, delimiter=self.__delimiter)
 
         self.__articlesReader.open()
-        self.__authorsReader = AuthorMappingReader(self.__authorsFilepath)
 
         return self
 
