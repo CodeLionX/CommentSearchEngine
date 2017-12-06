@@ -3,7 +3,7 @@ import os
 
 
 
-class ArticleIdWriter(object):
+class ArticleMappingWriter(object):
 
 
     def __init__(self, filepath, delimiter=','):

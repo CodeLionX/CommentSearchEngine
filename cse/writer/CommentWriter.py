@@ -1,8 +1,9 @@
 import csv
 import os
+import errno
 
 from cse.writer.AuthorMappingWriter import AuthorMappingWriter
-from cse.writer.ArticleIdWriter import ArticleIdWriter
+from cse.writer.ArticleMappingWriter import ArticleMappingWriter
 
 
 
@@ -18,7 +19,7 @@ class CommentWriter(object):
         self.__commentsFile = None
         self.__commentsWriter = None
 
-        self.__articlesWriter = ArticleIdWriter(articlesFilepath)
+        self.__articlesWriter = ArticleMappingWriter(articlesFilepath)
         self.__authorsWriter = AuthorMappingWriter(authorsFilepath)
 
 
