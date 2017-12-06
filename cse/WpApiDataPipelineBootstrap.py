@@ -1,8 +1,11 @@
 from threading import Lock
+
 from cse.WpApiAdapter import WpApiAdapter
 from cse.WpApiParser import WpApiParser
 from cse.pipeline import (Pipeline, SyncedHandlerContextFactory, Handler, HtmlStopwordsHandler)
 from cse.pipeline.wpHandler import RemoveDuplicatesHandler
+
+
 
 class WpApiDataPipelineBootstrap(Handler):
 
@@ -14,16 +17,14 @@ class WpApiDataPipelineBootstrap(Handler):
     __listenersLock = None
 
     __countHandler = None
-    __commentIdHandler = None
 
 
-    def __init__(self, commentIdHandler):
+    def __init__(self):
         super(WpApiDataPipelineBootstrap, self).__init__("PipelineBootstrap for data listeners")
         self.__wpApiAdapter = WpApiAdapter()
         self.__countHandler = CountHandler("Counter")
         self.__listenersLock = Lock()
         self.__wasPipeBuild = False
-        self.__commentIdHandler = commentIdHandler
 
 
     def setupPipeline(self, asynchronous=False):
@@ -40,7 +41,6 @@ class WpApiDataPipelineBootstrap(Handler):
         self.__pipeline.addLast(self.__wpApiAdapter) # url/json -> recursive datastructures
         self.__pipeline.addLast(WpApiParser()) # recursive datastructures -> flat datastructures
         self.__pipeline.addLast(RemoveDuplicatesHandler())
-        self.__pipeline.addLast(self.__commentIdHandler)
         self.__pipeline.addLast(HtmlStopwordsHandler())
         self.__pipeline.addLast(self.__countHandler) # debug: counts all comments
         #self.__pipeline.addLast(DebugHandler("DebugHandler")) # debug: shows some processing output
@@ -56,11 +56,11 @@ class WpApiDataPipelineBootstrap(Handler):
                 callback(data)
 
 
-    def crawlComments(self, url, id):
+    def crawlComments(self, url):
         if not self.__wasPipeBuild:
             raise Exception("Pipeline uninitialized! First init pipeline with setupPipeline()")
         self.__countHandler.reset()
-        self.__wpApiAdapter.loadComments(url, id)
+        self.__wpApiAdapter.loadComments(url)
         print("Processed comments: " + str(self.__countHandler.get()))
 
 
@@ -102,20 +102,19 @@ class DebugHandler(Handler):
 
 # just for testing
 if __name__ == "__main__":
-    from cse.CommentWriter import CommentWriter
-    writer = CommentWriter("data/file1")
+    from cse.writer import CommentWriter
+    writer = CommentWriter("data/file1a", "data/file1b", "data/file1c", "data/file1d")
     writer.open()
     writer.printHeader()
     bs = WpApiDataPipelineBootstrap()
-    printListener = writer.printData
-    bs.registerDataListener(printListener)
+    bs.registerDataListener(writer.printData)
     bs.setupPipeline()
     bs.crawlComments(url='https://www.washingtonpost.com/politics/courts_law/supreme-court-to-consider-major-digital-privacy-case-on-microsoft-email-storage/2017/10/16/b1e74936-b278-11e7-be94-fabb0f1e9ffb_story.html')
-    bs.unregisterDataListener(printListener)
+    bs.unregisterDataListener(writer.printData)
     writer.close()
 
     ## try changing data listener
-    writer = CommentWriter("data/file2")
+    writer = CommentWriter("data/file2a", "data/file2b", "data/file2c", "data/file2d")
     writer.open()
     writer.printHeader()
     bs.registerDataListener(writer.printData)

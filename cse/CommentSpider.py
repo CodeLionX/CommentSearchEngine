@@ -22,7 +22,6 @@ class CommentSpider(SitemapSpider):
     authorMappingFilepath    = os.path.join(directoryPath, "authorMapping.csv")
 
     __writer = None
-    __commentIdHandler = None
 
 
     def __init__(self, sitemaps=[], urls=[], *args, **kwargs):
@@ -31,12 +30,11 @@ class CommentSpider(SitemapSpider):
         self.sitemap_urls = sitemaps
         self.other_urls = urls
 
-        self.__setupCommentIdWriter("commentIdMap.csv")
-        self.__pbs = PipelineBootstrap(self.__commentIdHandler)
+        self.__pbs = PipelineBootstrap()
         self.__pbs.setupPipeline()
-        self.__pbsOld = PipelineBootstrapOld(self.__commentIdHandler)
+        self.__pbsOld = PipelineBootstrapOld()
         self.__pbsOld.setupPipeline()
-        self.__setupFileWriter("comments.csv")
+        self.__setupFileWriter()
 
 
     def start_requests(self):
@@ -52,20 +50,11 @@ class CommentSpider(SitemapSpider):
         return spider
 
 
-    def __setupCommentIdWriter(self, filename):
-        writer = CommentIdHandler(os.path.join("data", filename))
-        self.__commentIdHandler = writer
-
-
-    def __teardownCommentIdWriter(self):
-        self.__commentIdHandler.close()
-
-
-    def __setupFileWriter(self, filename):
+    def __setupFileWriter(self):
         writer = CommentWriter(
-            CommentSpider.commentsFilepath, 
-            CommentSpider.commentIdMappingFilepath, 
-            CommentSpider.articleMappingFilepath, 
+            CommentSpider.commentsFilepath,
+            CommentSpider.commentIdMappingFilepath,
+            CommentSpider.articleMappingFilepath,
             CommentSpider.authorMappingFilepath
         )
         writer.open()
@@ -83,7 +72,6 @@ class CommentSpider(SitemapSpider):
 
     def spider_closed(self, spider):
         self.__teardownFileWriter()
-        self.__teardownCommentIdWriter()
 
 
     def parse(self, response):

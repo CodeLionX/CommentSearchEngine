@@ -12,6 +12,7 @@ class WpApiAdapter(Handler):
     __moreQuery = ""
     __handlerContext = None
 
+
     def __init__(self):
         super()
         self.__initialQuery = self.__loadInitialQuery()
@@ -40,7 +41,7 @@ class WpApiAdapter(Handler):
             return count
 
         def countInNode(comment, count):
-            if('replies' in comment and 'nodes' in comment['replies']):
+            if 'replies' in comment and 'nodes' in comment['replies']:
                 return countInList(comment['replies']['nodes'], count) + 1
             else:
                 return count + 1
@@ -48,10 +49,10 @@ class WpApiAdapter(Handler):
         return countInList(comments, 0)
 
 
-    def loadComments(self, url, articleId):
+    def loadComments(self, url):
         if self.__handlerContext is None:
             raise Exception("WpApiAdapter must be used within a WpApiAdapterHandler to use pipelining functionality!")
-        
+
         payload = self.__buildInitialRequstPayload(url)
 
         response = requests.request("POST",
@@ -63,8 +64,8 @@ class WpApiAdapter(Handler):
         data = Util.fromJsonString(response.text)
         assetId = data['data']['asset']['id']
         commentsNode = data['data']['asset']['comments']
-        
-        comments = self.__processComments(commentsNode, url, assetId, articleId)
+
+        comments = self.__processComments(commentsNode, url, assetId)
 
 
     def __buildInitialRequstPayload(self, url):
@@ -81,7 +82,7 @@ class WpApiAdapter(Handler):
                 "operationName": "CoralEmbedStream_Embed"
             }
         }
-    
+
 
     def __buildMoreRequestPayload(self, assetId, cursor=None, parentId=None):
         return {
@@ -99,12 +100,12 @@ class WpApiAdapter(Handler):
         }
 
 
-    def __processComments(self, commentsNode, url, assetId, articleId, parentId=None):
+    def __processComments(self, commentsNode, url, assetId, parentId=None):
         commentsHasNextPage = commentsNode['hasNextPage']
         commentsCursor = commentsNode['endCursor']
         comments = commentsNode['nodes']
 
-        data={"url": url, "assetId": articleId, "parentId": parentId, "comments": comments}
+        data = {"url": url, "assetId": assetId, "parentId": parentId, "comments": comments}
         self.__handlerContext.write(data)
 
         # check for replies
@@ -114,17 +115,17 @@ class WpApiAdapter(Handler):
             repliesCursor = com['replies']['endCursor']
             replies = com['replies']['nodes']
 
-            if(repliesHasNextPage):
-                com['replies']['nodes'] = replies + self.__loadMoreReplies(url, assetId, repliesCursor, articleId, repliesParentId)
+            if repliesHasNextPage:
+                com['replies']['nodes'] = replies + self.__loadMoreReplies(url, assetId, repliesCursor, repliesParentId)
 
         # check for another page
-        if(commentsHasNextPage):
-            comments = comments + self.__loadMoreComments(url, assetId, commentsCursor, articleId)
+        if commentsHasNextPage:
+            comments = comments + self.__loadMoreComments(url, assetId, commentsCursor)
 
         return comments
 
 
-    def __loadMoreComments(self, url, assetId, cursor, articleId):
+    def __loadMoreComments(self, url, assetId, cursor):
         payload = self.__buildMoreRequestPayload(assetId, cursor=cursor)
 
         response = requests.request("POST", 
@@ -136,10 +137,10 @@ class WpApiAdapter(Handler):
         data = Util.fromJsonString(response.text)
         commentsNode = data['data']['comments']
 
-        return self.__processComments(commentsNode, url, assetId, articleId)
+        return self.__processComments(commentsNode, url, assetId)
 
 
-    def __loadMoreReplies(self, url, assetId, cursor, articleId, parentId):
+    def __loadMoreReplies(self, url, assetId, cursor, parentId):
         payload = self.__buildMoreRequestPayload(assetId, cursor=cursor, parentId=parentId)
 
         response = requests.request("POST", 
@@ -151,7 +152,7 @@ class WpApiAdapter(Handler):
         data = Util.fromJsonString(response.text)
         commentsNode = data['data']['comments']
 
-        return self.__processComments(commentsNode, url, assetId, articleId, parentId)
+        return self.__processComments(commentsNode, url, assetId, parentId)
 
 
     # inherited from cse.pipeline.Handler
