@@ -1,16 +1,18 @@
 import csv
 import os
 
+
+
 class ArticleIdWriter(object):
 
-    __delimiter = ''
-    __filepath = ""
-    __file = None
-    __writer = None
 
     def __init__(self, filepath, delimiter=','):
         self.__delimiter = delimiter
         self.__filepath = filepath
+        self.__file = None
+        self.__writer = None
+        self.__currentId = -1
+        self.__currentOrigId = ""
 
 
     def open(self):
@@ -23,7 +25,7 @@ class ArticleIdWriter(object):
 
         # w  = writing, will empty file and write from beginning (file is created)
         # a+ = read and append (file is created if it does not exist)
-        self.__file = open(self.__filepath, 'w', newline='')   
+        self.__file = open(self.__filepath, 'w', newline='', encoding="UTF-8")
         self.__writer = csv.writer(self.__file)
         return self
 
@@ -34,19 +36,19 @@ class ArticleIdWriter(object):
 
     def printHeader(self, template=None):
         if template is None:
-            self.__writer.writerow(["article_id", "arcticle_url"])
+            self.__writer.writerow(["article_id", "original_article_id", "arcticle_url"])
         else:
             self.__writer.writerow(template)
-        self.__file.flush()
 
 
-    def printData(self, data):
-        for i, articleUrl in enumerate(data):
-            self.__writer.writerow([
-                str(i),
-                articleUrl,
-            ])
-        self.__file.flush()
+    def mapToId(self, origArticleId, articleUrl):
+        if self.__currentOrigId == origArticleId:
+            return self.__currentId
+
+        self.__currentId += 1
+        self.__currentOrigId = origArticleId
+        self.__writer.writerow([self.__currentId, self.__currentOrigId, articleUrl])
+        return self.__currentId
 
 
     def __enter__(self):
@@ -58,8 +60,11 @@ class ArticleIdWriter(object):
 
 
 if __name__ == '__main__':
-    writer = ArticleIdWriter(os.path.join("data", 'arcticleIdsTest.csv'))
+    writer = ArticleIdWriter(os.path.join("data", "arcticleIdsTest.csv"))
     writer.open()
     writer.printHeader()
-    writer.printData(['hallo'])
+    writer.mapToId("abc", "url1")
+    writer.mapToId("abc", "url1")
+    writer.mapToId("bcd", "url2")
+    writer.mapToId("cde", "url3")
     writer.close()

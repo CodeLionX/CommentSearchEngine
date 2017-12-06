@@ -1,16 +1,20 @@
 import csv
 import os
+from collections import OrderedDict
+
+
 
 class AuthorMappingWriter(object):
 
-    __delimiter = ''
-    __filepath = ""
-    __file = None
-    __writer = None
 
     def __init__(self, filepath, delimiter=','):
         self.__delimiter = delimiter
         self.__filepath = filepath
+        self.__file = None
+        self.__writer = None
+
+        self.__nextAuthorId = 0
+        self.__authorIdMapping = OrderedDict()
 
 
     def open(self):
@@ -29,6 +33,7 @@ class AuthorMappingWriter(object):
 
 
     def close(self):
+        self.__printData()
         self.__file.close()
 
 
@@ -37,16 +42,24 @@ class AuthorMappingWriter(object):
             self.__writer.writerow(["author_id", "author"])
         else:
             self.__writer.writerow(template)
-        self.__file.flush()
 
 
-    def printData(self, data):
-        for author in data:
+    def mapToId(self, author):
+        if author in self.__authorIdMapping:
+            authorId = self.__authorIdMapping[author]
+        else:
+            authorId = self.__nextAuthorId
+            self.__authorIdMapping[author] = authorId
+            self.__nextAuthorId += 1
+        return authorId
+
+
+    def __printData(self):
+        for author in self.__authorIdMapping:
             self.__writer.writerow([
-                str(data[author]),
+                self.__authorIdMapping[author],
                 author,
             ])
-        self.__file.flush()
 
 
     def __enter__(self):
@@ -61,5 +74,8 @@ if __name__ == '__main__':
     writer = AuthorMappingWriter(os.path.join("data", 'AuthorMappingTest.csv'))
     writer.open()
     writer.printHeader()
-    writer.printData({'authorName': 0})
+    writer.mapToId("Ulli")
+    writer.mapToId("Hans")
+    writer.mapToId("Moritz")
+    writer.mapToId("Hans")
     writer.close()

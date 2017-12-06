@@ -1,28 +1,29 @@
 import os
-import re
+
 import scrapy
 from scrapy.selector import Selector
 from scrapy import signals
 from scrapy.spiders import SitemapSpider
-from scrapy.crawler import CrawlerProcess
+
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
 from cse.writer import CommentWriter
 from cse.pipeline.CommentIdHandler import CommentIdHandler
-from cse.writer.ArticleIdWriter import ArticleIdWriter
+
+
 
 class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
     name = 'washingtonpost.com'
-    sitemap_urls = []
-    other_urls = []
 
-    __pbs = None
-    __pbsOld = None
+    directoryPath            = "data"
+    commentsFilepath         = os.path.join(directoryPath, "comments.csv")
+    commentIdMappingFilepath = os.path.join(directoryPath, "commentIdMapping.csv")
+    articleMappingFilepath   = os.path.join(directoryPath, "articleMapping.csv")
+    authorMappingFilepath    = os.path.join(directoryPath, "authorMapping.csv")
+
     __writer = None
     __commentIdHandler = None
-    __visitedURLs = []
-    __nextArcticleId = 0
 
 
     def __init__(self, sitemaps=[], urls=[], *args, **kwargs):
@@ -78,27 +79,16 @@ class CommentSpider(SitemapSpider):
 
     def spider_closed(self, spider):
         self.__teardownFileWriter()
-        self.__writeArcticleIds()
         self.__teardownCommentIdWriter()
-
-    def __writeArcticleIds(self):
-        writer = ArticleIdWriter(os.path.join("data", 'articleIds.csv'))
-        writer.open()
-        writer.printHeader()
-        writer.printData(self.__visitedURLs)
-        writer.close()
 
 
     def parse(self, response):
         try:
-            self.__pbs.crawlComments(response.url, self.__nextArcticleId)
+            self.__pbs.crawlComments(response.url, 0) #FIXME remove id
         except:
             print('fail new API\n')
 
         try:
-            self.__pbsOld.crawlComments(response.url, self.__nextArcticleId)
+            self.__pbsOld.crawlComments(response.url, 0) #FIXME remove id
         except:
             print('fail old API\n')
-        
-        self.__visitedURLs.append(response.url)
-        self.__nextArcticleId = self.__nextArcticleId + 1
