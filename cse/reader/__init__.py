@@ -6,3 +6,5 @@ reader classes
 """
 
 from cse.reader.CommentReader import CommentReader
+from cse.reader.ArticleMappingReader import ArticleMappingReader
+from cse.reader.AuthorMappingReader import AuthorMappingReader
