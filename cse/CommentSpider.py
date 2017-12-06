@@ -8,7 +8,6 @@ from scrapy.spiders import SitemapSpider
 from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as PipelineBootstrap
 from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
 from cse.writer import CommentWriter
-from cse.pipeline.CommentIdHandler import CommentIdHandler
 
 
 
@@ -63,7 +62,12 @@ class CommentSpider(SitemapSpider):
 
 
     def __setupFileWriter(self, filename):
-        writer = CommentWriter(os.path.join("data", filename))
+        writer = CommentWriter(
+            CommentSpider.commentsFilepath, 
+            CommentSpider.commentIdMappingFilepath, 
+            CommentSpider.articleMappingFilepath, 
+            CommentSpider.authorMappingFilepath
+        )
         writer.open()
         writer.printHeader()
         self.__pbs.registerDataListener(writer.printData)

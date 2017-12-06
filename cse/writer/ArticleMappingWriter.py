@@ -1,5 +1,6 @@
 import csv
 import os
+import errno
 
 
 
@@ -59,8 +60,9 @@ class ArticleMappingWriter(object):
         self.close()
 
 
+
 if __name__ == '__main__':
-    writer = ArticleIdWriter(os.path.join("data", "arcticleIdsTest.csv"))
+    writer = ArticleMappingWriter(os.path.join("data", "arcticleIdsTest.csv"))
     writer.open()
     writer.printHeader()
     writer.mapToId("abc", "url1")

@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 
 
-class AuthorMappingWriter(object):
+class CommentIdMappingWriter(object):
 
 
     def __init__(self, filepath, delimiter=','):
@@ -14,8 +14,9 @@ class AuthorMappingWriter(object):
         self.__file = None
         self.__writer = None
 
-        self.__nextAuthorId = 0
-        self.__authorIdMapping = OrderedDict()
+        self.__commentIdMap = OrderedDict()
+        self.__nextCommentId = 0
+        self.__currentArticle = None
 
 
     def open(self):
@@ -34,33 +35,39 @@ class AuthorMappingWriter(object):
 
 
     def close(self):
-        self.__printData()
+        self.flushDataForArticle()
         self.__file.close()
+
+
+    def mapToId(self, origCommentId):
+        if not origCommentId:
+            return None
+
+        if origCommentId not in self.__commentIdMap:
+            self.__commentIdMap[origCommentId] = self.__nextCommentId
+            self.__nextCommentId = self. __nextCommentId + 1
+
+        return self.__commentIdMap[origCommentId]
 
 
     def printHeader(self, template=None):
         if template is None:
-            self.__writer.writerow(["author_id", "author"])
+            self.__writer.writerow(["cid", "orig_comment_id"])
         else:
             self.__writer.writerow(template)
 
 
-    def mapToId(self, author):
-        if author in self.__authorIdMapping:
-            authorId = self.__authorIdMapping[author]
-        else:
-            authorId = self.__nextAuthorId
-            self.__authorIdMapping[author] = authorId
-            self.__nextAuthorId += 1
-        return authorId
+    def flushDataForArticle(self):
+        if not self.__writer:
+            self.open()
 
-
-    def __printData(self):
-        for author in self.__authorIdMapping:
+        for commentId in self.__commentIdMap:
             self.__writer.writerow([
-                self.__authorIdMapping[author],
-                author,
+                self.__commentIdMap[commentId],
+                commentId
             ])
+        self.__file.flush()
+        self.__commentIdMap = OrderedDict()
 
 
     def __enter__(self):
@@ -72,12 +79,17 @@ class AuthorMappingWriter(object):
 
 
 
-if __name__ == '__main__':
-    writer = AuthorMappingWriter(os.path.join("data", 'AuthorMappingTest.csv'))
+if __name__ == "__main__":
+    writer = CommentIdMappingWriter(os.path.join("data", 'CommentIdMappingTest.csv'))
     writer.open()
     writer.printHeader()
-    writer.mapToId("Ulli")
-    writer.mapToId("Hans")
-    writer.mapToId("Moritz")
-    writer.mapToId("Hans")
+    writer.mapToId("origid1")
+    writer.mapToId("origid2")
+    writer.mapToId(None)
+    writer.mapToId("origid1")
+    writer.mapToId("origid4")
+    writer.mapToId("")
+    writer.mapToId("origid4")
+    writer.mapToId("origid4")
+    writer.mapToId("origid3")
     writer.close()
