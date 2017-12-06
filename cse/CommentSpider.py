@@ -76,11 +76,11 @@ class CommentSpider(SitemapSpider):
 
     def parse(self, response):
         try:
-            self.__pbs.crawlComments(response.url, 0) #FIXME remove id
+            self.__pbs.crawlComments(response.url)
         except:
             print('fail new API\n')
 
         try:
-            self.__pbsOld.crawlComments(response.url, 0) #FIXME remove id
+            self.__pbsOld.crawlComments(response.url)
         except:
             print('fail old API\n')

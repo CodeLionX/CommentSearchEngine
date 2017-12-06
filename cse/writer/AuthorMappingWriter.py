@@ -34,7 +34,6 @@ class AuthorMappingWriter(object):
 
 
     def close(self):
-        self.__printData()
         self.__file.close()
 
 
@@ -51,16 +50,9 @@ class AuthorMappingWriter(object):
         else:
             authorId = self.__nextAuthorId
             self.__authorIdMapping[author] = authorId
+            self.__writer.writerow([authorId, author])
             self.__nextAuthorId += 1
         return authorId
-
-
-    def __printData(self):
-        for author in self.__authorIdMapping:
-            self.__writer.writerow([
-                self.__authorIdMapping[author],
-                author,
-            ])
 
 
     def __enter__(self):
