@@ -19,7 +19,7 @@ class FileIndexer(object):
         self.__postingListsPath     = os.path.join(directory, "postingLists.index")
         self.__dataFolderPath       = os.path.join(directory, "raw")
         self.__commentsFilePath     = os.path.join(directory, "comments.data")
-        self.__articleFilePath      = os.path.join(directory, "articleIds.data")
+        self.__articleFilePath      = os.path.join(directory, "articleMapping.data")
         self.__authorsFilePath      = os.path.join(directory, "authorMapping.data")
 
 
