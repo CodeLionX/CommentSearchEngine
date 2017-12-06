@@ -3,7 +3,7 @@ import os
 from cse.helper.MultiFileMap import MultiFileMap
 from cse.indexing import InvertedIndexWriter
 from cse.indexing import DocumentMap
-from cse.CommentReader import CommentReader
+from cse.reader import CommentReader
 
 
 
