@@ -1,6 +1,6 @@
 import csv
 import os
-from cse.AuthorMappingWriter import AuthorMappingWriter
+from cse.writer.AuthorMappingWriter import AuthorMappingWriter
 from collections import OrderedDict
 
 class CommentWriter(object):

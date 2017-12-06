@@ -9,7 +9,7 @@ from cse.WpApiDataPipelineBootstrap import WpApiDataPipelineBootstrap as Pipelin
 from cse.WpOldApiDataPipelineBootstrap import WpOldApiDataPipelineBootstrap as PipelineBootstrapOld
 from cse.writer import CommentWriter
 from cse.pipeline.CommentIdHandler import CommentIdHandler
-from cse.ArticleIdWriter import ArticleIdWriter
+from cse.writer.ArticleIdWriter import ArticleIdWriter
 
 class CommentSpider(SitemapSpider):
     # this spider scrapes a single article within the domain washingtonpost.com (https://www.washingtonpost.com/)
