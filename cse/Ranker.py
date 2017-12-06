@@ -1,4 +1,4 @@
-from cse.weightCalculation import *
+from cse.WeightCalculation import *
 
 class Ranker(object):
 
