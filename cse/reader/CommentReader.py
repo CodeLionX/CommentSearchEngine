@@ -36,12 +36,12 @@ class CommentReader(object):
 
 
     def __parseIterRow(self, row):
-        commentId = row[0]
+        commentId = int(row[0])
         articleId = int(row[1])
         author = self.__authorsReader.lookupAuthorname(row[2])
         text = row[3].replace("\\n", "\n")
         timestamp = row[4]
-        parentId = row[5]
+        parentId = int(row[5])
         upvotes = int(row[6])
         downvotes = int(row[7])
 
