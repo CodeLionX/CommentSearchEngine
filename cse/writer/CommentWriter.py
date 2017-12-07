@@ -83,7 +83,7 @@ class CommentWriter(object):
                 authorId,
                 data["comments"][commentId]["comment_text"].replace("\n", "\\n"),
                 data["comments"][commentId]["timestamp"],
-                self.__commentIdWriter.mapToId(data["comments"][commentId]["parent_comment_id"]),
+                self.__commentIdWriter.mapToId(data["comments"][commentId]["parent_comment_id"], parent=True),
                 data["comments"][commentId]["upvotes"],
                 data["comments"][commentId]["downvotes"]
             ])

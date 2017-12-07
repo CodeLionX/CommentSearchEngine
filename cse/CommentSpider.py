@@ -77,10 +77,12 @@ class CommentSpider(SitemapSpider):
     def parse(self, response):
         try:
             self.__pbs.crawlComments(response.url)
-        except:
+        except Exception as e:
             print('fail new API\n')
+            print(e)
 
         try:
             self.__pbsOld.crawlComments(response.url)
-        except:
+        except Exception as e:
             print('fail old API\n')
+            print(e)

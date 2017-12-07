@@ -1,6 +1,7 @@
 import requests
 import os
 from string import Template
+from collections import OrderedDict
 
 try:
     from urllib.parse import urlparse
@@ -42,19 +43,18 @@ class WpOldApiAdapter(Handler):
         return {
             "article_url" : url,
             "article_id" : assetId,
-            "comments" : []
+            "comments" : None
         }
 
 
     def __processComments(self, data, url):
-        commentList = {}
+        commentList = OrderedDict()
 
         for entry in data["entries"]:
             cid = self.__extractCid(entry["object"]["id"])
             comment_author = entry["actor"]["title"]
             comment_text = entry["object"]["content"]
             timestamp = entry["object"]["published"]
-
             for target in entry["targets"]:
                 try:
                     parent_comment_id = self.__extractCid(target["conversationID"])
@@ -69,24 +69,25 @@ class WpOldApiAdapter(Handler):
             except KeyError:
                 votes = 0
 
-            commentList[cid] = {
-                "comment_author": comment_author,
-                "comment_text" : comment_text,
-                "timestamp" : timestamp,
-                "parent_comment_id" : parent_comment_id,
-                "upvotes" : votes,
-                "downvotes": 0
-            }
+            # write comments to pipeline
+            commentsObject = self.__buildDataSkeleton(url)
+            commentsObject["comments"] = {
+                cid: {
+                    "comment_author": comment_author,
+                    "comment_text" : comment_text,
+                    "timestamp" : timestamp,
+                    "parent_comment_id" : parent_comment_id,
+                    "upvotes" : votes,
+                    "downvotes": 0
+                    }
+                }
+            self.__handlerContext.write(commentsObject)
+
             try:
                 directReplies = self.__loadReplies(entry["object"]["id"], entry["object"]["accumulators"]["repliesCount"], entry["pageAfter"])
                 self.__processComments(directReplies, url)
             except KeyError:
                 pass
-
-        # write comments to pipeline
-        commentsObject = self.__buildDataSkeleton(url)
-        commentsObject["comments"] = commentList
-        self.__handlerContext.write(commentsObject)
 
 
     def __extractCid(self,url):

@@ -39,9 +39,13 @@ class CommentIdMappingWriter(object):
         self.__file.close()
 
 
-    def mapToId(self, origCommentId):
+    def mapToId(self, origCommentId, parent=False):
         if not origCommentId:
             return None
+
+        if parent and origCommentId not in self.__commentIdMap:
+            print("No Parent ID Mapping found for: " + origCommentId)
+            raise KeyError("No Parent ID Mapping found for: " + origCommentId)
 
         if origCommentId not in self.__commentIdMap:
             self.__commentIdMap[origCommentId] = self.__nextCommentId

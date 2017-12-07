@@ -37,7 +37,7 @@ class ArticleMappingWriter(object):
 
     def printHeader(self, template=None):
         if template is None:
-            self.__writer.writerow(["article_id", "original_article_id", "arcticle_url"])
+            self.__writer.writerow(["article_id", "arcticle_url"])
         else:
             self.__writer.writerow(template)
 
@@ -48,7 +48,7 @@ class ArticleMappingWriter(object):
 
         self.__currentId += 1
         self.__currentOrigId = origArticleId
-        self.__writer.writerow([self.__currentId, self.__currentOrigId, articleUrl])
+        self.__writer.writerow([self.__currentId, articleUrl])
         return self.__currentId
 
 
