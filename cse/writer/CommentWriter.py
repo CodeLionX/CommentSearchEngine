@@ -76,6 +76,11 @@ class CommentWriter(object):
         for commentId in data["comments"]:
             author = data["comments"][commentId]["comment_author"]
             authorId = self.__authorsWriter.mapToId(author)
+            try:
+                parentId = self.__commentIdWriter.mapToId(data["comments"][commentId]["parent_comment_id"], parent=True)
+            except KeyError as e:
+                print(e)
+                continue
 
             self.__commentsWriter.writerow([
                 self.__commentIdWriter.mapToId(commentId),
@@ -83,7 +88,7 @@ class CommentWriter(object):
                 authorId,
                 data["comments"][commentId]["comment_text"].replace("\n", "\\n"),
                 data["comments"][commentId]["timestamp"],
-                self.__commentIdWriter.mapToId(data["comments"][commentId]["parent_comment_id"], parent=True),
+                parentId,
                 data["comments"][commentId]["upvotes"],
                 data["comments"][commentId]["downvotes"]
             ])
