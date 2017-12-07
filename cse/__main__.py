@@ -22,8 +22,9 @@ def main(args=None):
 
 def crawl(args=None):
     process = CrawlerProcess({
-        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)',
-        'LOG_LEVEL': 'ERROR'
+        'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
+        'LOG_LEVEL': 'DEBUG',
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 1
     })
 
     process.crawl(CommentSpider, sitemaps=args.sitemaps, urls=args.urls)
