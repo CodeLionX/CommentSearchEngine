@@ -1,4 +1,5 @@
 import re
+from collections import OrderedDict
 
 from cse.pipeline.Handler import Handler
 
@@ -18,7 +19,7 @@ class HtmlStopwordsHandler(Handler):
         result = {}
         result["article_id"] = data["article_id"]
         result["article_url"] = data["article_url"]
-        result["comments"] = {}
+        result["comments"] = OrderedDict()
         for cid in data["comments"]:
             result["comments"][cid] = self.__cleanHtml(data["comments"][cid])
 

@@ -1,5 +1,9 @@
 from cse.util import Util
+from collections import OrderedDict
+
 from cse.pipeline import Handler
+
+
 
 class WpApiParser(Handler):
 
@@ -17,19 +21,20 @@ class WpApiParser(Handler):
         return {
             "article_url" : url,
             "article_id" : assetId,
-            "comments" : []
+            "comments" : None
         }
 
 
     def __iterateComments(self, comments, parentId=None):
-        commentList = {}
+        commentList = OrderedDict()
         for comment in comments:
             votes = 0
             for action_summary in comment["action_summaries"]:
                 if action_summary["__typename"] == "LikeActionSummary":
                     votes = action_summary["count"]
 
-            commentList[comment["id"]] = {
+
+            commentObject = {
                 "comment_author": comment["user"]["username"],
                 "comment_text" : comment["body"],
                 "timestamp" : comment["created_at"],
@@ -37,12 +42,14 @@ class WpApiParser(Handler):
                 "upvotes" : votes,
                 "downvotes": 0
             }
+            commentList[comment["id"]] = commentObject
 
             try:
                 commentReplies = self.__iterateComments(comment["replies"]["nodes"], comment["id"])
             except KeyError: # There may be a limit of the nesting level of comments on wp
                 commentReplies = {}
             commentList.update(commentReplies)
+
         return commentList
 
 

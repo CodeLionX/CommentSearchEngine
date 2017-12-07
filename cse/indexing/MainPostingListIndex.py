@@ -4,7 +4,7 @@ from os import remove
 from tempfile import mkstemp
 from shutil import move
 
-from cse.weightCalculation import calcIdf
+from cse.WeightCalculation import calcIdf
 
 
 """

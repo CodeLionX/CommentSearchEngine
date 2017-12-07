@@ -6,7 +6,7 @@ from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
 from cse.indexing import (InvertedIndexReader, DocumentMap)
 from cse.indexing.FileIndexer import FileIndexer
-from cse.CommentReader import CommentReader
+from cse.reader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
 from cse.helper.MultiFileMap import MultiFileMap
 from cse.Ranker import Ranker
@@ -232,7 +232,7 @@ class SearchEngine():
                     print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
         # load document text
-        with CommentReader(os.path.join("data", "comments.data"),os.path.join("data", "articleIds.data"),os.path.join("data", "authorMapping.data")).open() as cr:
+        with CommentReader(os.path.join("data", "comments.data"),os.path.join("data", "articleMapping.data"),os.path.join("data", "authorMapping.data")).open() as cr:
             for pointer, rowData in enumerate(cr):
                 if pointer in commentPointers:
                     results[pointer] = rowData["comment_text"]
