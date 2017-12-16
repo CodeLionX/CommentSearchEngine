@@ -5,6 +5,7 @@ from tempfile import mkstemp
 from shutil import move
 
 from cse.WeightCalculation import calcIdf
+from cse.indexing.PostingList import PostingList
 
 
 """
@@ -84,7 +85,7 @@ class MainPostingListIndex(object):
         self.__postingLists.seek(0)
         for i, plLine in enumerate(self.__postingLists):
             if i == pointer:
-                return self.__decodePlLine(plLine)
+                return PostingList.decode(plLine)
         return None
 
 
@@ -103,22 +104,22 @@ class MainPostingListIndex(object):
 
         with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
             for i, plLine in enumerate(self.__postingLists):
-                idf, postingList = self.__decodePlLine(plLine)
+                postingList = PostingList.decode(plLine)
                 if i in dIndex:
-                    postingList = postingList + dIndex[i]
+                    postingList = postingList.merge(dIndex[i])
                     # should already be sorted:
                     #postingList.sort(key=lambda x: x[0]) # sort based on cid
                     #print("merging pointer", i)
 
-                idf = calcIdf(nAllDocuments, len(postingList))
-                tempFile.write(self.__encodePlLine(idf, postingList))
+                postingList.updateIdf(calcIdf(nAllDocuments, postingList.numberOfPostings()))
+                tempFile.write(PostingList.encode(postingList))
                 visited.add(i)
 
             for pointer in sorted(dIndex):
                 if pointer not in visited:
                     postingList = dIndex[pointer]
-                    idf = calcIdf(nAllDocuments, len(postingList))
-                    tempFile.write(self.__encodePlLine(idf, postingList))
+                    postingList.updateIdf(calcIdf(nAllDocuments, postingList.numberOfPostings()))
+                    tempFile.write(PostingList.encode(postingList))
                     #print("adding pointer", pointer)
 
         tempFile.close()

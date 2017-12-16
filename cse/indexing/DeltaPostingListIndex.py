@@ -1,5 +1,6 @@
 from sys import getsizeof
 
+from cse.indexing.PostingList import PostingList
 
 """
 Inverted Index (delta - in memory)
@@ -32,8 +33,8 @@ class DeltaPostingListIndex(object):
 
     def insert(self, pointer, commentId, tf, positions):
         if pointer not in self.__postingLists:
-            self.__postingLists[pointer] = []
-        self.__postingLists[pointer].append((commentId, tf, positions))
+            self.__postingLists[pointer] = PostingList(0)
+        self.__postingLists[pointer].append(commentId, tf, positions)
         # should already be sorted:
         #self.__postingLists[pointer].sort()
         self.__numCommentIds = self.__numCommentIds + 1
