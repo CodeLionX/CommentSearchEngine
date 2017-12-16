@@ -70,17 +70,19 @@ class FileIndexer(object):
         for token, position in tokenTuples:
             positionList = tokenPositionsDict.get(token, [])
             positionList.append(int(position))
-            positionList.sort()
             tokenPositionsDict[token] = positionList
 
         for token in tokenPositionsDict:
-            self.__index.insert(token, cid, tokens, tokenPositionsDict[token])
+            positionsList = tokenPositionsDict[token]
+            positionList.sort()
+            self.__index.insert(token, cid, tokens, positionList)
 
         return tokens
 
 
 
 if __name__ == "__main__":
+    import time
     from cse.lang import PreprocessorBuilder
     from cse.SearchEngine import CustomPpStep
     prep = (
@@ -91,4 +93,10 @@ if __name__ == "__main__":
         .addCustomStepToEnd(CustomPpStep())
         .build()
     )
+
+    start = time.process_time()
     FileIndexer("data", prep).index()
+    end = time.process_time()
+
+    print("==========================================")
+    print("elapsed time:", end - start, "secs")
