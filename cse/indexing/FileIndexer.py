@@ -1,6 +1,5 @@
 import os
 
-from cse.helper.MultiFileMap import MultiFileMap
 from cse.indexing import InvertedIndexWriter
 from cse.indexing import DocumentMap
 from cse.reader import CommentReader
@@ -70,7 +69,7 @@ class FileIndexer(object):
         tokenPositionsDict = {}
         for token, position in tokenTuples:
             positionList = tokenPositionsDict.get(token, [])
-            positionList.append(position)
+            positionList.append(int(position))
             positionList.sort()
             tokenPositionsDict[token] = positionList
 
@@ -83,12 +82,13 @@ class FileIndexer(object):
 
 if __name__ == "__main__":
     from cse.lang import PreprocessorBuilder
+    from cse.SearchEngine import CustomPpStep
     prep = (
         PreprocessorBuilder()
         .useNltkTokenizer()
-        .useNltkStopwordList()
+        #.useNltkStopwordList()
         .usePorterStemmer()
-        #.addCustomStepToEnd(CustomPpStep())
+        .addCustomStepToEnd(CustomPpStep())
         .build()
     )
     FileIndexer("data", prep).index()

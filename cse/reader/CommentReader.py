@@ -35,20 +35,35 @@ class CommentReader(object):
         self.__articlesReader.close()
 
 
+    def __silentParseToInt(self, data, default):
+        try:
+            return int(data)
+        except ValueError:
+            return default
+
+
     def __parseIterRow(self, row):
         commentId = int(row[0])
         articleId = int(row[1])
         author = self.__authorsReader.lookupAuthorname(row[2])
         text = row[3].replace("\\n", "\n")
         timestamp = row[4]
-        parentId = int(row[5])
-        upvotes = int(row[6])
-        downvotes = int(row[7])
+        parentId = self.__silentParseToInt(row[5], None)
+        upvotes = self.__silentParseToInt(row[6], 0)
+        downvotes = self.__silentParseToInt(row[7], 0)
 
         # sequentially load article mapping
         # if there are some articles without comments we skip these articles
-        while self.__articlesReader.currentArticleId() is not articleId:
-            next(self.__articlesReader)
+        while self.__articlesReader.currentArticleId() != articleId:
+            try:
+                next(self.__articlesReader)
+            except StopIteration as e:
+                # restart article iterator
+                iter(self.__articlesReader)
+                next(self.__articlesReader)
+                print("!-- restarted article id mapping iterator --!")
+                print("    searching article", articleId, author, commentId)
+
         articleUrl = self.__articlesReader.currentArticleUrl()
 
         return {

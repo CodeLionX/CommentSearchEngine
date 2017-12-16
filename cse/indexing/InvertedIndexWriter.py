@@ -39,7 +39,7 @@ class InvertedIndexWriter(object):
 
         self.__dIndex.insert(
             pointer, 
-            commentId, 
+            int(commentId), 
             calcTf(nTerms, len(positions)), 
             positions
         )
