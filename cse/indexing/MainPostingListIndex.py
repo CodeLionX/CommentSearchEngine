@@ -106,7 +106,8 @@ class MainPostingListIndex(object):
                 idf, postingList = self.__decodePlLine(plLine)
                 if i in dIndex:
                     postingList = postingList + dIndex[i]
-                    postingList.sort(key=lambda x: x[0]) # sort based on cid
+                    # should already be sorted:
+                    #postingList.sort(key=lambda x: x[0]) # sort based on cid
                     #print("merging pointer", i)
 
                 idf = calcIdf(nAllDocuments, len(postingList))

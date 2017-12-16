@@ -19,7 +19,7 @@ class InvertedIndexWriter(object):
 
     def __shouldDeltaMerge(self):
         # check memory usage
-        if self.__dIndex.estimatedSize() > (50 * 1024*1024):
+        if self.__dIndex.estimatedSize() > (500 * 1024*1024):
             self.deltaMerge()
             self.__calls = -1
 
@@ -38,16 +38,16 @@ class InvertedIndexWriter(object):
             self.__dictionary[term] = pointer
 
         self.__dIndex.insert(
-            pointer, 
-            int(commentId), 
-            calcTf(nTerms, len(positions)), 
+            pointer,
+            int(commentId),
+            calcTf(nTerms, len(positions)),
             positions
         )
 
-        if self.__calls % (1000 * 50) == 0:
+        if self.__calls % (10000 * 500) == 0:
             self.__shouldDeltaMerge()
 
-        self.__calls = self.__calls + 1   
+        self.__calls = self.__calls + 1
 
 
     def terms(self):

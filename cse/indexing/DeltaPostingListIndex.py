@@ -34,7 +34,8 @@ class DeltaPostingListIndex(object):
         if pointer not in self.__postingLists:
             self.__postingLists[pointer] = []
         self.__postingLists[pointer].append((commentId, tf, positions))
-        self.__postingLists[pointer].sort()
+        # should already be sorted:
+        #self.__postingLists[pointer].sort()
         self.__numCommentIds = self.__numCommentIds + 1
 
 
