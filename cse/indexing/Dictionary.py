@@ -1,7 +1,7 @@
 import os
-import msgpack
 import errno
 
+from cse.util import PackerUtil
 
 class Dictionary(object):
     """
@@ -33,8 +33,7 @@ class Dictionary(object):
                   "call save() to save to disk!")
             self.__dictionary = {}
         else:
-            with open(self.__filename, 'rb') as file:
-                self.__dictionary = msgpack.unpack(file, encoding="UTF-8")
+            self.__dictionary = PackerUtil.unpackFromFile(self.__filename)
 
 
     def close(self):
@@ -42,8 +41,7 @@ class Dictionary(object):
 
 
     def save(self):
-        with open(self.__filename, 'wb') as file:
-            msgpack.pack(self.__dictionary, file, use_bin_type=True)
+        PackerUtil.packToFile(self.__dictionary, self.__filename)
 
 
     def retrieve(self, term):
