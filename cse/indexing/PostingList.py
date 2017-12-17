@@ -57,10 +57,12 @@ class StringCodec(PostingListBase):
     def merge(cls1, cls2):
         """
         Preserves idf of the first arguments posting list and appends the second
-        arguments posting list to the first one.
+        arguments posting list to the first one. Sorts the new list afterwards.
         """
         result = StringCodec(cls1._idf)
-        result._setPostingList(cls1._postingList + cls2._postingList)
+        postingList = cls1._postingList + cls2._postingList
+        postingList.sort(key=lambda x: x[0])
+        result._setPostingList(postingList)
         return result
 
 
