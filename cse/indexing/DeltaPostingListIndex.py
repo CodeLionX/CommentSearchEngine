@@ -33,7 +33,7 @@ class DeltaPostingListIndex(object):
 
     def insert(self, pointer, commentId, tf, positions):
         if pointer not in self.__postingLists:
-            self.__postingLists[pointer] = PostingList(0)
+            self.__postingLists[pointer] = PostingList()
         self.__postingLists[pointer].append(commentId, tf, positions)
         # should already be sorted:
         #self.__postingLists[pointer].sort()

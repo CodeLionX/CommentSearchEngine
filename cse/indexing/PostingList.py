@@ -2,31 +2,39 @@ import abc
 
 class PostingListBase(abc.ABC):
 
-    def __init__(self, idf):
-        self._idf = idf
+    def __init__(self):
+        self._idf = 0
         self._postingList = []
 
 
-    def _setPostingList(self, postingList):
+    def setPostingList(self, postingList):
         self._postingList = postingList
 
     def updateIdf(self, idf):
         self._idf = idf
-    
+
     def numberOfPostings(self):
         return len(self._postingList)
 
-    @abc.abstractmethod
     def append(self, cid, tf, positionList):
-        pass
+        self._postingList.append((cid, tf, positionList))
 
-    @abc.abstractmethod
     def merge(cls1, cls2):
-        pass
+        """
+        Preserves idf of the first arguments posting list and appends the second
+        arguments posting list to the first one. Sorts the new list afterwards.
+        """
+        result = PostingList()
+        result.updateIdf(cls1._idf)
+        postingList = cls1._postingList + cls2._postingList
+        postingList.sort(key=lambda x: x[0])
+        result.setPostingList(postingList)
+        return result
 
     @abc.abstractstaticmethod
     def decode(line):
         pass
+
 
 
 class StringCodec(PostingListBase):
@@ -37,8 +45,9 @@ class StringCodec(PostingListBase):
         # result:           (idf, [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])])
         # result type:      tuple[float, list[tuple[string, float, list[int]]]]
         plList = list(line.replace("\n", "").split(";"))
-        result = StringCodec(float(plList[0]))
-        result._setPostingList(list(
+        result = PostingList()
+        result.updateIdf(float(plList[0]))
+        result.setPostingList(list(
             map(
                 lambda l: (int(l[0]), float(l[1]), [int(pos) for pos in l[2].split(",")]),
                 map(
@@ -48,23 +57,6 @@ class StringCodec(PostingListBase):
             )
         ))
         return result
-
-
-    def append(self, cid, tf, positionList):
-        self._postingList.append((cid, tf, positionList))
-
-
-    def merge(cls1, cls2):
-        """
-        Preserves idf of the first arguments posting list and appends the second
-        arguments posting list to the first one. Sorts the new list afterwards.
-        """
-        result = StringCodec(cls1._idf)
-        postingList = cls1._postingList + cls2._postingList
-        postingList.sort(key=lambda x: x[0])
-        result._setPostingList(postingList)
-        return result
-
 
     def encode(cls):
         # idf:              idf
@@ -86,8 +78,8 @@ class StringCodec(PostingListBase):
 
 class DeltaCodec(PostingListBase):
 
-    def __init__(self, idf):
-        super().__init__(idf)
+    def __init__(self):
+        super().__init__()
         self.__baseCid = 0
 
     def append(self, cid, tf, positionList):
@@ -99,25 +91,44 @@ class DeltaCodec(PostingListBase):
         Preserves idf of the first arguments posting list and appends the second
         arguments posting list to the first one.
         """
-        result = StringCodec(cls1._idf)
+        result = PostingList()
         firstNewCid, newTf, newPositionList = cls2._postingList[0]
-        result._setPostingList(cls1._postingList + [(firstNewCid - cls1.__baseCid, newTf, newPositionList)] + cls2._postingList[1:])
+        result.updateIdf(cls1._idf)
+        result.setPostingList(cls1._postingList + [(firstNewCid - cls1.__baseCid, newTf, newPositionList)] + cls2._postingList[1:])
         return result
 
 
 
-class PostingList(DeltaCodec, StringCodec, PostingListBase):
+class PackedCodec(PostingListBase):
+
+    @staticmethod
+    def decode(line):
+        import msgpack
+        t = msgpack.unpackb(line)
+        result = PostingList()
+        result.updateIdf(t[0])
+        result.setPostingList(list(t[1]))
+        return result
+
+    def encode(cls):
+        import msgpack
+        return msgpack.packb((cls._idf, cls._postingList))
+
+
+
+class PostingList(DeltaCodec, PackedCodec, PostingListBase):
     pass
 
 
 
 if __name__ == "__main__":
-    p = PostingList(0.86)
+    p = PostingList()
+    p.updateIdf(0.86)
     p.append(112, 0.1, [1,2,3])
     p.append(113, 0.112, [1,5,9])
     p.append(115, 0.23, [1,3,19])
     p.append(116, 0.002, [9,18,22])
-    p2 = PostingList(0)
+    p2 = PostingList()
     p2.append(130, 0.001, [9])
     p2.append(131, 0.02, [4,7,9])
 
@@ -145,3 +156,12 @@ if __name__ == "__main__":
     plString2 = p3.encode()
     print("Encode/Decode/Encode P1:", plString2)
     assert(plString == plString2)
+
+    print("to StringCodec for output purposes:")
+    class OutputPL(StringCodec, PostingListBase):
+        pass
+    
+    test = OutputPL()
+    test.updateIdf(p3._idf)
+    test.setPostingList(p3._postingList)
+    print(test.encode())

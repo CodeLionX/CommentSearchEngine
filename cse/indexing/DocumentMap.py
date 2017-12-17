@@ -40,7 +40,7 @@ class DocumentMap(object):
     def get(self, cid):
         return self.__index[cid]
 
-    
+
     def getPointer(self, cid):
         return self.__index[cid][0]
 

@@ -1,4 +1,5 @@
 import os
+import errno
 
 from os import remove
 from tempfile import mkstemp
@@ -37,40 +38,8 @@ class MainPostingListIndex(object):
         if not os.path.exists(self.__postingListsFilename):
             print(self.__class__.__name__ + ":", "postinglist file not available...creating file")
             os.mknod(self.__postingListsFilename)
-        self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
-
-
-    def __decodePlLine(self, line):
-        # postingList line: <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
-        # result:           (idf, [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])])
-        # result type:      tuple[float, list[tuple[string, float, list[int]]]]
-        plList = list(line.replace("\n", "").split(";"))
-        return (float(plList[0]), list(
-            map(
-                lambda l: (int(l[0]), float(l[1]), [int(pos) for pos in l[2].split(",")]),
-                map(
-                    lambda s: s.split("|"),
-                    plList[1:]
-                )
-            )
-        ))
-
-
-    def __encodePlLine(self, idf, postingList):
-        # idf:              idf
-        # postingList:      [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
-        # postingList type: list[tuple[string, int, list[int]]]
-        # result:           <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
-        return ";".join([str(idf)] + [
-            str(termTuple[0])
-                + "|"
-                + str(termTuple[1])
-                + "|"
-                + ",".join(
-                    str(position) for position in termTuple[2]
-                )
-            for termTuple in postingList
-        ]) + "\n"
+        #self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
+        self.__postingLists = open(self.__postingListsFilename, 'rb')
 
 
     def close(self):
@@ -102,7 +71,8 @@ class MainPostingListIndex(object):
         fd, tempFilePath = mkstemp(text=True)
         visited = set()
 
-        with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
+        #with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
+        with open(tempFilePath, 'wb') as tempFile:
             for i, plLine in enumerate(self.__postingLists):
                 postingList = PostingList.decode(plLine)
                 if i in dIndex:
@@ -132,7 +102,8 @@ class MainPostingListIndex(object):
         del self.__postingLists
         remove(self.__postingListsFilename)
         move(tempFilePath, self.__postingListsFilename)
-        self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
+        #self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
+        self.__postingLists = open(self.__postingListsFilename, 'rb')
         print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__postingListsFilename) / 1024 / 1024, "mb")
 
 
