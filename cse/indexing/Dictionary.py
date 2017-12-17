@@ -1,7 +1,6 @@
 import os
-
-from cse.util import Util
-
+import msgpack
+import errno
 
 
 class Dictionary(object):
@@ -34,8 +33,8 @@ class Dictionary(object):
                   "call save() to save to disk!")
             self.__dictionary = {}
         else:
-            with open(self.__filename, 'r', newline='', encoding="utf-8") as file:
-                self.__dictionary = Util.fromJsonString(file.read())
+            with open(self.__filename, 'rb') as file:
+                self.__dictionary = msgpack.unpack(file, encoding="UTF-8")
 
 
     def close(self):
@@ -43,8 +42,8 @@ class Dictionary(object):
 
 
     def save(self):
-        with open(self.__filename, 'w', newline='', encoding="utf-8") as file:
-            file.write(Util.toJsonString(self.__dictionary))
+        with open(self.__filename, 'wb') as file:
+            msgpack.pack(self.__dictionary, file, use_bin_type=True)
 
 
     def retrieve(self, term):
@@ -85,3 +84,28 @@ class Dictionary(object):
 
     def __contains__(self, item):
         return self.__dictionary.__contains__(str(item))
+
+
+
+if __name__ == "__main__":
+    print("creating dictionary")
+    d = Dictionary(os.path.join("data", "test.dict"))
+    d.insert("a", 0)
+    d.insert("c", 1)
+    d.insert("b", 2)
+    d.close()
+    print("saved to disk")
+
+    # reopen dict
+    print("re-open dictionary file")
+    d2 = Dictionary(os.path.join("data", "test.dict"))
+    a = d2.retrieve("a")
+    print("a=", a)
+    assert(a == 0)
+    b = d2.retrieve("b")
+    print("b=", b)
+    assert(b == 2)
+    c = d2.retrieve("c")
+    print("c=", c)
+    assert(c == 1)
+    d2.close()
