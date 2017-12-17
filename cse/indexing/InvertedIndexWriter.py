@@ -8,18 +8,28 @@ from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex
 
 class InvertedIndexWriter(object):
 
+    MB = 1024*1024
+    # threshold for delta index to reside in memory
+    # if the memory consumption of the delta index itself gets higher than this threshold
+    # a delta merge is performend and the index will be written to disk
+    MEMORY_THRESHOLD = 500 * MB     # 500 MB
+    # entry size estimation for simple heursitic to determine memory consumption of the 
+    # delta index
+    POSTING_LIST_ENTRY_SIZE = 30    #  30 B
+
 
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__dIndex = DeltaPostingListIndex()
+        self.__dIndex = DeltaPostingListIndex(entrySize=InvertedIndexWriter.POSTING_LIST_ENTRY_SIZE)
         self.__mIndex = MainPostingListIndex(os.path.join(filepath, "postingLists.index"))
         self.__calls = 0
         self.__nDocuments = 0
 
 
     def __shouldDeltaMerge(self):
+        print("delta check:", self.__dIndex.estimatedSize())
         # check memory usage
-        if self.__dIndex.estimatedSize() > (50 * 1024*1024):
+        if self.__dIndex.estimatedSize() > InvertedIndexWriter.MEMORY_THRESHOLD:
             self.deltaMerge()
             self.__calls = -1
 
@@ -38,16 +48,16 @@ class InvertedIndexWriter(object):
             self.__dictionary[term] = pointer
 
         self.__dIndex.insert(
-            pointer, 
-            commentId, 
-            calcTf(nTerms, len(positions)), 
+            pointer,
+            int(commentId),
+            calcTf(nTerms, len(positions)),
             positions
         )
 
-        if self.__calls % (1000 * 50) == 0:
+        if self.__calls % (InvertedIndexWriter.MEMORY_THRESHOLD / 100) == 0:
             self.__shouldDeltaMerge()
 
-        self.__calls = self.__calls + 1   
+        self.__calls = self.__calls + 1
 
 
     def terms(self):
@@ -56,7 +66,7 @@ class InvertedIndexWriter(object):
 
     def deltaMerge(self):
         print("!! delta merge !!")
-        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / 1024 / 1024, "mb")
+        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / InvertedIndexWriter.MB, "mb")
         self.__mIndex.mergeInDeltaIndex(self.__dIndex, self.__nDocuments)
         self.__dIndex.clear()
 

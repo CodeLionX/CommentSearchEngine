@@ -17,5 +17,6 @@ class NltkTokenizer(object):
         tokens = filter(lambda word: word not in string.punctuation, tokens)
         # replace "n't" with "not"
         tokens = map(lambda word: word if word != "n't" else "not", tokens)
+        # filter out trailing - and single '
         tokens = [re.sub(r'^-|-$|\'', '', word) for word in tokens]
         return list(tokens)

@@ -43,14 +43,14 @@ class ArticleMappingReader(object):
     def __iter__(self):
         del self.__currentArticleData
         self.__articlesFile.seek(0)
-        self.__articlesReader.__iter__()
+        iter(self.__articlesReader)
         # skip csv header in iteration mode:
-        self.__articlesReader.__next__()
+        next(self.__articlesReader)
         return self
 
 
     def __next__(self):
-        self.__currentArticleData = self.__parseIterRow(self.__articlesReader.__next__())
+        self.__currentArticleData = self.__parseIterRow(next(self.__articlesReader))
         return self.__currentArticleData
 
 
@@ -64,6 +64,6 @@ class ArticleMappingReader(object):
 
 
 if __name__ == "__main__":
-    with ArticleMappingReader(os.path.join("data", "articleIds.csv")) as reader:
+    with ArticleMappingReader(os.path.join("data", "articleMapping.data")) as reader:
         for aid, url in reader:
             print(aid, url)

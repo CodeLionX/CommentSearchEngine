@@ -46,7 +46,7 @@ class MainPostingListIndex(object):
         plList = list(line.replace("\n", "").split(";"))
         return (float(plList[0]), list(
             map(
-                lambda l: (l[0], float(l[1]), [int(pos) for pos in l[2].split(",")]),
+                lambda l: (int(l[0]), float(l[1]), [int(pos) for pos in l[2].split(",")]),
                 map(
                     lambda s: s.split("|"),
                     plList[1:]
@@ -61,7 +61,7 @@ class MainPostingListIndex(object):
         # postingList type: list[tuple[string, int, list[int]]]
         # result:           <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
         return ";".join([str(idf)] + [
-            termTuple[0]
+            str(termTuple[0])
                 + "|"
                 + str(termTuple[1])
                 + "|"

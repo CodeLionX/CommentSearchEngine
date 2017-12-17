@@ -37,7 +37,7 @@ class SearchEngine():
         self.__prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
-            .useNltkStopwordList()
+            #.useNltkStopwordList()
             .usePorterStemmer()
             .addCustomStepToEnd(CustomPpStep())
             .build()

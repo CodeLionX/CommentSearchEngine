@@ -1,6 +1,5 @@
 import os
 
-from cse.helper.MultiFileMap import MultiFileMap
 from cse.indexing import InvertedIndexWriter
 from cse.indexing import DocumentMap
 from cse.reader import CommentReader
@@ -70,25 +69,34 @@ class FileIndexer(object):
         tokenPositionsDict = {}
         for token, position in tokenTuples:
             positionList = tokenPositionsDict.get(token, [])
-            positionList.append(position)
-            positionList.sort()
+            positionList.append(int(position))
             tokenPositionsDict[token] = positionList
 
         for token in tokenPositionsDict:
-            self.__index.insert(token, cid, tokens, tokenPositionsDict[token])
+            positionsList = tokenPositionsDict[token]
+            positionList.sort()
+            self.__index.insert(token, cid, tokens, positionList)
 
         return tokens
 
 
 
 if __name__ == "__main__":
+    import time
     from cse.lang import PreprocessorBuilder
+    from cse.SearchEngine import CustomPpStep
     prep = (
         PreprocessorBuilder()
         .useNltkTokenizer()
-        .useNltkStopwordList()
+        #.useNltkStopwordList()
         .usePorterStemmer()
-        #.addCustomStepToEnd(CustomPpStep())
+        .addCustomStepToEnd(CustomPpStep())
         .build()
     )
+
+    start = time.process_time()
     FileIndexer("data", prep).index()
+    end = time.process_time()
+
+    print("==========================================")
+    print("elapsed time:", end - start, "secs")

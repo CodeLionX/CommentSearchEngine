@@ -18,6 +18,7 @@ class AuthorMappingReader(object):
             next(reader) # skip header row
             for row in reader:
                 self.__authors[row[0]] = row[1]
+        print("Loaded author mapping into memory, authors:", len(self.__authors))
 
 
     def lookupAuthorname(self, id):
