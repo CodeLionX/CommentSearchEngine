@@ -45,7 +45,6 @@ class MainPostingListIndex(object):
     def retrieve(self, pointer, size):
         self.__postingLists.seek(pointer)
         readBytes = self.__postingLists.read(size)
-        print("reading", size, "bytes from startpointer", pointer)
         return PostingList.decode(readBytes)
 
 
@@ -58,7 +57,3 @@ class MainPostingListIndex(object):
         if value is None:
             raise KeyError
         return value
-
-
-    def __iter__(self):
-        return enumerate(self.__postingLists)

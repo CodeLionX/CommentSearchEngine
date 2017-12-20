@@ -12,25 +12,25 @@ idf is not calculated until a delta merge is performed (see MainPostingListIndex
 """
 class DeltaPostingListIndex(object):
 
-    __margin = 300
+    ESTIMATION_MARGIN = 300
 
 
-    def __init__(self, entrySize=42): # import sys; cid = "14d2c537-d2ed-4e36-bf3d-a26f62c02370"; assert(sys.getsizeof(cid) == 85)
+    def __init__(self, entrySize=42):
         self.__postingLists = {}
         self.__entrySize = entrySize
         self.__numCommentIds = 0
 
 
-    def retrieve(self, pointer):
-        if pointer not in self.__postingLists:
+    def retrieve(self, term):
+        if term not in self.__postingLists:
             return None
-        return self.__postingLists[pointer]
+        return self.__postingLists[term]
 
 
-    def insert(self, pointer, commentId, tf, positions):
-        if pointer not in self.__postingLists:
-            self.__postingLists[pointer] = PostingList()
-        self.__postingLists[pointer].append(commentId, tf, positions)
+    def insert(self, term, commentId, tf, positions):
+        if term not in self.__postingLists:
+            self.__postingLists[term] = PostingList()
+        self.__postingLists[term].append(commentId, tf, positions)
         # should already be sorted:
         #self.__postingLists[pointer].sort()
         self.__numCommentIds = self.__numCommentIds + 1
@@ -72,7 +72,7 @@ class DeltaPostingListIndex(object):
     def __sizeof__(self):
         return int(getsizeof(self.__postingLists)
                 + self.__entrySize * self.__numCommentIds
-                + self.__margin)
+                + DeltaPostingListIndex.ESTIMATION_MARGIN)
 
 
     def __len__(self):

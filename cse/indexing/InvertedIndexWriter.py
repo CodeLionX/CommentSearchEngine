@@ -4,7 +4,7 @@ from os import remove
 from tempfile import mkstemp
 from shutil import move
 
-from cse.WeightCalculation import calcTf
+from cse.WeightCalculation import (calcTf, calcIdf)
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
 from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex
@@ -17,7 +17,7 @@ class InvertedIndexWriter(object):
     # threshold for delta index to reside in memory
     # if the memory consumption of the delta index itself gets higher than this threshold
     # a delta merge is performend and the index will be written to disk
-    MEMORY_THRESHOLD = 500 * MB     # 500 MB
+    MEMORY_THRESHOLD = 50 * MB     # 500 MB
     # entry size estimation for simple heursitic to determine memory consumption of the 
     # delta index
     POSTING_LIST_ENTRY_SIZE = 30    #  30 B
@@ -26,13 +26,13 @@ class InvertedIndexWriter(object):
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
         self.__dIndex = DeltaPostingListIndex(entrySize=InvertedIndexWriter.POSTING_LIST_ENTRY_SIZE)
-        self.__mIndex = MainPostingListIndex(os.path.join(filepath, "postingLists.index"))
+        self.__mIndexFilepath = os.path.join(filepath, "postingLists.index")
         self.__calls = 0
         self.__nDocuments = 0
 
 
     def __shouldDeltaMerge(self):
-        print("delta check:", self.__dIndex.estimatedSize())
+        print("delta size check [Bytes]:", self.__dIndex.estimatedSize())
         # check memory usage
         if self.__dIndex.estimatedSize() > InvertedIndexWriter.MEMORY_THRESHOLD:
             self.deltaMerge()
@@ -42,24 +42,17 @@ class InvertedIndexWriter(object):
     def close(self):
         self.deltaMerge()
         self.__dictionary.close()
-        self.__mIndex.close()
 
 
     def insert(self, term, commentId, nTerms, positions):
-        if term in self.__dictionary:
-            pointer = self.__dictionary[term]
-        else:
-            pointer = self.__dictionary.nextFreeLinePointer()
-            self.__dictionary[term] = pointer
-
         self.__dIndex.insert(
-            pointer,
+            term,
             int(commentId),
             calcTf(nTerms, len(positions)),
             positions
         )
 
-        if self.__calls % (InvertedIndexWriter.MEMORY_THRESHOLD / 100) == 0:
+        if self.__calls % int(InvertedIndexWriter.MEMORY_THRESHOLD / 250) == 0:
             self.__shouldDeltaMerge()
 
         self.__calls = self.__calls + 1
@@ -70,50 +63,55 @@ class InvertedIndexWriter(object):
 
 
     def deltaMerge(self):
-        print("!! delta merge !!")
-        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / InvertedIndexWriter.MB, "mb")
-
+        # quit method early if no values are in delta
         if not self.__dIndex:
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
 
-        fd, tempFilePath = mkstemp(text=True)
+        # needed values
+        mIndex = MainPostingListIndex(self.__mIndexFilepath)
+        fh, tempFilePath = mkstemp(text=True)
         visited = set()
+        merged, added = 0, 0
 
-        #with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
+        print("!! delta merge !!")
+        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / InvertedIndexWriter.MB, "mb")
+
+
         with open(tempFilePath, 'wb') as tempFile:
-            for i, plLine in enumerate(self.__postingLists):
-                postingList = PostingList.decode(plLine)
-                if i in self.__dIndex:
-                    postingList = postingList.merge(self.__dIndex[i])
-                    #print("merging pointer", i)
+            for term in sorted(self.__dictionary):
+                pointer, size = self.__dictionary[term]
+                postingList = mIndex.retrieve(pointer, size)
+
+                if term in self.__dIndex:
+                    postingList = postingList.merge(self.__dIndex[term])
 
                 postingList.updateIdf(calcIdf(self.__nDocuments, postingList.numberOfPostings()))
-                tempFile.write(PostingList.encode(postingList))
-                visited.add(i)
+                seekPosition = tempFile.tell()
+                bytesWritten = tempFile.write(PostingList.encode(postingList))
+                visited.add(term)
+                self.__dictionary.insert(term, seekPosition, bytesWritten)
 
-            for pointer in sorted(self.__dIndex):
-                if pointer not in visited:
-                    postingList = self.__dIndex[pointer]
+            added = len(set(self.__dIndex.lines()) - visited)
+            merged = len(set(self.__dIndex.lines())) - added
+            print(self.__class__.__name__ + ":", "merged", merged, "posting lists")
+
+            for term in sorted(self.__dIndex):
+                if term not in visited:
+                    postingList = self.__dIndex[term]
                     postingList.updateIdf(calcIdf(self.__nDocuments, postingList.numberOfPostings()))
-                    tempFile.write(PostingList.encode(postingList))
-                    #print("adding pointer", pointer)
+                    seekPosition = tempFile.tell()
+                    bytesWritten = tempFile.write(PostingList.encode(postingList))
+                    self.__dictionary.insert(term, seekPosition, bytesWritten)
 
-        tempFile.close()
-        os.close(fd)
+        os.close(fh)
+        mIndex.close()
 
-        added = len(set(self.__dIndex.lines()) - visited)
-        merged = len(set(self.__dIndex.lines())) - added
-        print(self.__class__.__name__ + ":", "merged", merged, "posting lists")
         print(self.__class__.__name__ + ":", "added", added, "new posting lists")
 
-        self.__postingLists.close()
-        del self.__postingLists
-        remove(self.__postingListsFilename)
-        move(tempFilePath, self.__postingListsFilename)
-        #self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
-        self.__postingLists = open(self.__postingListsFilename, 'rb')
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__postingListsFilename) / 1024 / 1024, "mb")
+        remove(self.__mIndexFilepath)
+        move(tempFilePath, self.__mIndexFilepath)
+        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / InvertedIndexWriter.MB, "mb")
 
         self.__dIndex.clear()
 

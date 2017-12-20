@@ -6,7 +6,7 @@ from cse.util import PackerUtil
 class Dictionary(object):
     """
     Dictionary (in memory)
-    Structure: Term -> Postinglist Line Number (referred to as pointer)
+    Structure: Term -> (Seek pointer, PostingList Size in Bytes)
     """
 
     __filename = ""
@@ -17,7 +17,6 @@ class Dictionary(object):
     def __init__(self, filename):
         self.__filename = filename
         self.__open()
-        self.__nextPointerCache = max(self.__dictionary.values(), default=-1) + 1
 
 
     def __open(self):
@@ -47,17 +46,11 @@ class Dictionary(object):
     def retrieve(self, term):
         if str(term) not in self.__dictionary:
             return None
-        return int(self.__dictionary[term])
+        return self.__dictionary[str(term)]
 
 
-    def insert(self, term, pointer):
-        self.__dictionary[str(term)] = int(pointer)
-
-
-    def nextFreeLinePointer(self):
-        nextPointer = self.__nextPointerCache
-        self.__nextPointerCache = self.__nextPointerCache + 1
-        return nextPointer
+    def insert(self, term, pointer, size):
+        self.__dictionary[str(term)] = (int(pointer), int(size))
 
 
     def __len__(self):
@@ -72,7 +65,7 @@ class Dictionary(object):
 
 
     def __setitem__(self, key, value):
-        self.insert(key, value)
+        self.insert(key, value[0], value[1])
 
 
     def iterkeys(self): self.__iter__()
@@ -88,22 +81,26 @@ class Dictionary(object):
 if __name__ == "__main__":
     print("creating dictionary")
     d = Dictionary(os.path.join("data", "test.dict"))
-    d.insert("a", 0)
-    d.insert("c", 1)
-    d.insert("b", 2)
+    d.insert("a", 0, 1)
+    d.insert("c", 1, 1)
+    d.insert("b", 2, 4)
     d.close()
     print("saved to disk")
 
     # reopen dict
     print("re-open dictionary file")
     d2 = Dictionary(os.path.join("data", "test.dict"))
-    a = d2.retrieve("a")
+    a, _ = d2.retrieve("a")
     print("a=", a)
-    assert(a == 0)
-    b = d2.retrieve("b")
-    print("b=", b)
-    assert(b == 2)
-    c = d2.retrieve("c")
+    assert  a == 0
+    b, bS = d2.retrieve("b")
+    print("b=", b, "size b=", bS)
+    assert  b == 2
+    assert bS == 4
+    c, _ = d2.retrieve("c")
     print("c=", c)
-    assert(c == 1)
+    assert  c == 1
     d2.close()
+
+    # cleanup
+    os.remove(os.path.join("data", "test.dict"))
