@@ -74,7 +74,8 @@ class FileIndexer(object):
 
         for token in tokenPositionsDict:
             positionsList = tokenPositionsDict[token]
-            positionsList.sort()
+            # already sorted:
+            #positionsList.sort()
             self.__index.insert(token, cid, tokens, positionsList)
 
         return tokens

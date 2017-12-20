@@ -61,7 +61,7 @@ class StringCodec(PostingListBase):
     def encode(cls):
         # idf:              idf
         # postingList:      [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
-        # postingList type: list[tuple[string, int, list[int]]]
+        # postingList type: list[tuple[int, float, list[int]]]
         # result:           <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
         return ";".join([str(cls._idf)] + [
             str(termTuple[0])
@@ -86,15 +86,15 @@ class DeltaCodec(PostingListBase):
         self._postingList.append((cid - self.__baseCid, tf, positionList))
         self.__baseCid = cid
 
-    def merge(cls1, cls2):
+    def merge(main, delta):
         """
         Preserves idf of the first arguments posting list and appends the second
         arguments posting list to the first one.
         """
         result = PostingList()
-        firstNewCid, newTf, newPositionList = cls2._postingList[0]
-        result.updateIdf(cls1._idf)
-        result.setPostingList(cls1._postingList + [(firstNewCid - cls1.__baseCid, newTf, newPositionList)] + cls2._postingList[1:])
+        firstNewCid, newTf, newPositionList = delta._postingList[0]
+        result.updateIdf(main._idf)
+        result.setPostingList(main._postingList + [(firstNewCid - main.__baseCid, newTf, newPositionList)] + delta._postingList[1:])
         return result
 
 
