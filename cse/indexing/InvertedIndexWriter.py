@@ -4,7 +4,7 @@ from os import remove
 from tempfile import mkstemp
 from shutil import move
 
-from cse.WeightCalculation import (calcTf, calcIdf)
+from cse.WeightCalculation import calcTf
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
 from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex
@@ -18,7 +18,7 @@ class InvertedIndexWriter(object):
     # if the memory consumption of the delta index itself gets higher than this threshold
     # a delta merge is performend and the index will be written to disk
     MEMORY_THRESHOLD = 50 * MB     # 500 MB
-    # entry size estimation for simple heursitic to determine memory consumption of the 
+    # entry size estimation for simple heursitic to determine memory consumption of the
     # delta index
     POSTING_LIST_ENTRY_SIZE = 30    #  30 B
 
@@ -68,17 +68,25 @@ class InvertedIndexWriter(object):
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
 
-        # needed values
+        # init values
         mIndex = MainPostingListIndex(self.__mIndexFilepath)
         fh, tempFilePath = mkstemp(text=True)
         visited = set()
         merged, added = 0, 0
 
+        # helper func
+        def updateIdfAndWritePostingList(tempFile, postingList):
+            postingList.updateIdf(self.__nDocuments)
+            seekPosition = tempFile.tell()
+            bytesWritten = tempFile.write(PostingList.encode(postingList))
+            return seekPosition, bytesWritten
+
+        # beginning of merge
         print("!! delta merge !!")
         print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / InvertedIndexWriter.MB, "mb")
 
-
         with open(tempFilePath, 'wb') as tempFile:
+            # merge step 1: for each term in main update postingList (add delta and recalc idf)
             for term in sorted(self.__dictionary):
                 pointer, size = self.__dictionary[term]
                 postingList = mIndex.retrieve(pointer, size)
@@ -86,34 +94,30 @@ class InvertedIndexWriter(object):
                 if term in self.__dIndex:
                     postingList = postingList.merge(self.__dIndex[term])
 
-                postingList.updateIdf(calcIdf(self.__nDocuments, postingList.numberOfPostings()))
-                seekPosition = tempFile.tell()
-                bytesWritten = tempFile.write(PostingList.encode(postingList))
-                visited.add(term)
+                seekPosition, bytesWritten = updateIdfAndWritePostingList(tempFile, postingList)
                 self.__dictionary.insert(term, seekPosition, bytesWritten)
+                visited.add(term)
 
             added = len(set(self.__dIndex.lines()) - visited)
             merged = len(set(self.__dIndex.lines())) - added
             print(self.__class__.__name__ + ":", "merged", merged, "posting lists")
 
+            # merge step 2: for all remaining terms save postingLists in main
             for term in sorted(self.__dIndex):
                 if term not in visited:
                     postingList = self.__dIndex[term]
-                    postingList.updateIdf(calcIdf(self.__nDocuments, postingList.numberOfPostings()))
-                    seekPosition = tempFile.tell()
-                    bytesWritten = tempFile.write(PostingList.encode(postingList))
+                    seekPosition, bytesWritten = updateIdfAndWritePostingList(tempFile, postingList)
                     self.__dictionary.insert(term, seekPosition, bytesWritten)
 
+        # cleaning up
         os.close(fh)
         mIndex.close()
-
-        print(self.__class__.__name__ + ":", "added", added, "new posting lists")
-
         remove(self.__mIndexFilepath)
         move(tempFilePath, self.__mIndexFilepath)
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / InvertedIndexWriter.MB, "mb")
-
         self.__dIndex.clear()
+
+        print(self.__class__.__name__ + ":", "added", added, "new posting lists")
+        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / InvertedIndexWriter.MB, "mb")
 
 
     def incDocumentCounter(self):

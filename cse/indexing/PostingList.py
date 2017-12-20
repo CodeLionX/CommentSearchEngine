@@ -1,5 +1,7 @@
 import abc
 
+from cse.WeightCalculation import calcIdf
+
 class PostingListBase(abc.ABC):
 
     def __init__(self):
@@ -10,8 +12,8 @@ class PostingListBase(abc.ABC):
     def setPostingList(self, postingList):
         self._postingList = postingList
 
-    def updateIdf(self, idf):
-        self._idf = idf
+    def updateIdf(self, nDocuments):
+        self._idf = calcIdf(nDocuments, self.numberOfPostings())
 
     def numberOfPostings(self):
         return len(self._postingList)
@@ -25,10 +27,10 @@ class PostingListBase(abc.ABC):
         arguments posting list to the first one. Sorts the new list afterwards.
         """
         result = PostingList()
-        result.updateIdf(cls1._idf)
+        result._idf = cls1._idf
         postingList = cls1._postingList + cls2._postingList
         postingList.sort(key=lambda x: x[0])
-        result.setPostingList(postingList)
+        result._postingList = postingList
         return result
 
     @abc.abstractstaticmethod
@@ -46,8 +48,8 @@ class StringCodec(PostingListBase):
         # result type:      tuple[float, list[tuple[string, float, list[int]]]]
         plList = list(line.replace("\n", "").split(";"))
         result = PostingList()
-        result.updateIdf(float(plList[0]))
-        result.setPostingList(list(
+        result._idf = float(plList[0])
+        result._postingList = list(
             map(
                 lambda l: (int(l[0]), float(l[1]), [int(pos) for pos in l[2].split(",")]),
                 map(
@@ -55,7 +57,7 @@ class StringCodec(PostingListBase):
                     plList[1:]
                 )
             )
-        ))
+        )
         return result
 
     def encode(cls):
@@ -93,8 +95,8 @@ class DeltaCodec(PostingListBase):
         """
         result = PostingList()
         firstNewCid, newTf, newPositionList = delta._postingList[0]
-        result.updateIdf(main._idf)
-        result.setPostingList(main._postingList + [(firstNewCid - main.__baseCid, newTf, newPositionList)] + delta._postingList[1:])
+        result._idf = main._idf
+        result._postingList = main._postingList + [(firstNewCid - main.__baseCid, newTf, newPositionList)] + delta._postingList[1:]
         return result
 
 
@@ -106,8 +108,8 @@ class PackedCodec(PostingListBase):
         import msgpack
         t = msgpack.unpackb(line)
         result = PostingList()
-        result.updateIdf(t[0])
-        result.setPostingList(list(t[1]))
+        result._idf = t[0]
+        result._postingList = list(t[1])
         return result
 
     def encode(cls):
