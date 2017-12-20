@@ -1,6 +1,8 @@
 import abc
+import msgpack
 
 from cse.WeightCalculation import calcIdf
+
 
 class PostingListBase(abc.ABC):
 
@@ -8,12 +10,14 @@ class PostingListBase(abc.ABC):
         self._idf = 0
         self._postingList = []
 
-
     def setPostingList(self, postingList):
         self._postingList = postingList
 
     def updateIdf(self, nDocuments):
-        self._idf = calcIdf(nDocuments, self.numberOfPostings())
+        try:
+            self._idf = calcIdf(nDocuments, self.numberOfPostings())
+        except ZeroDivisionError:
+            self._idf = 0
 
     def numberOfPostings(self):
         return len(self._postingList)
@@ -33,13 +37,38 @@ class PostingListBase(abc.ABC):
         result._postingList = postingList
         return result
 
+    @abc.abstractmethod
+    def encode(cls):
+        pass
+
     @abc.abstractstaticmethod
     def decode(line):
         pass
 
 
+class PostingListStringBase(PostingListBase):
+    """
+    ** OBSOLETE **
 
-class StringCodec(PostingListBase):
+    Old interface for writing the posting lists encoded as strings (with separator chars) to disk.
+    This is not supported anymore!
+    """
+
+    def encode(cls):
+        # idf:              idf
+        # postingList:      [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
+        # postingList type: list[tuple[int, float, list[int]]]
+        # result:           <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
+        return ";".join([str(cls._idf)] + [
+            str(termTuple[0])
+                + "|"
+                + str(termTuple[1])
+                + "|"
+                + ",".join(
+                    str(position) for position in termTuple[2]
+                )
+            for termTuple in cls._postingList
+        ]) + "\n"
 
     @staticmethod
     def decode(line):
@@ -60,25 +89,22 @@ class StringCodec(PostingListBase):
         )
         return result
 
+
+class PostingListBinaryBase(PostingListBase):
+
     def encode(cls):
-        # idf:              idf
-        # postingList:      [(cid1, tf1, [pos1, pos2, pos3]), (cid2, tf2, [pos1, pos2])]
-        # postingList type: list[tuple[int, float, list[int]]]
-        # result:           <idf>;<cid1>|<tf1>|<pos1>,<pos2>,<pos3>;<cid2>|<tf2>|<pos1>,<pos2>\n
-        return ";".join([str(cls._idf)] + [
-            str(termTuple[0])
-                + "|"
-                + str(termTuple[1])
-                + "|"
-                + ",".join(
-                    str(position) for position in termTuple[2]
-                )
-            for termTuple in cls._postingList
-        ]) + "\n"
+        return msgpack.packb((cls._idf, cls._postingList))
+
+    @staticmethod
+    def decode(line):
+        t = msgpack.unpackb(line)
+        result = PostingList()
+        result._idf = t[0]
+        result._postingList = list(t[1])
+        return result
 
 
-
-class DeltaCodec(PostingListBase):
+class CidDeltaCodec(PostingListBase):
 
     def __init__(self):
         super().__init__()
@@ -101,38 +127,22 @@ class DeltaCodec(PostingListBase):
 
 
 
-class PackedCodec(PostingListBase):
-
-    @staticmethod
-    def decode(line):
-        import msgpack
-        t = msgpack.unpackb(line)
-        result = PostingList()
-        result._idf = t[0]
-        result._postingList = list(t[1])
-        return result
-
-    def encode(cls):
-        import msgpack
-        return msgpack.packb((cls._idf, cls._postingList))
-
-
-
-class PostingList(DeltaCodec, PackedCodec, PostingListBase):
+class PostingList(CidDeltaCodec, PostingListBinaryBase):
     pass
 
 
 
 if __name__ == "__main__":
     p = PostingList()
-    p.updateIdf(0.86)
     p.append(112, 0.1, [1,2,3])
     p.append(113, 0.112, [1,5,9])
     p.append(115, 0.23, [1,3,19])
     p.append(116, 0.002, [9,18,22])
+    p.updateIdf(6)
     p2 = PostingList()
     p2.append(130, 0.001, [9])
     p2.append(131, 0.02, [4,7,9])
+    p2.updateIdf(6)
 
     pl1 = p.encode()
     pl2 = p2.encode()
@@ -159,11 +169,8 @@ if __name__ == "__main__":
     print("Encode/Decode/Encode P1:", plString2)
     assert(plString == plString2)
 
-    print("to StringCodec for output purposes:")
-    class OutputPL(StringCodec, PostingListBase):
-        pass
-    
-    test = OutputPL()
-    test.updateIdf(p3._idf)
-    test.setPostingList(p3._postingList)
+    print("to StringCodec for output purposes:")    
+    test = PostingListStringBase()
+    test._idf = p3._idf
+    test._postingList = p3._postingList
     print(test.encode())
