@@ -1,10 +1,6 @@
 import os
 import errno
 
-from os import remove
-from tempfile import mkstemp
-from shutil import move
-
 from cse.WeightCalculation import calcIdf
 from cse.indexing.PostingList import PostingList
 
@@ -43,72 +39,22 @@ class MainPostingListIndex(object):
 
 
     def close(self):
-        self.save()
-
-
-    def save(self):
         self.__postingLists.close()
 
 
-    def retrieve(self, pointer):
-        self.__postingLists.seek(0)
-        for i, plLine in enumerate(self.__postingLists):
-            if i == pointer:
-                return PostingList.decode(plLine)
-        return None
+    def retrieve(self, pointer, size):
+        self.__postingLists.seek(pointer)
+        readBytes = self.__postingLists.read(size)
+        print("reading", size, "bytes from startpointer", pointer)
+        return PostingList.decode(readBytes)
 
 
-    def estimatedSize(self):
-        return self.__sizeof__()
-
-
-    def mergeInDeltaIndex(self, dIndex, nAllDocuments):
-        if not dIndex:
-            print(self.__class__.__name__ + ":", "no delta merge needed")
-            return
-
-        self.__postingLists.seek(0)
-        fd, tempFilePath = mkstemp(text=True)
-        visited = set()
-
-        #with open(tempFilePath, 'w', newline='', encoding="utf-8") as tempFile:
-        with open(tempFilePath, 'wb') as tempFile:
-            for i, plLine in enumerate(self.__postingLists):
-                postingList = PostingList.decode(plLine)
-                if i in dIndex:
-                    postingList = postingList.merge(dIndex[i])
-                    #print("merging pointer", i)
-
-                postingList.updateIdf(calcIdf(nAllDocuments, postingList.numberOfPostings()))
-                tempFile.write(PostingList.encode(postingList))
-                visited.add(i)
-
-            for pointer in sorted(dIndex):
-                if pointer not in visited:
-                    postingList = dIndex[pointer]
-                    postingList.updateIdf(calcIdf(nAllDocuments, postingList.numberOfPostings()))
-                    tempFile.write(PostingList.encode(postingList))
-                    #print("adding pointer", pointer)
-
-        tempFile.close()
-        os.close(fd)
-
-        added = len(set(dIndex.lines()) - visited)
-        merged = len(set(dIndex.lines())) - added
-        print(self.__class__.__name__ + ":", "merged", merged, "posting lists")
-        print(self.__class__.__name__ + ":", "added", added, "new posting lists")
-
-        self.__postingLists.close()
-        del self.__postingLists
-        remove(self.__postingListsFilename)
-        move(tempFilePath, self.__postingListsFilename)
-        #self.__postingLists = open(self.__postingListsFilename, 'r', newline='', encoding="utf-8")
-        self.__postingLists = open(self.__postingListsFilename, 'rb')
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__postingListsFilename) / 1024 / 1024, "mb")
+    def sizeOnDisk(self):
+        return os.path.getsize(self.__postingListsFilename)
 
 
     def __getitem__(self, key):
-        value = self.retrieve(key)
+        value = self.retrieve(key[0], key[1])
         if value is None:
             raise KeyError
         return value
