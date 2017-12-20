@@ -13,18 +13,28 @@ from cse.indexing.PostingList import PostingList
 
 class InvertedIndexWriter(object):
 
+    MB = 1024*1024
+    # threshold for delta index to reside in memory
+    # if the memory consumption of the delta index itself gets higher than this threshold
+    # a delta merge is performend and the index will be written to disk
+    MEMORY_THRESHOLD = 500 * MB     # 500 MB
+    # entry size estimation for simple heursitic to determine memory consumption of the 
+    # delta index
+    POSTING_LIST_ENTRY_SIZE = 30    #  30 B
+
 
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__dIndex = DeltaPostingListIndex()
+        self.__dIndex = DeltaPostingListIndex(entrySize=InvertedIndexWriter.POSTING_LIST_ENTRY_SIZE)
         self.__mIndex = MainPostingListIndex(os.path.join(filepath, "postingLists.index"))
         self.__calls = 0
         self.__nDocuments = 0
 
 
     def __shouldDeltaMerge(self):
+        print("delta check:", self.__dIndex.estimatedSize())
         # check memory usage
-        if self.__dIndex.estimatedSize() > (500 * 1024*1024):
+        if self.__dIndex.estimatedSize() > InvertedIndexWriter.MEMORY_THRESHOLD:
             self.deltaMerge()
             self.__calls = -1
 
@@ -49,7 +59,7 @@ class InvertedIndexWriter(object):
             positions
         )
 
-        if self.__calls % (10000 * 500) == 0:
+        if self.__calls % (InvertedIndexWriter.MEMORY_THRESHOLD / 100) == 0:
             self.__shouldDeltaMerge()
 
         self.__calls = self.__calls + 1
@@ -61,7 +71,7 @@ class InvertedIndexWriter(object):
 
     def deltaMerge(self):
         print("!! delta merge !!")
-        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / 1024 / 1024, "mb")
+        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / InvertedIndexWriter.MB, "mb")
 
         if not self.__dIndex:
             print(self.__class__.__name__ + ":", "no delta merge needed")
