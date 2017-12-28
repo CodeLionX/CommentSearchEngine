@@ -38,15 +38,30 @@ class SearchEngine():
         self.__boolQueryPattern = re.compile('^([\w\d*]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*]+)+$', re.M)
         self.__prefixQueryPattern = re.compile('^[^\S\x0a\x0d]*([\w\d]*\*)[^\S\x0a\x0d]*$', re.I | re.M)
         self.__phraseQueryPattern = re.compile('^[^\S\x0a\x0d]*(\'[\w\d]+([^\S\x0a\x0d]*[\w\d]*)*\')[^\S\x0a\x0d]*$', re.I | re.M)
+        self.__index = self.__loadIndex()
+        self.__documentMap = DocumentMap(
+            os.path.join("data", "documentMap.index")
+        ).open()
+        self.__commentReader = CommentReader(
+            os.path.join("data", "comments.data"),
+            os.path.join("data", "articleMapping.data"),
+            os.path.join("data", "authorMapping.data")
+        ).open()
 
 
-    def loadIndex(self):
+    def __loadIndex(self):
         return InvertedIndexReader(self.__directory)
 
 
     def index(self):
         indexer = FileIndexer(self.__directory, self.__prep)
         indexer.index()
+
+
+    def close(self):
+        self.__index.close()
+        self.__documentMap.close()
+        self.__commentReader.close()
 
 
     def search(self, query, topK=10):
@@ -70,44 +85,43 @@ class SearchEngine():
 
 
         print("##### Query for >>>", query, "<<< returned", len(results), "comments")
-        return results
+        return self.__loadDocumentTextForCids(results)
 
 
     def __booleanSearch(self, query):
-        with self.loadIndex() as ii:
-            # operator precedence: NOT > AND > OR
-            p = BooleanQueryParser(query).get()
-            cidSets = []
+        # operator precedence: NOT > AND > OR
+        p = BooleanQueryParser(query).get()
+        cidSets = []
 
-            # filter out operators
-            # note: we only support one opperator kind per query at the moment!
-            op = None
-            if Operator.NOT in p:   op = Operator.NOT
-            elif Operator.OR in p:  op = Operator.OR
-            elif Operator.AND in p: op = Operator.AND
+        # filter out operators
+        # note: we only support one opperator kind per query at the moment!
+        op = None
+        if Operator.NOT in p:   op = Operator.NOT
+        elif Operator.OR in p:  op = Operator.OR
+        elif Operator.AND in p: op = Operator.AND
+        else:
+            print("No or wrong operator in query!!")
+            return []
+        terms = [term for term in p if term not in Operator]
+
+        # load document set per term
+        for term in terms:
+            cidTuples = []
+            if term.endswith("*"):
+                cidTuples = self.__prefixSearchTerm(term.replace("*", ""))
+
             else:
-                print("No or wrong operator in query!!")
-                return []
-            terms = [term for term in p if term not in Operator]
+                pTerm = self.__prep.processText(term)
+                if not pTerm or len(pTerm) > 1:
+                    print(
+                        self.__class__.__name__ + ":", "term", term,
+                        "is invalid! Please use only one word for boolean queries."
+                    )
+                    return []
+                cidTuples = self.__index.postingList(pTerm[0][0])
 
-            # load document set per term
-            for term in terms:
-                cidTuples = []
-                if term.endswith("*"):
-                    cidTuples = self.__prefixSearchTerm(ii, term.replace("*", ""))
-
-                else:
-                    pTerm = self.__prep.processText(term)
-                    if not pTerm or len(pTerm) > 1:
-                        print(
-                            self.__class__.__name__ + ":", "term", term,
-                            "is invalid! Please use only one word for boolean queries."
-                        )
-                        return []
-                    cidTuples = ii.postingList(pTerm[0][0])
-
-                if cidTuples:
-                    cidSets.append(set( (cid for cid, _ in cidTuples) ))
+            if cidTuples:
+                cidSets.append(set( (cid for cid, _ in cidTuples) ))
 
         if not cidSets:
             return []
@@ -116,7 +130,7 @@ class SearchEngine():
         cidSets.remove(firstCids)
         cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)
 
-        return self.__loadDocumentTextForCids(cids)
+        return cids
 
 
     def __phraseSearch(self, query, topK):
@@ -126,37 +140,36 @@ class SearchEngine():
         idfs = {}
         ranker = Ranker(topK)
 
-        with self.loadIndex() as ii:
-            # determine documents with ordered consecutive query terms
-            first = True
-            cidPosTuples = {}
-            for term in queryTerms:
-                postingListEntry = ii.retrieve(term)
+        # determine documents with ordered consecutive query terms
+        first = True
+        cidPosTuples = {}
+        for term in queryTerms:
+            postingListEntry = self.__index.retrieve(term)
 
-                if postingListEntry.idf():
-                    idfs[term] = postingListEntry.idf()
+            if postingListEntry.idf():
+                idfs[term] = postingListEntry.idf()
 
-                if not postingListEntry.postingList():
-                    cidPosTuples = {}
-                    return []
-                elif first:
-                    for cid, tf, posList in postingListEntry.postingList():
-                        cidPosTuples[cid] = posList
-                        ranker.documentTerm(cid, term, tf, postingListEntry.idf())
-                    first = False
-                else:
-                    newCidPosTuples = {}
-                    for cid, tf, posList in postingListEntry.postingList():
-                        newCidPosTuples[cid] = posList
-                        ranker.documentTerm(cid, term, tf, postingListEntry.idf())
-                    cidPosTuples = self.__documentsWithConsecutiveTerms(cidPosTuples, newCidPosTuples)
+            if not postingListEntry.postingList():
+                cidPosTuples = {}
+                return []
+            elif first:
+                for cid, tf, posList in postingListEntry.postingList():
+                    cidPosTuples[cid] = posList
+                    ranker.documentTerm(cid, term, tf, postingListEntry.idf())
+                first = False
+            else:
+                newCidPosTuples = {}
+                for cid, tf, posList in postingListEntry.postingList():
+                    newCidPosTuples[cid] = posList
+                    ranker.documentTerm(cid, term, tf, postingListEntry.idf())
+                cidPosTuples = self.__documentsWithConsecutiveTerms(cidPosTuples, newCidPosTuples)
                     
         
         ranker.queryTerms(queryTerms, idfs)
         ranker.filterDocumentTermWeightsBy(lambda cid: cid in cidPosTuples)
         rankedCids = ranker.rank()
 
-        return self.__loadDocumentTextForCids(set([cid for _, _, cid in rankedCids]))
+        return set([cid for _, _, cid in rankedCids])
 
 
     def __keywordSearch(self, query, topK):
@@ -165,21 +178,20 @@ class SearchEngine():
         # use ranking:
         ranker = Ranker(topK)
 
-        with self.loadIndex() as ii:
-            queryTermTuples = self.__prep.processText(query)
-            queryTerms = [term for term, _ in queryTermTuples]
+        queryTermTuples = self.__prep.processText(query)
+        queryTerms = [term for term, _ in queryTermTuples]
 
-            allCidTuples = []
-            for term in queryTerms:
-                postingListEntry = ii.retrieve(term)
+        allCidTuples = []
+        for term in queryTerms:
+            postingListEntry = self.__index.retrieve(term)
 
-                if postingListEntry.idf():
-                    idfs[term] = postingListEntry.idf()
+            if postingListEntry.idf():
+                idfs[term] = postingListEntry.idf()
 
-                if postingListEntry.postingList():
-                    for cid, tf, _ in postingListEntry.postingList():
-                        ranker.documentTerm(cid, term, tf, postingListEntry.idf())
-                    allCidTuples = allCidTuples + postingListEntry.postingList()
+            if postingListEntry.postingList():
+                for cid, tf, _ in postingListEntry.postingList():
+                    ranker.documentTerm(cid, term, tf, postingListEntry.idf())
+                allCidTuples = allCidTuples + postingListEntry.postingList()
 
         # calculate query term weights
         ranker.queryTerms(queryTerms, idfs)
@@ -187,17 +199,17 @@ class SearchEngine():
 
         #for r, s, c in rankedCids:
         #    print(r, s, c)
-        return self.__loadDocumentTextForCids(set([cid for _, _, cid in rankedCids]))
+        return set([cid for _, _, cid in rankedCids])
 
 
-    def __prefixSearchTerm(self, index, term):
+    def __prefixSearchTerm(self, term):
         # get prefix matching terms
-        matchedTerms = [token for token in index.terms() if token.startswith(term)]
+        matchedTerms = [token for token in self.__index.terms() if token.startswith(term)]
 
         # load posting list
         cidTuples = {}
         for term in matchedTerms:
-            for cid, posList in index.postingList(term):
+            for cid, _, posList in self.__index.postingList(term):
                 # there should be NO possibility that we have two terms in one document at the same position
                 # so this operation can be done on simple lists without checking duplicates
                 positions = cidTuples.get(cid, [])
@@ -217,18 +229,16 @@ class SearchEngine():
             return results
 
         # get document pointers
-        with DocumentMap(os.path.join("data", "documentMap.index")).open() as documentMap:
-            for cid in cids:
-                try:
-                    commentPointers.add(documentMap.getPointer(cid))
-                except KeyError:
-                    print(self.__class__.__name__ + ":", "comment", cid, "not found!")
+        for cid in cids:
+            try:
+                commentPointers.add(self.__documentMap.getPointer(cid))
+            except KeyError:
+                print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
         # load document text
-        with CommentReader(os.path.join("data", "comments.data"),os.path.join("data", "articleMapping.data"),os.path.join("data", "authorMapping.data")).open() as cr:
-            for pointer, rowData in enumerate(cr):
-                if pointer in commentPointers:
-                    results[pointer] = rowData["comment_text"]
+        for pointer, rowData in enumerate(self.__commentReader):
+            if pointer in commentPointers:
+                results[pointer] = rowData["comment_text"]
 
         return list(map(results.get, commentPointers))
 
@@ -328,3 +338,4 @@ if __name__ == '__main__':
     #se.printAssignment3QueryResults()
     #se.printTestQueryResults()
     se.printAssignment4QueryResults()
+    se.close()
