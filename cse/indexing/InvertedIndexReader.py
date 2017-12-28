@@ -2,14 +2,10 @@ import os
 
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
+from cse.indexing.PostingList import PostingList
 
 
 class InvertedIndexReader(object):
-
-
-    __dictionary = None
-    __dIndex = None
-    __mIndex = None
 
 
     def __init__(self, filepath):
@@ -24,51 +20,38 @@ class InvertedIndexReader(object):
 
     def retrieve(self, term):
         if term in self.__dictionary:
-            pointer = self.__dictionary[term]
-            return self.__mIndex[pointer]
+            pointer, size = self.__dictionary[term]
+            return self.__mIndex[(pointer, size)]
         else:
-            return (None, None)
+            return PostingList()
 
 
     def postingList(self, term):
-        if term in self.__dictionary:
-            pointer = self.__dictionary[term]
-            return [(cid, posList) for cid, _, posList in self.__mIndex[pointer][1]]
-        else:
-            return None
+        return self.retrieve(term).postingList()
 
 
     def tf(self, term, commentId):
-        if term not in self.__dictionary:
-            return 0
-
-        pointer = self.__dictionary[term]
-        _, pl = self.__mIndex[pointer]
-        for cid, tf, _ in pl:
-            if cid == commentId:
-                return tf
+        if term in self.__dictionary:
+            postingList = self.retrieve(term)
+            for cid, tf, _ in postingList.postingList():
+                if cid == commentId:
+                    return tf
 
         return 0
 
 
     def idf(self, term):
-        if term not in self.__dictionary:
-            return 0
-
-        pointer = self.__dictionary[term]
-        idf, _ = self.__mIndex[pointer]
-        return idf
+        return self.retrieve(term).idf()
 
 
     def tfIdf(self, term, commentId):
         if term not in self.__dictionary:
-            return None
+            return (0, 0)
 
-        pointer = self.__dictionary.retrieve(term)
-        idf, pl = self.__mIndex[pointer]
-        for cid, tf, _ in pl:
+        postingList = self.retrieve(term)
+        for cid, tf, _ in postingList.postingList():
             if cid == commentId:
-                return (tf, idf)
+                return (tf, postingList.idf())
 
         return (0, idf)
 

@@ -24,13 +24,6 @@ class SearchEngine():
 
     see: http://whoosh.readthedocs.io/en/latest/stemming.html (stemming from whoosh in separate package: https://pypi.python.org/pypi/stemming/1.0)
     """
-    __prep = None
-    __boolQueryPattern = None
-    __prefixQueryPattern = None
-    __phraseQueryPattern = None
-
-    __directory = ""
-
 
     def __init__(self, directory):
         self.__directory = directory
@@ -82,7 +75,7 @@ class SearchEngine():
 
     def __booleanSearch(self, query):
         with self.loadIndex() as ii:
-            # operator precedence: STAR > NOT > AND > OR
+            # operator precedence: NOT > AND > OR
             p = BooleanQueryParser(query).get()
             cidSets = []
 
@@ -138,24 +131,24 @@ class SearchEngine():
             first = True
             cidPosTuples = {}
             for term in queryTerms:
-                idf, pl = ii.retrieve(term)
+                postingListEntry = ii.retrieve(term)
 
-                if idf:
-                    idfs[term] = idf
+                if postingListEntry.idf():
+                    idfs[term] = postingListEntry.idf()
 
-                if not pl:
+                if not postingListEntry.postingList():
                     cidPosTuples = {}
                     return []
                 elif first:
-                    for cid, tf, posList in pl:
+                    for cid, tf, posList in postingListEntry.postingList():
                         cidPosTuples[cid] = posList
-                        ranker.documentTerm(cid, term, tf, idf)
+                        ranker.documentTerm(cid, term, tf, postingListEntry.idf())
                     first = False
                 else:
                     newCidPosTuples = {}
-                    for cid, tf, posList in pl:
+                    for cid, tf, posList in postingListEntry.postingList():
                         newCidPosTuples[cid] = posList
-                        ranker.documentTerm(cid, term, tf, idf)
+                        ranker.documentTerm(cid, term, tf, postingListEntry.idf())
                     cidPosTuples = self.__documentsWithConsecutiveTerms(cidPosTuples, newCidPosTuples)
                     
         
@@ -178,15 +171,15 @@ class SearchEngine():
 
             allCidTuples = []
             for term in queryTerms:
-                idf, cidTuples = ii.retrieve(term)
+                postingListEntry = ii.retrieve(term)
 
-                if idf:
-                    idfs[term] = idf
+                if postingListEntry.idf():
+                    idfs[term] = postingListEntry.idf()
 
-                if cidTuples:
-                    for cid, tf, _ in cidTuples:
-                        ranker.documentTerm(cid, term, tf, idf)
-                    allCidTuples = allCidTuples + cidTuples
+                if postingListEntry.postingList():
+                    for cid, tf, _ in postingListEntry.postingList():
+                        ranker.documentTerm(cid, term, tf, postingListEntry.idf())
+                    allCidTuples = allCidTuples + postingListEntry.postingList()
 
         # calculate query term weights
         ranker.queryTerms(queryTerms, idfs)
@@ -302,10 +295,10 @@ class SearchEngine():
 
 
     def printAssignment4QueryResults(self):
-        #print(prettyPrint(self.search("christmas market", 5)))
-        #print(prettyPrint(self.search("catalonia independence", 5)))
+        print(prettyPrint(self.search("christmas market", 5)))
+        print(prettyPrint(self.search("catalonia independence", 5)))
         print(prettyPrint(self.search("'european union'")[:5]))
-        #print(prettyPrint(self.search("negotiate", 5)))
+        print(prettyPrint(self.search("negotiate", 5)))
 
 
 

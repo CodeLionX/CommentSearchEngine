@@ -12,15 +12,21 @@ class PostingListBase(abc.ABC):
 
     def setPostingList(self, postingList):
         self._postingList = postingList
+    
+    def postingList(self):
+        return self._postingList
+
+    def numberOfPostings(self):
+        return len(self._postingList)
 
     def updateIdf(self, nDocuments):
         try:
             self._idf = calcIdf(nDocuments, self.numberOfPostings())
         except ZeroDivisionError:
             self._idf = 0
-
-    def numberOfPostings(self):
-        return len(self._postingList)
+    
+    def idf(self):
+        return self._idf
 
     def append(self, cid, tf, positionList):
         self._postingList.append((cid, tf, positionList))
