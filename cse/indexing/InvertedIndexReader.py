@@ -53,7 +53,7 @@ class InvertedIndexReader(object):
             if cid == commentId:
                 return (tf, postingList.idf())
 
-        return (0, idf)
+        return (0, postingList.idf())
 
 
     def terms(self):
