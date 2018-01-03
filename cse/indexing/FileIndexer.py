@@ -23,6 +23,10 @@ class FileIndexer(object):
 
 
     def index(self):
+        # cleanup
+        self.__deletePreviousIndexFiles()
+
+        # indexing
         self.__index = InvertedIndexWriter(self.__directory)
         documentMap = DocumentMap(self.__documentMapPath).open()
 
@@ -40,6 +44,16 @@ class FileIndexer(object):
         documentMap.close()
         self.__index.close()
 
+
+    def __deletePreviousIndexFiles(self):
+        if os.path.exists(self.__documentMapPath):
+            os.remove(self.__documentMapPath)
+
+        if os.path.exists(self.__dictionaryPath):
+            os.remove(self.__dictionaryPath)
+
+        if os.path.exists(self.__postingListsPath):
+            os.remove(self.__postingListsPath)
 
 
     def indexMultiFile(self):
