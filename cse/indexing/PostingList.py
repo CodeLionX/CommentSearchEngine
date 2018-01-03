@@ -128,8 +128,33 @@ class CidDeltaCodec(PostingListBase):
         result = PostingList()
         firstNewCid, newTf, newPositionList = delta._postingList[0]
         result._idf = main._idf
-        result._postingList = main._postingList + [(firstNewCid - main.__baseCid, newTf, newPositionList)] + delta._postingList[1:]
+
+        # calc old base cid of main object
+        mainBaseCid, _, _ = main._postingList[0]
+        for cid, _, _ in main._postingList[1:]:
+            mainBaseCid += cid
+
+        result._postingList = main._postingList + [(firstNewCid - mainBaseCid, newTf, newPositionList)] + delta._postingList[1:]
         return result
+
+    def postingList(self):
+        """
+        Decodes delta encoded cids and returns the posting list containing
+        cid, tf, positionList
+        """
+        if not self._postingList:
+            return self._postingList
+
+        postingList = []
+        firstCid, firstTf, firstPositionList = self._postingList[0]
+        postingList.append((firstCid, firstTf, firstPositionList))
+
+        runningCid = firstCid
+        for deltaCid, tf, positionList in self._postingList[1:]:
+            runningCid += deltaCid
+            postingList.append((runningCid, tf, positionList))
+
+        return postingList
 
 
 

@@ -85,6 +85,7 @@ class SearchEngine():
 
 
         print("##### Query for >>>", query, "<<< returned", len(results), "comments")
+        # print("      CIDs:", results)
         return self.__loadDocumentTextForCids(results)
 
 
@@ -290,8 +291,8 @@ class SearchEngine():
 
 
     def printTestQueryResults(self):
-        print(prettyPrint(self.search("christmas")[:5]))
-        print(prettyPrint(self.search("christmas market")[:5]))
+        print(prettyPrint(self.search("christmas")))
+        # print(prettyPrint(self.search("christmas market")[:5]))
         #print(prettyPrint(self.search("hate")[:5]))
         #print(prettyPrint(self.search("prefix* help")[:5]))
         #print(prettyPrint(self.search("atta*")[:5]))
