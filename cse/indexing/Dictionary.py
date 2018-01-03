@@ -9,13 +9,10 @@ class Dictionary(object):
     Structure: Term -> (Seek pointer, PostingList Size in Bytes)
     """
 
-    __filename = ""
-    __dictionary = None
-    __nextPointerCache = 0
-
 
     def __init__(self, filename):
         self.__filename = filename
+        self.__dictionary = None
         self.__open()
 
 
@@ -75,6 +72,10 @@ class Dictionary(object):
 
     def __contains__(self, item):
         return self.__dictionary.__contains__(str(item))
+
+
+    def __str__(self):
+        return str(self.__dictionary)
 
 
 
