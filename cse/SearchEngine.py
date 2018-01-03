@@ -223,7 +223,7 @@ class SearchEngine():
 
     def __loadDocumentTextForCids(self, cids):
         results = {}
-        commentPointers = set()
+        commentPointers = []
 
         if cids is None or cids is []:
             return results
@@ -231,7 +231,7 @@ class SearchEngine():
         # get document pointers
         for cid in cids:
             try:
-                commentPointers.add(self.__documentMap.getPointer(cid))
+                commentPointers.append(self.__documentMap.getPointer(cid))
             except KeyError:
                 print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
