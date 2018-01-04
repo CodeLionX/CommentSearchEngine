@@ -33,8 +33,8 @@ class DocumentMap(object):
         PackerUtil.packToFile(self.__index, self.__filePathname)
 
 
-    def insert(self, cid, pointer, numberOfTokens):
-        self.__index[cid] = (pointer, numberOfTokens)
+    def insert(self, cid, pointer, size):
+        self.__index[cid] = (pointer, size)
 
 
     def get(self, cid):
@@ -43,6 +43,10 @@ class DocumentMap(object):
 
     def getPointer(self, cid):
         return self.__index[cid][0]
+
+
+    def getSize(self, cid):
+        return self.__index[cid][1]
 
 
     def listCids(self):
