@@ -36,15 +36,14 @@ class FileIndexer(object):
             for data in dataFile:
                 if lastPointer == None:
                     lastPointer = dataFile.startSeekPointer()
-                currentPointer = dataFile.currentSeekPointer()
                 try:
                     documentMap.get(data["commentId"])
                 except KeyError:
                     tokens = self.__processComment(data["commentId"], data["comment_text"])
-                    documentMap.insert(data["commentId"], lastPointer, currentPointer - lastPointer)
+                    documentMap.insert(data["commentId"], lastPointer)
                     self.__index.incDocumentCounter()
                 
-                lastPointer = currentPointer
+                lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
         documentMap.close()
@@ -129,13 +128,13 @@ if __name__ == "__main__":
     reader = CommentReader(os.path.join("data", "comments.data"), os.path.join("data", "articleMapping.data"), os.path.join("data", "authorMapping.data")).open()
     start = time.process_time()
     for i in range(0, 10000, 100):
-        reader.readline(dm.get(i)[0], dm.get(i)[1])
+        reader.readline(dm.get(i))
     end = time.process_time()
     withoutArticleMapping = end -start
 
     start = time.process_time()
     for i in range(0, 10000, 100):
-        reader.readline(dm.get(i)[0], dm.get(i)[1], skipArticleMapping=False)
+        reader.readline(dm.get(i), skipArticleMapping=False)
     end = time.process_time()
     withArticleMapping = end -start
 

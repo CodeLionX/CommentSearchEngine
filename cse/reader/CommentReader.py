@@ -42,7 +42,7 @@ class CommentReader(object):
         return self.__commentsFile.tell()
 
 
-    def readline(self, pointer, size, skipArticleMapping=True):
+    def readline(self, pointer, skipArticleMapping=True):
         if self.__iterMode:
             # save seek pointer and restore it to allow this
             raise IOError("CommentReader in iteration mode. File seeking not possible!")
@@ -50,7 +50,6 @@ class CommentReader(object):
         # read comments file contents
         self.__commentsFile.seek(pointer)
         line = self.__commentsFile.readline()
-        #print(line)
         iterRow = next(csv.reader([line], delimiter=self.__delimiter))
 
         if not skipArticleMapping:
