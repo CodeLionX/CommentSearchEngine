@@ -38,33 +38,65 @@ class SearchEngine():
         self.__boolQueryPattern = re.compile('^([\w\d*]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*]+)+$', re.M)
         self.__prefixQueryPattern = re.compile('^[^\S\x0a\x0d]*([\w\d]*\*)[^\S\x0a\x0d]*$', re.I | re.M)
         self.__phraseQueryPattern = re.compile('^[^\S\x0a\x0d]*(\'[\w\d]+([^\S\x0a\x0d]*[\w\d]*)*\')[^\S\x0a\x0d]*$', re.I | re.M)
-        self.__index = self.__loadIndex()
+        self.__indexLoaded = False
+        self.__index = None
+        self.__documentMap = None
+        self.__commentReader = None
+
+
+    def loadIndex(self):
+        if self.__indexLoaded:
+            print(self.__class__.__name__ + ":", "index already loaded")
+            return
+
+        print(self.__class__.__name__ + ":", "loading index files and comment reader")
+        self.__index = InvertedIndexReader(
+            self.__directory
+        )
+
         self.__documentMap = DocumentMap(
             os.path.join("data", "documentMap.index")
         ).open()
+
         self.__commentReader = CommentReader(
             os.path.join("data", "comments.data"),
             os.path.join("data", "articleMapping.data"),
             os.path.join("data", "authorMapping.data")
         ).open()
 
+        self.__indexLoaded = True
 
-    def __loadIndex(self):
-        return InvertedIndexReader(self.__directory)
+
+    def releaseIndex(self):
+        if not self.__indexLoaded:
+            print(self.__class__.__name__ + ":", "no index loaded, nothing to release")
+            return
+
+        print(self.__class__.__name__ + ":", "releasing index files and comment reader")
+        self.__index.close()
+        self.__documentMap.close()
+        self.__commentReader.close()
+
+        self.__indexLoaded = False
 
 
     def index(self):
+        if self.__indexLoaded:
+            self.releaseIndex()
+
         indexer = FileIndexer(self.__directory, self.__prep)
         indexer.index()
 
 
     def close(self):
-        self.__index.close()
-        self.__documentMap.close()
-        self.__commentReader.close()
+        self.releaseIndex()
 
 
     def search(self, query, topK=10):
+        if not self.__indexLoaded:
+            print("Index was not loaded!")
+            return []
+
         results = []
         if self.__boolQueryPattern.fullmatch(query):
             print("\n\n##### Boolean Query Search")
@@ -334,7 +366,8 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine("data")
-    #se.index()
+    se.index()
+    se.loadIndex()
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
     #se.printTestQueryResults()
