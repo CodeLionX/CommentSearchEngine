@@ -255,25 +255,21 @@ class SearchEngine():
 
 
     def __loadDocumentTextForCids(self, cids):
-        results = {}
-        commentPointers = []
+        results = []
 
         if cids is None or cids is []:
             return results
 
-        # get document pointers
+        # get document pointers and load comment texts
         for cid in cids:
             try:
-                commentPointers.append(self.__documentMap.getPointer(cid))
+                pointer = self.__documentMap.get(cid)
+                rowData = self.__commentReader.readline(pointer)
+                results.append(rowData["comment_text"])
             except KeyError:
                 print(self.__class__.__name__ + ":", "comment", cid, "not found!")
 
-        # load document text
-        for pointer, rowData in enumerate(self.__commentReader):
-            if pointer in commentPointers:
-                results[pointer] = rowData["comment_text"]
-
-        return list(map(results.get, commentPointers))
+        return results
 
 
     def __documentsWithConsecutiveTerms(self, firstTermTuples, secondTermTuples):
@@ -366,7 +362,7 @@ class CustomPpStep(PreprocessorStep):
 
 if __name__ == '__main__':
     se = SearchEngine("data")
-    se.index()
+    #se.index()
     se.loadIndex()
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
