@@ -68,6 +68,7 @@ setup(
         'nltk>=3.2.0',
         'numpy',
         #'pandas>=0.21.0',
+        'msgpack-python',
         # additional
         'cffi>=1.7',
         'cryptography>=2.1.3'
