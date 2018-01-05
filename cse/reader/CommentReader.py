@@ -17,6 +17,10 @@ class CommentReader(object):
         self.__authorsReader = AuthorMappingReader(authorsFilepath)
         self.__articlesReader = ArticleMappingReader(arcticlesFilepath)
 
+        self.__startSeekPointer = 0
+
+        self.__iterMode = False
+
 
     def open(self):
         if not os.path.exists(os.path.dirname(self.__commentsFilepath)):
@@ -28,6 +32,33 @@ class CommentReader(object):
         self.__articlesReader.open()
 
         return self
+
+
+    def startSeekPointer(self):
+        return self.__startSeekPointer
+
+
+    def currentSeekPointer(self):
+        return self.__commentsFile.tell()
+
+
+    def readline(self, pointer, skipArticleMapping=True):
+        if self.__iterMode:
+            # save seek pointer and restore it to allow this
+            raise IOError("CommentReader in iteration mode. File seeking not possible!")
+
+        # read comments file contents
+        self.__commentsFile.seek(pointer)
+        line = self.__commentsFile.readline()
+        iterRow = next(csv.reader([line], delimiter=self.__delimiter))
+
+        if not skipArticleMapping:
+            # setup article iterator
+            iter(self.__articlesReader)
+            # load first article mapping
+            next(self.__articlesReader)
+
+        return self.__parseIterRow(iterRow)
 
 
     def close(self):
@@ -42,9 +73,10 @@ class CommentReader(object):
             return default
 
 
-    def __parseIterRow(self, row):
+    def __parseIterRow(self, row, skipArticleMapping=True):
         commentId = int(row[0])
         articleId = int(row[1])
+        articleUrl = ""
         author = self.__authorsReader.lookupAuthorname(row[2])
         text = row[3].replace("\\n", "\n")
         timestamp = row[4]
@@ -52,19 +84,20 @@ class CommentReader(object):
         upvotes = self.__silentParseToInt(row[6], 0)
         downvotes = self.__silentParseToInt(row[7], 0)
 
-        # sequentially load article mapping
-        # if there are some articles without comments we skip these articles
-        while self.__articlesReader.currentArticleId() != articleId:
-            try:
-                next(self.__articlesReader)
-            except StopIteration as e:
-                # restart article iterator
-                iter(self.__articlesReader)
-                next(self.__articlesReader)
-                print("!-- restarted article id mapping iterator --!")
-                print("    searching article", articleId, author, commentId)
+        if not skipArticleMapping:
+            # sequentially load article mapping
+            # if there are some articles without comments we skip these articles
+            while self.__articlesReader.currentArticleId() != articleId:
+                try:
+                    next(self.__articlesReader)
+                except StopIteration as e:
+                    # restart article iterator
+                    iter(self.__articlesReader)
+                    next(self.__articlesReader)
+                    print("!-- restarted article id mapping iterator --!")
+                    print("    searching article", articleId, author, commentId)
 
-        articleUrl = self.__articlesReader.currentArticleUrl()
+            articleUrl = self.__articlesReader.currentArticleUrl()
 
         return {
             "commentId": commentId,
@@ -81,9 +114,10 @@ class CommentReader(object):
 
     def __iter__(self):
         self.__commentsFile.seek(0)
-        self.__commentReader.__iter__()
+        self.__iterMode = True
         # skip csv header in iteration mode:
-        self.__commentReader.__next__()
+        self.__commentsFile.readline()
+        self.__startSeekPointer = self.__commentsFile.tell()
 
         # setup article iterator
         iter(self.__articlesReader)
@@ -93,7 +127,16 @@ class CommentReader(object):
 
 
     def __next__(self):
-        return self.__parseIterRow(self.__commentReader.__next__())
+        try:
+            line = self.__commentsFile.readline()
+            if not line:
+                raise StopIteration("Empty line")
+        except StopIteration as stop:
+            self.__iterMode = False
+            raise stop
+
+        iterRow = next(csv.reader([line], delimiter=self.__delimiter))
+        return self.__parseIterRow(iterRow, skipArticleMapping=False)
 
 
     def __enter__(self):

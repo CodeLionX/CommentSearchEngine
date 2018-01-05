@@ -32,13 +32,18 @@ class FileIndexer(object):
 
         #print("Starting indexing...")
         with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
-            for pointer, data in enumerate(dataFile):
+            lastPointer = None
+            for data in dataFile:
+                if lastPointer == None:
+                    lastPointer = dataFile.startSeekPointer()
                 try:
                     documentMap.get(data["commentId"])
                 except KeyError:
                     tokens = self.__processComment(data["commentId"], data["comment_text"])
-                    documentMap.insert(data["commentId"], pointer, tokens)
+                    documentMap.insert(data["commentId"], lastPointer)
                     self.__index.incDocumentCounter()
+                
+                lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
         documentMap.close()
@@ -115,3 +120,27 @@ if __name__ == "__main__":
 
     print("==========================================")
     print("elapsed time:", end - start, "secs")
+
+    # test document map and comment reading
+    dm = DocumentMap(os.path.join("data", "documentMap.index")).open()
+    print(dm.get(1))
+
+    reader = CommentReader(os.path.join("data", "comments.data"), os.path.join("data", "articleMapping.data"), os.path.join("data", "authorMapping.data")).open()
+    start = time.process_time()
+    for i in range(0, 10000, 100):
+        reader.readline(dm.get(i))
+    end = time.process_time()
+    withoutArticleMapping = end -start
+
+    start = time.process_time()
+    for i in range(0, 10000, 100):
+        reader.readline(dm.get(i), skipArticleMapping=False)
+    end = time.process_time()
+    withArticleMapping = end -start
+
+    print("==========================================")
+    print("timings for loading 100 comments from different positions (seeking)")
+    print("\nelapsed time without article mapping:")
+    print("\t", withoutArticleMapping, "secs")
+    print("\nelapsed time with article mapping:")
+    print("\t", withArticleMapping, "secs")
