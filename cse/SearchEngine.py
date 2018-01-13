@@ -65,6 +65,8 @@ class SearchEngine():
         ).open()
 
         self.__indexLoaded = True
+        print(self.__class__.__name__ + ":", "Number of documents:", self.__documentMap.numberOfDocuments())
+        print(self.__class__.__name__ + ":", "Number of distinct terms:", self.__index.numberOfDistinctTerms())
 
 
     def releaseIndex(self):
@@ -154,7 +156,7 @@ class SearchEngine():
                 cidTuples = self.__index.postingList(pTerm[0][0])
 
             if cidTuples:
-                cidSets.append(set( (cid for cid, _ in cidTuples) ))
+                cidSets.append(set( (cid for cid, _, _ in cidTuples) ))
 
         if not cidSets:
             return []
@@ -318,9 +320,25 @@ class SearchEngine():
         print(prettyPrint(self.search("'christmas market'")[:1]))
 
 
-    def printTestQueryResults(self):
-        print(prettyPrint(self.search("christmas")))
-        # print(prettyPrint(self.search("christmas market")[:5]))
+    def profileQueryResults(self):
+        import cProfile
+
+        # print("profiling search for christmas")
+        # cProfile.runctx('self.search("christmas")', globals(), locals(), 'search_christmas_medium.profile')
+
+        print("profiling search for christmas market")
+        cProfile.runctx('self.search("christmas market")', globals(), locals(), 'search_christmas market_medium.profile')
+
+        # print("profiling search for the")
+        # cProfile.runctx('self.search("the")', globals(), locals(), 'search_the_medium.profile')
+
+        # print("profiling search for 'european union'")
+        # cProfile.runctx('self.search("\'european union\'")', globals(), locals(), 'search_-european union-_medium.profile')
+
+        # print("profiling search for party NOT politics")
+        # cProfile.runctx('self.search("party NOT politics")', globals(), locals(), "search_party NOT politics_medium.profile")
+
+        #print(prettyPrint(self.search("christmas market")[:5]))
         #print(prettyPrint(self.search("hate")[:5]))
         #print(prettyPrint(self.search("prefix* help")[:5]))
         #print(prettyPrint(self.search("atta*")[:5]))
@@ -366,6 +384,6 @@ if __name__ == '__main__':
     se.loadIndex()
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
-    #se.printTestQueryResults()
-    se.printAssignment4QueryResults()
+    se.profileQueryResults()
+    #se.printAssignment4QueryResults()
     se.close()
