@@ -20,8 +20,8 @@ Vagrant.configure("2") do |config|
   #  v.gui = true
 
   # customize ressources
-    v.memory = 4096
-    v.cpus = 1
+    #v.memory = 4096
+    #v.cpus = 1
     # fast dns lookup
     #v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"] #to be tested
 
