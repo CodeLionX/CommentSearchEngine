@@ -45,6 +45,10 @@ class DocumentMap(object):
         return [cid for cid in self.__index]
 
 
+    def numberOfDocuments(self):
+        return len(self.__index)
+
+
     def __enter__(self):
         return self.open()
 

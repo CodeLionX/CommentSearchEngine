@@ -17,7 +17,7 @@ class InvertedIndexWriter(object):
     # threshold for delta index to reside in memory
     # if the memory consumption of the delta index itself gets higher than this threshold
     # a delta merge is performend and the index will be written to disk
-    MEMORY_THRESHOLD = 50 * MB     # 500 MB
+    MEMORY_THRESHOLD = 500 * MB     # 500 MB
     # entry size estimation for simple heursitic to determine memory consumption of the
     # delta index
     POSTING_LIST_ENTRY_SIZE = 30    #  30 B
