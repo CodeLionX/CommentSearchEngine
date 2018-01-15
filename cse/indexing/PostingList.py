@@ -115,6 +115,7 @@ class CidDeltaCodec(PostingListBase):
     def __init__(self):
         super().__init__()
         self.__baseCid = 0
+        self.__plWasDecoded = False
 
     def append(self, cid, tf, positionList):
         self._postingList.append((cid - self.__baseCid, tf, positionList))
@@ -142,15 +143,19 @@ class CidDeltaCodec(PostingListBase):
         Decodes delta encoded cids and returns the posting list containing
         cid, tf, positionList
         """
-        if not self._postingList:
-            return self._postingList
+        if self._postingList and not self.__plWasDecoded:
+            self._postingList = self.__decodeCids(self._postingList)
+            self.__plWasDecoded = True
 
+        return self._postingList
+
+    def __decodeCids(self, encodedPl):
         postingList = []
-        firstCid, firstTf, firstPositionList = self._postingList[0]
+        firstCid, firstTf, firstPositionList = encodedPl[0]
         postingList.append((firstCid, firstTf, firstPositionList))
 
         runningCid = firstCid
-        for deltaCid, tf, positionList in self._postingList[1:]:
+        for deltaCid, tf, positionList in encodedPl[1:]:
             runningCid += deltaCid
             postingList.append((runningCid, tf, positionList))
 
