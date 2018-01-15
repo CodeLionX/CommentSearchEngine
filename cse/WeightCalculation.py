@@ -52,11 +52,14 @@ def cosineSimilarity(docWeights, queryWeights):
     #print(score)
     return float(score)
 
+
 def oldCosineSimilarity(docWeights, queryWeights):
     dj = np.array(docWeights)
     q = np.array(queryWeights)
 
     score = np.dot(dj, q) / (np.linalg.norm(dj) * np.linalg.norm(q))
+    return float(score)
+
 
 def euclDistance(docWeights, queryWeights):
     dj = np.array(docWeights)
@@ -84,6 +87,8 @@ class NormCache(object):
             return self.cache[key]
         def __setitem__(self, key, value):
             self.cache[key] = value
+        def clear(self):
+            self.cache = {}
     
     instance = None
     def __new__(cls): # __new__ is always a classmethod
@@ -96,10 +101,50 @@ class NormCache(object):
         return setattr(self.instance, name, value)
 
 
-if __name__ == "__main__":
+
+def profileTime(func, docs, query, warm=False):
     import cProfile
-    import tracemalloc
     import pstats
+    if not warm:
+        NormCache().clear()
+
+    pr = cProfile.Profile()
+    results = []
+    for doc in docs:
+        pr.enable()
+        r = func(doc, query)
+        pr.disable()
+        results.append(r)
+    
+    print("\nTime statistics for {}".format(func.__name__))
+    ps = pstats.Stats(pr)
+    ps.sort_stats('time')
+    ps.print_stats(10)
+
+
+def profileMemory(func, docs, query, warm=False):
+    import tracemalloc
+    snapshots = {}
+    if not warm:
+        NormCache().clear()
+
+    tracemalloc.start()
+    results = []
+    for doc in docs:
+        r = cosineSimilarity(doc, query)
+        results.append(r)
+
+    snapshots[func.__name__] = tracemalloc.take_snapshot()
+    used, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    print("Memory Snapshot for {}".format(func.__name__))
+    print("Used memory={}, Peak memory={}".format(used, peak))
+    for stat in snapshots[func.__name__].statistics('lineno'):
+        print(stat)
+
+
+if __name__ == "__main__":
     import random
 
     # data
@@ -111,49 +156,14 @@ if __name__ == "__main__":
     query = [random.random() for i in range(0, DOC_SIZE)]
 
     print("Testrun for {} documents each containing {} values".format(SAMPLE_SIZE, DOC_SIZE))
-    print("Cached cosine similarity")
+    print("\nUncached cosine similarity")
+    profileTime(oldCosineSimilarity, docs, query)
+    profileMemory(oldCosineSimilarity, docs, query)
 
-    tracemalloc.start()
-    pr = cProfile.Profile()
-    results = []
-    for doc in docs:
-        pr.enable()
-        r = cosineSimilarity(doc, query)
-        pr.disable()
-        results.append(r)
-    
-    snapshot = tracemalloc.take_snapshot()
-    used, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
-    ps = pstats.Stats(pr)
-    ps.sort_stats('time')
-    ps.print_stats(10)
+    print("\nCached cosine similarity")
+    profileTime(cosineSimilarity, docs, query)
+    profileMemory(cosineSimilarity, docs, query)
 
-    print("Memory Snapshot")
-    print("Used memory={}, Peak memory={}".format(used, peak))
-    top_stats = snapshot.statistics('lineno')
-    for stat in top_stats[:10]:
-        print(stat)
-
-    print("Uncached cosine similarity")
-    tracemalloc.start()
-    pr = cProfile.Profile()
-    results = []
-    for doc in docs:
-        pr.enable()
-        r = oldCosineSimilarity(doc, query)
-        pr.disable()
-        results.append(r)
-    
-    snapshot = tracemalloc.take_snapshot()
-    used, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
-    ps = pstats.Stats(pr)
-    ps.sort_stats('time')
-    ps.print_stats(10)
-
-    print("Memory Snapshot")
-    print("Used memory={}, Peak memory={}".format(used, peak))
-    top_stats = snapshot.statistics('lineno')
-    for stat in top_stats[:10]:
-        print(stat)
+    print("\nWarm cached cosine similarity")
+    profileTime(cosineSimilarity, docs, query, warm=True)
+    profileMemory(cosineSimilarity, docs, query, warm=True)
