@@ -4,11 +4,9 @@ import functools
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
-from cse.indexing import (InvertedIndexReader, DocumentMap)
-from cse.indexing.FileIndexer import FileIndexer
+from cse.indexing import (FileIndexer, IndexReader, DocumentMap)
 from cse.reader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
-from cse.helper.MultiFileMap import MultiFileMap
 from cse.Ranker import Ranker
 
 
@@ -50,7 +48,7 @@ class SearchEngine():
             return
 
         print(self.__class__.__name__ + ":", "loading index files and comment reader")
-        self.__index = InvertedIndexReader(
+        self.__index = IndexReader(
             self.__directory
         )
 

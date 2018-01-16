@@ -1,12 +1,12 @@
 import os
 
-from cse.indexing import PostingList
 from cse.indexing.Dictionary import Dictionary
+from cse.indexing.posting.PostingList import PostingList
 from cse.indexing.posting.MainIndex import MainIndex as MainPosting
 from cse.indexing.replyto.MainIndex import MainIndex as MainReplyTo
 
 
-class InvertedIndexReader(object):
+class IndexReader(object):
 
 
     def __init__(self, filepath):

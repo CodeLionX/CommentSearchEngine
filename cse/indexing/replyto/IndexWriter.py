@@ -1,14 +1,13 @@
 import os
+import msgpack
 
 from os import remove
 from tempfile import mkstemp
 from shutil import move
 
-from cse.WeightCalculation import calcTf
 from cse.indexing.Dictionary import Dictionary
-from cse.indexing.posting.MainIndex import MainIndex
-from cse.indexing.posting.DeltaIndex import DeltaIndex
-from cse.indexing.posting.PostingList import PostingList
+from cse.indexing.replyto.MainIndex import MainIndex
+from cse.indexing.replyto.DeltaIndex import DeltaIndex
 
 
 class IndexWriter(object):
@@ -20,15 +19,14 @@ class IndexWriter(object):
     MEMORY_THRESHOLD = 500 * MB     # 500 MB
     # entry size estimation for simple heursitic to determine memory consumption of the
     # delta index
-    POSTING_LIST_ENTRY_SIZE = 30    #  30 B
+    ENTRY_SIZE       = 10           #  10 B
 
 
     def __init__(self, dictFilepath, mainFilepath):
         self.__dictionary = Dictionary(dictFilepath)
-        self.__dIndex = DeltaIndex(entrySize=IndexWriter.POSTING_LIST_ENTRY_SIZE)
+        self.__dIndex = DeltaIndex(entrySize=IndexWriter.ENTRY_SIZE)
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
-        self.__nDocuments = 0
 
 
     def __shouldDeltaMerge(self):
@@ -44,22 +42,16 @@ class IndexWriter(object):
         self.__dictionary.close()
 
 
-    def insert(self, term, commentId, nTerms, positions):
+    def insert(self, parentCid, childCids):
         self.__dIndex.insert(
-            term,
-            int(commentId),
-            calcTf(nTerms, len(positions)),
-            positions
+            parentCid,
+            childCids
         )
 
         if self.__calls % int(IndexWriter.MEMORY_THRESHOLD / 250) == 0:
             self.__shouldDeltaMerge()
 
         self.__calls = self.__calls + 1
-
-
-    def terms(self):
-        return [term for term in self.__dictionary]
 
 
     def deltaMerge(self):
@@ -75,10 +67,9 @@ class IndexWriter(object):
         merged, added = 0, 0
 
         # helper func
-        def updateIdfAndWritePostingList(tempFile, postingList):
-            postingList.updateIdf(self.__nDocuments)
+        def writeCids(tempFile, cids):
             seekPosition = tempFile.tell()
-            bytesWritten = tempFile.write(PostingList.encode(postingList))
+            bytesWritten = tempFile.write(msgpack.packb(cids))
             return seekPosition, bytesWritten
 
         # beginning of merge
@@ -86,28 +77,28 @@ class IndexWriter(object):
         print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / IndexWriter.MB, "mb")
 
         with open(tempFilePath, 'wb') as tempFile:
-            # merge step 1: for each term in main update postingList (add delta and recalc idf)
-            for term in sorted(self.__dictionary):
-                pointer, size = self.__dictionary[term]
-                postingList = mIndex.retrieve(pointer, size)
+            # merge step 1: for each parent cid in main update cid list (add delta)
+            for parentCid in sorted(self.__dictionary):
+                pointer, size = self.__dictionary[parentCid]
+                cidList = mIndex.retrieve(pointer, size)
 
-                if term in self.__dIndex:
-                    postingList = postingList.merge(self.__dIndex[term])
+                if parentCid in self.__dIndex:
+                    cidList = cidList + self.__dIndex[parentCid]
 
-                seekPosition, bytesWritten = updateIdfAndWritePostingList(tempFile, postingList)
-                self.__dictionary.insert(term, seekPosition, bytesWritten)
-                visited.add(term)
+                seekPosition, bytesWritten = writeCids(tempFile, cidList)
+                self.__dictionary.insert(parentCid, seekPosition, bytesWritten)
+                visited.add(parentCid)
 
             added = len(set(self.__dIndex.lines()) - visited)
             merged = len(set(self.__dIndex.lines())) - added
-            print(self.__class__.__name__ + ":", "merged", merged, "posting lists")
+            print(self.__class__.__name__ + ":", "merged", merged, "cid lists")
 
-            # merge step 2: for all remaining terms save postingLists in main
-            for term in sorted(self.__dIndex):
-                if term not in visited:
-                    postingList = self.__dIndex[term]
-                    seekPosition, bytesWritten = updateIdfAndWritePostingList(tempFile, postingList)
-                    self.__dictionary.insert(term, seekPosition, bytesWritten)
+            # merge step 2: for all remaining parent cids save cid lists in main
+            for parentCid in sorted(self.__dIndex):
+                if parentCid not in visited:
+                    cidList = self.__dIndex[parentCid]
+                    seekPosition, bytesWritten = writeCids(tempFile, cidList)
+                    self.__dictionary.insert(parentCid, seekPosition, bytesWritten)
 
 
         # cleaning up and store current snapshot
@@ -120,10 +111,6 @@ class IndexWriter(object):
 
         print(self.__class__.__name__ + ":", "added", added, "new posting lists")
         print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / IndexWriter.MB, "mb")
-
-
-    def incDocumentCounter(self):
-        self.__nDocuments += 1
 
 
 

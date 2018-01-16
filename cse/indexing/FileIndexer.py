@@ -1,6 +1,7 @@
 import os
 
-from cse.indexing import InvertedIndexWriter
+from cse.indexing.posting.IndexWriter import IndexWriter as PostingIndexWriter
+from cse.indexing.replyto.IndexWriter import IndexWriter as ReplyToIndexWriter
 from cse.indexing import DocumentMap
 from cse.reader import CommentReader
 
@@ -12,10 +13,14 @@ class FileIndexer(object):
     def __init__(self, directory, preprocessor):
         self.__directory = directory
         self.__prep = preprocessor
+        self.__pIndex = None
+        self.__rIndex = None
         self.__multiFileIndexPath   = os.path.join(directory, "multiFileIndex.index")
         self.__documentMapPath      = os.path.join(directory, "documentMap.index")
         self.__dictionaryPath       = os.path.join(directory, "dictionary.index")
         self.__postingListsPath     = os.path.join(directory, "postingLists.index")
+        self.__replyToDictPath      = os.path.join(directory, "replyToDict.index")
+        self.__replyToListsPath     = os.path.join(directory, "replyToLists.index")
         self.__dataFolderPath       = os.path.join(directory, "raw")
         self.__commentsFilePath     = os.path.join(directory, "comments.data")
         self.__articleFilePath      = os.path.join(directory, "articleMapping.data")
@@ -24,11 +29,67 @@ class FileIndexer(object):
 
     def index(self):
         # cleanup
-        self.__deleteAllPreviousIndexFiles()
+        self.__deletePreviousIndexFiles()
 
         # indexing
-        self.__index = InvertedIndexWriter(self.__directory)
+        self.__pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
         documentMap = DocumentMap(self.__documentMapPath).open()
+
+        #print("Starting indexing...")
+        with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
+            lastPointer = None
+            for data in dataFile:
+                if lastPointer == None:
+                    lastPointer = dataFile.startSeekPointer()
+                try:
+                    documentMap.get(data["commentId"])
+                except KeyError:
+                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    documentMap.insert(data["commentId"], lastPointer)
+                    self.__pIndex.incDocumentCounter()
+
+                lastPointer = dataFile.currentSeekPointer()
+
+        #print("Saving index...")
+        documentMap.close()
+        self.__pIndex.close()
+
+
+    def indexPostingList(self):
+        # cleanup
+        self.__deletePreviousIndexFiles(replyToLists=False)
+
+        # indexing
+        self.__pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        documentMap = DocumentMap(self.__documentMapPath).open()
+
+        #print("Starting indexing...")
+        with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
+            lastPointer = None
+            for data in dataFile:
+                if lastPointer == None:
+                    lastPointer = dataFile.startSeekPointer()
+                try:
+                    documentMap.get(data["commentId"])
+                except KeyError:
+                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    documentMap.insert(data["commentId"], lastPointer)
+                    self.__pIndex.incDocumentCounter()
+
+                lastPointer = dataFile.currentSeekPointer()
+
+        #print("Saving index...")
+        documentMap.close()
+        self.__pIndex.close()
+        self.__pIndex = None
+
+
+    def indexReplyToList(self):
+        # cleanup
+        self.__deletePreviousIndexFiles(documentMap=False, postingLists=False)
+
+        # indexing
+        self.__rIndex = ReplyToIndexWriter(self.__replyToDictPath, self.__replyToListsPath)
 
         #print("Starting indexing...")
         with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
@@ -46,19 +107,25 @@ class FileIndexer(object):
                 lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
-        documentMap.close()
-        self.__index.close()
+        self.__rIndex.close()
+        self.__rIndex = None
 
 
-    def __deleteAllPreviousIndexFiles(self):
-        if os.path.exists(self.__documentMapPath):
+    def __deletePreviousIndexFiles(self, documentMap=True, postingLists=True, replyToLists=True):
+        if documentMap and os.path.exists(self.__documentMapPath):
             os.remove(self.__documentMapPath)
 
-        if os.path.exists(self.__dictionaryPath):
+        if postingLists and os.path.exists(self.__dictionaryPath):
             os.remove(self.__dictionaryPath)
 
-        if os.path.exists(self.__postingListsPath):
+        if postingLists and os.path.exists(self.__postingListsPath):
             os.remove(self.__postingListsPath)
+
+        if replyToLists and os.path.exists(self.__replyToDictPath):
+            os.remove(self.__replyToDictPath)
+
+        if replyToLists and os.path.exists(self.__replyToListsPath):
+            os.remove(self.__replyToListsPath)
 
 
     def indexMultiFile(self):
