@@ -24,7 +24,7 @@ class FileIndexer(object):
 
     def index(self):
         # cleanup
-        self.__deletePreviousIndexFiles()
+        self.__deleteAllPreviousIndexFiles()
 
         # indexing
         self.__index = InvertedIndexWriter(self.__directory)
@@ -50,7 +50,7 @@ class FileIndexer(object):
         self.__index.close()
 
 
-    def __deletePreviousIndexFiles(self):
+    def __deleteAllPreviousIndexFiles(self):
         if os.path.exists(self.__documentMapPath):
             os.remove(self.__documentMapPath)
 

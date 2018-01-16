@@ -110,12 +110,13 @@ class InvertedIndexWriter(object):
                     self.__dictionary.insert(term, seekPosition, bytesWritten)
 
 
-        # cleaning up
-        os.close(fh)
+        # cleaning up and store current snapshot
         mIndex.close()
+        os.close(fh)
+        self.__dIndex.clear()
         remove(self.__mIndexFilepath)
         move(tempFilePath, self.__mIndexFilepath)
-        self.__dIndex.clear()
+        self.__dictionary.save()
 
         print(self.__class__.__name__ + ":", "added", added, "new posting lists")
         print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / InvertedIndexWriter.MB, "mb")
