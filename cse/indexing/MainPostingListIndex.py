@@ -7,7 +7,7 @@ from cse.indexing.PostingList import PostingList
 
 """
 Inverted Index (main - on disk)
-Structure: Line Number in File -> Posting List
+Structure: Offset, Size -> Posting List
 Posting List Entry: (cid, tf, positionsList)
 Positions List: [pos1, pos2, ...]
 --> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]

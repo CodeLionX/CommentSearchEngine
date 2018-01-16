@@ -2,6 +2,7 @@ import os
 
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainPostingListIndex import MainPostingListIndex
+from cse.indexing.MainReplyToIndex import MainReplyToIndex
 from cse.indexing.PostingList import PostingList
 
 
@@ -11,11 +12,15 @@ class InvertedIndexReader(object):
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
         self.__mIndex = MainPostingListIndex(os.path.join(filepath, "postingLists.index"))
+        self.__replyToDictionary = Dictionary(os.path.join(filepath, "replyToDictionary.index"))
+        self.__mReplyToIndex = MainReplyToIndex(os.path.join(filepath, "replyToLists.index"))
 
 
     def close(self):
         self.__dictionary.close()
         self.__mIndex.close()
+        self.__replyToDictionary.close()
+        self.__mReplyToIndex.close()
 
 
     def retrieve(self, term):
@@ -24,6 +29,14 @@ class InvertedIndexReader(object):
             return self.__mIndex[(pointer, size)]
         else:
             return PostingList()
+
+
+    def repliedTo(self, parentCid):
+        if parentCid in self.__replyToDictionary:
+            pointer, size = self.__replyToDictionary[parentCid]
+            return self.__mReplyToIndex[(pointer, size)]
+        else:
+            return []
 
 
     def postingList(self, term):

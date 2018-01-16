@@ -4,11 +4,11 @@ from cse.indexing.PostingList import PostingList
 
 """
 Inverted Index (delta - in memory)
-Structure: Line Number in File -> Posting List
+Structure: Term -> Posting List
 Posting List Entry: (cid, tf, positionsList)
 Positions List: [pos1, pos2, ...]
 --> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]
-idf is not calculated until a delta merge is performed (see MainPostingListIndex for that)
+idf is not calculated until a delta merge is performed (see InvertedIndexWriter for that)
 """
 class DeltaPostingListIndex(object):
 
