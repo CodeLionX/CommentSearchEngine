@@ -1,13 +1,12 @@
 from sys import getsizeof
 
-from cse.indexing.PostingList import PostingList
 
 """
 ReplyTo Index (delta - in memory)
 Structure: Parent CID -> Replyed to CID List
 ReplyTo List: [cid1, cid2, ...]
 """
-class DeltaReplyToIndex(object):
+class DeltaIndex(object):
 
     ESTIMATION_MARGIN = 300
 
@@ -70,7 +69,7 @@ class DeltaReplyToIndex(object):
         return int(getsizeof(self.__replyToLists)
                 + len(self) * getsizeof([])
                 + getsizeof(int) * self.__numCommentIds
-                + DeltaReplyToIndex.ESTIMATION_MARGIN)
+                + DeltaIndex.ESTIMATION_MARGIN)
 
 
     def __len__(self):

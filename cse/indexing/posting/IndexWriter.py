@@ -6,18 +6,18 @@ from shutil import move
 
 from cse.WeightCalculation import calcTf
 from cse.indexing.Dictionary import Dictionary
-from cse.indexing.MainPostingListIndex import MainPostingListIndex
-from cse.indexing.DeltaPostingListIndex import DeltaPostingListIndex
-from cse.indexing.PostingList import PostingList
+from cse.indexing.posting.MainIndex import MainIndex
+from cse.indexing.posting.DeltaIndex import DeltaIndex
+from cse.indexing.posting.PostingList import PostingList
 
 
-class InvertedIndexWriter(object):
+class IndexWriter(object):
 
     MB = 1024*1024
     # threshold for delta index to reside in memory
     # if the memory consumption of the delta index itself gets higher than this threshold
     # a delta merge is performend and the index will be written to disk
-    MEMORY_THRESHOLD = 50 * MB     # 500 MB
+    MEMORY_THRESHOLD = 500 * MB     # 500 MB
     # entry size estimation for simple heursitic to determine memory consumption of the
     # delta index
     POSTING_LIST_ENTRY_SIZE = 30    #  30 B
@@ -25,7 +25,7 @@ class InvertedIndexWriter(object):
 
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__dIndex = DeltaPostingListIndex(entrySize=InvertedIndexWriter.POSTING_LIST_ENTRY_SIZE)
+        self.__dIndex = DeltaIndex(entrySize=IndexWriter.POSTING_LIST_ENTRY_SIZE)
         self.__mIndexFilepath = os.path.join(filepath, "postingLists.index")
         self.__calls = 0
         self.__nDocuments = 0
@@ -34,7 +34,7 @@ class InvertedIndexWriter(object):
     def __shouldDeltaMerge(self):
         print("delta size check [Bytes]:", self.__dIndex.estimatedSize())
         # check memory usage
-        if self.__dIndex.estimatedSize() > InvertedIndexWriter.MEMORY_THRESHOLD:
+        if self.__dIndex.estimatedSize() > IndexWriter.MEMORY_THRESHOLD:
             self.deltaMerge()
             self.__calls = -1
 
@@ -52,7 +52,7 @@ class InvertedIndexWriter(object):
             positions
         )
 
-        if self.__calls % int(InvertedIndexWriter.MEMORY_THRESHOLD / 250) == 0:
+        if self.__calls % int(IndexWriter.MEMORY_THRESHOLD / 250) == 0:
             self.__shouldDeltaMerge()
 
         self.__calls = self.__calls + 1
@@ -69,7 +69,7 @@ class InvertedIndexWriter(object):
             return
 
         # init values
-        mIndex = MainPostingListIndex(self.__mIndexFilepath)
+        mIndex = MainIndex(self.__mIndexFilepath)
         fh, tempFilePath = mkstemp(text=False)
         visited = set()
         merged, added = 0, 0
@@ -83,7 +83,7 @@ class InvertedIndexWriter(object):
 
         # beginning of merge
         print("!! delta merge !!")
-        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / InvertedIndexWriter.MB, "mb")
+        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / IndexWriter.MB, "mb")
 
         with open(tempFilePath, 'wb') as tempFile:
             # merge step 1: for each term in main update postingList (add delta and recalc idf)
@@ -119,7 +119,7 @@ class InvertedIndexWriter(object):
         self.__dictionary.save()
 
         print(self.__class__.__name__ + ":", "added", added, "new posting lists")
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / InvertedIndexWriter.MB, "mb")
+        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / IndexWriter.MB, "mb")
 
 
     def incDocumentCounter(self):
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     # indexing
     print("\n\n#### creating index ####\n")
-    index = InvertedIndexWriter(os.path.join("data", "test"))
+    index = IndexWriter(os.path.join("data", "test"))
     for term, posList in doc1:
         index.insert(term, 0, len(doc1), posList)
     index.incDocumentCounter()

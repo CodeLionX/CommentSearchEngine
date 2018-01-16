@@ -4,11 +4,11 @@ import msgpack
 
 
 """
-MainReplyToIndex (main - on disk)
+MainIndex (main - on disk)
 Structure: Offest, Size -> ReplyTo CID List
 --> ReplyTo List: [cid1, cid2, cid3, ...]
 """
-class MainReplyToIndex(object):
+class MainIndex(object):
 
     __replyToLists = None
     __replyToListsFilename = ""

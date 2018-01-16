@@ -2,7 +2,7 @@ import os
 import errno
 
 from cse.WeightCalculation import calcIdf
-from cse.indexing.PostingList import PostingList
+from cse.indexing.posting.PostingList import PostingList
 
 
 """
@@ -12,7 +12,7 @@ Posting List Entry: (cid, tf, positionsList)
 Positions List: [pos1, pos2, ...]
 --> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]
 """
-class MainPostingListIndex(object):
+class MainIndex(object):
 
     __postingLists = None
     __postingListsFilename = ""

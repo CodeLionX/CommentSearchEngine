@@ -1,9 +1,9 @@
 import os
 
+from cse.indexing import PostingList
 from cse.indexing.Dictionary import Dictionary
-from cse.indexing.MainPostingListIndex import MainPostingListIndex
-from cse.indexing.MainReplyToIndex import MainReplyToIndex
-from cse.indexing.PostingList import PostingList
+from cse.indexing.posting.MainIndex import MainIndex as MainPosting
+from cse.indexing.replyto.MainIndex import MainIndex as MainReplyTo
 
 
 class InvertedIndexReader(object):
@@ -11,9 +11,9 @@ class InvertedIndexReader(object):
 
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__mIndex = MainPostingListIndex(os.path.join(filepath, "postingLists.index"))
+        self.__mIndex = MainPosting(os.path.join(filepath, "postingLists.index"))
         self.__replyToDictionary = Dictionary(os.path.join(filepath, "replyToDictionary.index"))
-        self.__mReplyToIndex = MainReplyToIndex(os.path.join(filepath, "replyToLists.index"))
+        self.__mReplyToIndex = MainReplyTo(os.path.join(filepath, "replyToLists.index"))
 
 
     def close(self):

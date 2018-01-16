@@ -1,6 +1,6 @@
 from sys import getsizeof
 
-from cse.indexing.PostingList import PostingList
+from cse.indexing.posting.PostingList import PostingList
 
 """
 Inverted Index (delta - in memory)
@@ -10,7 +10,7 @@ Positions List: [pos1, pos2, ...]
 --> PostingsList: [(cid, tf, [pos1, pos2, ...]), ...]
 idf is not calculated until a delta merge is performed (see InvertedIndexWriter for that)
 """
-class DeltaPostingListIndex(object):
+class DeltaIndex(object):
 
     ESTIMATION_MARGIN = 300
 
@@ -72,7 +72,7 @@ class DeltaPostingListIndex(object):
     def __sizeof__(self):
         return int(getsizeof(self.__postingLists)
                 + self.__entrySize * self.__numCommentIds
-                + DeltaPostingListIndex.ESTIMATION_MARGIN)
+                + DeltaIndex.ESTIMATION_MARGIN)
 
 
     def __len__(self):
