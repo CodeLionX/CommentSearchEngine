@@ -41,13 +41,13 @@ class Dictionary(object):
 
 
     def retrieve(self, term):
-        if str(term) not in self.__dictionary:
+        if term not in self.__dictionary:
             return None
-        return self.__dictionary[str(term)]
+        return self.__dictionary[term]
 
 
     def insert(self, term, pointer, size):
-        self.__dictionary[str(term)] = (int(pointer), int(size))
+        self.__dictionary[term] = (int(pointer), int(size))
 
 
     def __len__(self):
@@ -71,7 +71,7 @@ class Dictionary(object):
 
 
     def __contains__(self, item):
-        return self.__dictionary.__contains__(str(item))
+        return self.__dictionary.__contains__(item)
 
 
     def __str__(self):

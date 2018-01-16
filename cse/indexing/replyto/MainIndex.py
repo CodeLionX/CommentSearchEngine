@@ -28,7 +28,7 @@ class MainIndex(object):
                     raise
 
         if not os.path.exists(self.__replyToListsFilename):
-            print(self.__class__.__name__ + ":", "postinglist file not available...creating file")
+            print(self.__class__.__name__ + ":", self.__replyToListsFilename, "file not available...creating file")
             os.mknod(self.__replyToListsFilename)
         #self.__replyToLists = open(self.__replyToListsFilename, 'r', newline='', encoding="utf-8")
         self.__replyToLists = open(self.__replyToListsFilename, 'rb')

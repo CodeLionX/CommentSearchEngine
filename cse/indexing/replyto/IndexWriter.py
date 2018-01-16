@@ -116,56 +116,40 @@ class IndexWriter(object):
 
 if __name__ == "__main__":
     # data
-    doc1 = [("term1", [1]), ("term5", [2,4]), ("term2", [3]), ("term4", [5])]
-    doc2 = [("term3", [1]), ("term2", [2,3,4])]
-    doc3 = [("term1", [1]), ("term5", [2,3]), ("term2", [4])]
-    doc4 = [("term2", [1,2,3])]
+    docs = [(1,1), (2,1), (3,2), (4,1), (5,4), (6,4), (7,6), (8,2)]
+    docs2 = [(9,1), (10,4), (11,2), (12,1), (13,6), (14,5)]
+    n_parents = {
+        1: 5,
+        2: 3,
+        4: 3,
+        5: 1,
+        6: 2
+    }
 
     # cleanup
-    if os.path.exists(os.path.join("data", "test", "dictionary.index")):
-        os.remove(os.path.join("data", "test", "dictionary.index"))
-    if os.path.exists(os.path.join("data", "test", "postingLists.index")):
-        os.remove(os.path.join("data", "test", "postingLists.index"))
+    if os.path.exists(os.path.join("data", "test", "replyToDictionary.index")):
+        os.remove(os.path.join("data", "test", "replyToDictionary.index"))
+    if os.path.exists(os.path.join("data", "test", "replyToLists.index")):
+        os.remove(os.path.join("data", "test", "replyToLists.index"))
 
     # indexing
     print("\n\n#### creating index ####\n")
-    index = IndexWriter(os.path.join("data", "test"))
-    for term, posList in doc1:
-        index.insert(term, 0, len(doc1), posList)
-    index.incDocumentCounter()
+    index = IndexWriter(os.path.join("data", "test", "replyToDictionary.index"), os.path.join("data", "test", "replyToLists.index"))
+    for cid, parentCid in docs:
+        index.insert(parentCid, cid)
     # delta merge
     index.deltaMerge()
 
-    for term, posList in doc2:
-        index.insert(term, 1, len(doc2), posList)
-    index.incDocumentCounter()
-    for term, posList in doc3:
-        index.insert(term, 2, len(doc3), posList)
-    index.incDocumentCounter()
-    index.deltaMerge()
-
-    for term, posList in doc4:
-        index.insert(term, 3, len(doc4), posList)
+    for cid, parentCid in docs2:
+        index.insert(parentCid, cid)
     index.close()
 
 
     # check index structure
     print("\n\n#### checking index ####\n")
-    from cse.indexing import InvertedIndexReader
-    index = InvertedIndexReader(os.path.join("data", "test"))
+    from cse.indexing import IndexReader
+    index = IndexReader(os.path.join("data", "test"))
 
-    print("term1\n", index.idf("term1"), index.postingList("term1"), "\n")
-    assert(len(index.postingList("term1")) == 2)
-
-    print("term2\n", index.idf("term2"), index.postingList("term2"), "\n")
-    assert(len(index.postingList("term2")) == 4)
-
-    print("term3\n", index.idf("term3"), index.postingList("term3"), "\n")
-    assert(len(index.postingList("term3")) == 1)
-
-    print("term4\n", index.idf("term4"), index.postingList("term4"), "\n")
-    assert(len(index.postingList("term4")) == 1)
-
-    print("term5\n", index.idf("term5"), index.postingList("term5"), "\n")
-    print(index.retrieve("term5").postingList())
-    assert(len(index.postingList("term5")) == 2)
+    for i in index.parentCids():
+        print("cid " + str(i) + ":\n", index.repliedTo(i), "\n")
+        assert len(index.repliedTo(i)) == n_parents.get(i, 0)

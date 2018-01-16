@@ -72,6 +72,8 @@ class IndexReader(object):
     def terms(self):
         return [term for term in self.__dictionary]
 
+    def parentCids(self):
+        return [cid for cid in self.__replyToDictionary]
 
     def numberOfDistinctTerms(self):
         return len(self.__dictionary)
