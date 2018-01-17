@@ -33,7 +33,7 @@ class SearchEngine():
             .addCustomStepToEnd(CustomPpStep())
             .build()
         )
-        self.__boolQueryPattern = re.compile('^([\w\d*]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*]+)+$', re.M)
+        self.__boolQueryPattern = re.compile('^([\w\d*:]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*:]+)+$', re.M)
         self.__prefixQueryPattern = re.compile('^[^\S\x0a\x0d]*([\w\d]*\*)[^\S\x0a\x0d]*$', re.I | re.M)
         self.__phraseQueryPattern = re.compile('^[^\S\x0a\x0d]*(\'[\w\d]+([^\S\x0a\x0d]*[\w\d]*)*\')[^\S\x0a\x0d]*$', re.I | re.M)
         self.__indexLoaded = False
@@ -142,8 +142,12 @@ class SearchEngine():
         # load document set per term
         for term in terms:
             cidTuples = []
-            if term.endswith("*"):
+            if term.strip().endswith("*"):
                 cidTuples = self.__prefixSearchTerm(term.replace("*", ""))
+
+            elif term.strip().startswith("ReplyTo:"):
+                cids = self.__replyToSearch(term)
+                cidTuples = [(cid, None, []) for cid in cids]
 
             else:
                 pTerm = self.__prep.processText(term)
@@ -156,7 +160,7 @@ class SearchEngine():
                 cidTuples = self.__index.postingList(pTerm[0][0])
 
             if cidTuples:
-                cidSets.append(set( (cid for cid, _ in cidTuples) ))
+                cidSets.append(set( (cid for cid, _, _ in cidTuples) ))
 
         if not cidSets:
             return []
@@ -377,6 +381,10 @@ class SearchEngine():
         print("\n\n#### Parent CID:9591")
         print(prettyPrint(self.__loadDocumentTextForCids([9591])))
         print(prettyPrint(self.search("ReplyTo:9591")))
+
+        print("\n\n#### Parent CID:9591")
+        print(prettyPrint(self.__loadDocumentTextForCids([9591])))
+        print(prettyPrint(self.search("ReplyTo:9591 AND atheist")))
 
 
 
