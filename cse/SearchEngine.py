@@ -103,6 +103,10 @@ class SearchEngine():
         elif self.__phraseQueryPattern.fullmatch(query):
             print("\n\n##### Phrase Search")
             results = self.__phraseSearch(query, topK)
+        
+        elif query.startswith('ReplyTo:'):
+            print("\n\n##### ReplyTo Search")
+            results = self.__replyToSearch(query)
 
         elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
@@ -201,6 +205,29 @@ class SearchEngine():
         rankedCids = ranker.rank()
 
         return set([cid for _, _, cid in rankedCids])
+
+
+    def __replyToSearch(self, query):
+        queryParts = query.strip().split(':')
+        if len(queryParts) > 2:
+            print(
+                self.__class__.__name__ + ":", query,
+                "is invalid! Please use only reply to queries with the following schema:",
+                "`ReplyTo:<numeric comment id>`, eg. `ReplyTo:12345`"
+            )
+            return []
+
+        try:
+            parentCid = int(queryParts[1])
+        except ArithmeticError:
+            print(
+                self.__class__.__name__ + ":", query,
+                "is invalid! Please use only reply to queries with the following schema:",
+                "`ReplyTo:<numeric comment id>`, eg. `ReplyTo:12345`"
+            )
+        
+        # load child cids and return them
+        return self.__index.repliedTo(parentCid)
 
 
     def __keywordSearch(self, query, topK):
@@ -338,6 +365,19 @@ class SearchEngine():
         print(prettyPrint(self.search("negotiate", 5)))
 
 
+    def printAssignment7QueryResults(self):
+        print("\n\n#### Parent CID:7850")
+        print(prettyPrint(self.__loadDocumentTextForCids([7850])))
+        print(prettyPrint(self.search("ReplyTo:7850")))
+
+        print("\n\n#### Parent CID:9590")
+        print(prettyPrint(self.__loadDocumentTextForCids([9590])))
+        print(prettyPrint(self.search("ReplyTo:9590")))
+
+        print("\n\n#### Parent CID:9591")
+        print(prettyPrint(self.__loadDocumentTextForCids([9591])))
+        print(prettyPrint(self.search("ReplyTo:9591")))
+
 
 
 def prettyPrint(l):
@@ -365,5 +405,6 @@ if __name__ == '__main__':
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
     #se.printTestQueryResults()
-    se.printAssignment4QueryResults()
+    #se.printAssignment4QueryResults()
+    se.printAssignment7QueryResults()
     se.close()
