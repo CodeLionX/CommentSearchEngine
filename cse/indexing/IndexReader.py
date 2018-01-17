@@ -12,7 +12,7 @@ class IndexReader(object):
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
         self.__mIndex = MainPosting(os.path.join(filepath, "postingLists.index"))
-        self.__replyToDictionary = Dictionary(os.path.join(filepath, "replyToDictionary.index"))
+        self.__replyToDictionary = Dictionary(os.path.join(filepath, "replyToDict.index"))
         self.__mReplyToIndex = MainReplyTo(os.path.join(filepath, "replyToLists.index"))
 
 
@@ -85,3 +85,12 @@ class IndexReader(object):
 
     def __exit__(self, type, value, traceback):
         self.close()
+
+
+
+if __name__ == "__main__":
+    reader = IndexReader("data")
+    for i in range(0, 2000, 10):
+        replies = reader.repliedTo(i)
+        if replies:
+            print("Parent", i, " has following replies:", replies)

@@ -33,6 +33,7 @@ class FileIndexer(object):
 
         # indexing
         self.__pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        self.__rIndex = ReplyToIndexWriter(self.__replyToListsPath, self.__replyToListsPath)
         documentMap = DocumentMap(self.__documentMapPath).open()
 
         #print("Starting indexing...")
@@ -46,6 +47,10 @@ class FileIndexer(object):
                 except KeyError:
                     tokens = self.__processComment(data["commentId"], data["comment_text"])
                     documentMap.insert(data["commentId"], lastPointer)
+                    cid = data["commentId"]
+                    parentCid = data["parent_comment_id"]
+                    if parentCid:
+                        self.__rIndex.insert(parentCid, cid)
                     self.__pIndex.incDocumentCounter()
 
                 lastPointer = dataFile.currentSeekPointer()
@@ -53,6 +58,7 @@ class FileIndexer(object):
         #print("Saving index...")
         documentMap.close()
         self.__pIndex.close()
+        self.__rIndex.close()
 
 
     def indexPostingList(self):
@@ -97,13 +103,11 @@ class FileIndexer(object):
             for data in dataFile:
                 if lastPointer == None:
                     lastPointer = dataFile.startSeekPointer()
-                try:
-                    documentMap.get(data["commentId"])
-                except KeyError:
-                    tokens = self.__processComment(data["commentId"], data["comment_text"])
-                    documentMap.insert(data["commentId"], lastPointer)
-                    self.__index.incDocumentCounter()
-                
+
+                cid = data["commentId"]
+                parentCid = data["parent_comment_id"]
+                if parentCid:
+                    self.__rIndex.insert(parentCid, cid)
                 lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
@@ -182,12 +186,13 @@ if __name__ == "__main__":
     )
 
     start = time.process_time()
-    FileIndexer("data", prep).index()
+    FileIndexer("data", prep).indexReplyToList()
     end = time.process_time()
 
     print("==========================================")
     print("elapsed time:", end - start, "secs")
 
+    """
     # test document map and comment reading
     dm = DocumentMap(os.path.join("data", "documentMap.index")).open()
     print(dm.get(1))
@@ -211,3 +216,4 @@ if __name__ == "__main__":
     print("\t", withoutArticleMapping, "secs")
     print("\nelapsed time with article mapping:")
     print("\t", withArticleMapping, "secs")
+    """
