@@ -1,9 +1,9 @@
 import os
+import msgpack
 
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.posting.PostingList import PostingList
-from cse.indexing.posting.MainIndex import MainIndex as MainPosting
-from cse.indexing.replyto.MainIndex import MainIndex as MainReplyTo
+from cse.indexing.MainIndex import MainIndex
 
 
 class IndexReader(object):
@@ -11,9 +11,9 @@ class IndexReader(object):
 
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__mIndex = MainPosting(os.path.join(filepath, "postingLists.index"))
+        self.__mIndex = MainIndex(os.path.join(filepath, "postingLists.index"), PostingList.decode)
         self.__replyToDictionary = Dictionary(os.path.join(filepath, "replyToDict.index"))
-        self.__mReplyToIndex = MainReplyTo(os.path.join(filepath, "replyToLists.index"))
+        self.__mReplyToIndex = MainIndex(os.path.join(filepath, "replyToLists.index"), msgpack.unpackb)
 
 
     def close(self):

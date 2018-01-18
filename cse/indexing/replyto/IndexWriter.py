@@ -6,8 +6,8 @@ from tempfile import mkstemp
 from shutil import move
 
 from cse.indexing.Dictionary import Dictionary
-from cse.indexing.replyto.MainIndex import MainIndex
-from cse.indexing.replyto.DeltaIndex import DeltaIndex
+from cse.indexing.MainIndex import MainIndex
+from cse.indexing.DeltaIndex import DeltaIndex
 
 
 class IndexWriter(object):
@@ -24,7 +24,7 @@ class IndexWriter(object):
 
     def __init__(self, dictFilepath, mainFilepath):
         self.__dictionary = Dictionary(dictFilepath)
-        self.__dIndex = DeltaIndex(entrySize=IndexWriter.ENTRY_SIZE)
+        self.__dIndex = DeltaIndex(list, entrySize=IndexWriter.ENTRY_SIZE)
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
 
@@ -42,10 +42,10 @@ class IndexWriter(object):
         self.__dictionary.close()
 
 
-    def insert(self, parentCid, childCids):
+    def insert(self, parentCid, childCid):
         self.__dIndex.insert(
             parentCid,
-            childCids
+            childCid
         )
 
         if self.__calls % int(IndexWriter.MEMORY_THRESHOLD / 250) == 0:
@@ -61,7 +61,7 @@ class IndexWriter(object):
             return
 
         # init values
-        mIndex = MainIndex(self.__mIndexFilepath)
+        mIndex = MainIndex(self.__mIndexFilepath, msgpack.unpackb)
         fh, tempFilePath = mkstemp(text=False)
         visited = set()
         merged, added = 0, 0
@@ -127,14 +127,14 @@ if __name__ == "__main__":
     }
 
     # cleanup
-    if os.path.exists(os.path.join("data", "test", "replyToDictionary.index")):
-        os.remove(os.path.join("data", "test", "replyToDictionary.index"))
+    if os.path.exists(os.path.join("data", "test", "replyToDict.index")):
+        os.remove(os.path.join("data", "test", "replyToDict.index"))
     if os.path.exists(os.path.join("data", "test", "replyToLists.index")):
         os.remove(os.path.join("data", "test", "replyToLists.index"))
 
     # indexing
     print("\n\n#### creating index ####\n")
-    index = IndexWriter(os.path.join("data", "test", "replyToDictionary.index"), os.path.join("data", "test", "replyToLists.index"))
+    index = IndexWriter(os.path.join("data", "test", "replyToDict.index"), os.path.join("data", "test", "replyToLists.index"))
     for cid, parentCid in docs:
         index.insert(parentCid, cid)
     # delta merge
@@ -150,6 +150,7 @@ if __name__ == "__main__":
     from cse.indexing import IndexReader
     index = IndexReader(os.path.join("data", "test"))
 
+    assert len(index.parentCids()) > 0
     for i in index.parentCids():
         print("cid " + str(i) + ":\n", index.repliedTo(i), "\n")
         assert len(index.repliedTo(i)) == n_parents.get(i, 0)
