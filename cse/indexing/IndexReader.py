@@ -2,7 +2,7 @@ import os
 import msgpack
 
 from cse.indexing.Dictionary import Dictionary
-from cse.indexing.posting.PostingList import PostingList
+from cse.indexing.PostingList import PostingList
 from cse.indexing.MainIndex import MainIndex
 
 

@@ -1,6 +1,6 @@
 import os
 
-from cse.indexing.posting.IndexWriter import IndexWriter as PostingIndexWriter
+from cse.indexing.PostingIndexWriter import PostingIndexWriter
 from cse.indexing.ReplyToIndexWriter import ReplyToIndexWriter
 from cse.indexing import DocumentMap
 from cse.reader import CommentReader
@@ -166,7 +166,7 @@ class FileIndexer(object):
             positionsList = tokenPositionsDict[token]
             # already sorted:
             #positionsList.sort()
-            self.__index.insert(token, cid, tokens, positionsList)
+            self.__pIndex.insert(token, cid, tokens, positionsList)
 
         return tokens
 

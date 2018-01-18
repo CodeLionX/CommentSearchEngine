@@ -8,4 +8,4 @@ import os
 from cse.indexing.FileIndexer import FileIndexer
 from cse.indexing.IndexReader import IndexReader
 from cse.indexing.DocumentMap import DocumentMap
-from cse.indexing.posting.PostingList import PostingList
+from cse.indexing.PostingList import PostingList

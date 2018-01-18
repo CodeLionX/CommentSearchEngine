@@ -8,10 +8,10 @@ from cse.WeightCalculation import calcTf
 from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainIndex import MainIndex
 from cse.indexing.DeltaIndex import DeltaIndex
-from cse.indexing.posting.PostingList import PostingList
+from cse.indexing.PostingList import PostingList
 
 
-class IndexWriter(object):
+class PostingIndexWriter(object):
 
     MB = 1024*1024
     # threshold for delta index to reside in memory
@@ -25,7 +25,7 @@ class IndexWriter(object):
 
     def __init__(self, dictFilepath, mainFilepath):
         self.__dictionary = Dictionary(dictFilepath)
-        self.__dIndex = DeltaIndex(PostingList, entrySize=IndexWriter.POSTING_LIST_ENTRY_SIZE)
+        self.__dIndex = DeltaIndex(PostingList, entrySize=PostingIndexWriter.POSTING_LIST_ENTRY_SIZE)
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
         self.__nDocuments = 0
@@ -34,7 +34,7 @@ class IndexWriter(object):
     def __shouldDeltaMerge(self):
         print("delta size check [Bytes]:", self.__dIndex.estimatedSize())
         # check memory usage
-        if self.__dIndex.estimatedSize() > IndexWriter.MEMORY_THRESHOLD:
+        if self.__dIndex.estimatedSize() > PostingIndexWriter.MEMORY_THRESHOLD:
             self.deltaMerge()
             self.__calls = -1
 
@@ -50,7 +50,7 @@ class IndexWriter(object):
             (int(commentId), calcTf(nTerms, len(positions)), positions)
         )
 
-        if self.__calls % int(IndexWriter.MEMORY_THRESHOLD / 250) == 0:
+        if self.__calls % int(PostingIndexWriter.MEMORY_THRESHOLD / 250) == 0:
             self.__shouldDeltaMerge()
 
         self.__calls = self.__calls + 1
@@ -81,7 +81,7 @@ class IndexWriter(object):
 
         # beginning of merge
         print("!! delta merge !!")
-        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / IndexWriter.MB, "mb")
+        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / PostingIndexWriter.MB, "mb")
 
         with open(tempFilePath, 'wb') as tempFile:
             # merge step 1: for each term in main update postingList (add delta and recalc idf)
@@ -117,7 +117,7 @@ class IndexWriter(object):
         self.__dictionary.save()
 
         print(self.__class__.__name__ + ":", "added", added, "new posting lists")
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / IndexWriter.MB, "mb")
+        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / PostingIndexWriter.MB, "mb")
 
 
     def incDocumentCounter(self):
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     # indexing
     print("\n\n#### creating index ####\n")
-    index = IndexWriter(os.path.join("data", "test", "dictionary.index"), os.path.join("data", "test", "postingLists.index"))
+    index = PostingIndexWriter(os.path.join("data", "test", "dictionary.index"), os.path.join("data", "test", "postingLists.index"))
     for term, posList in doc1:
         index.insert(term, 0, len(doc1), posList)
     index.incDocumentCounter()
