@@ -10,7 +10,7 @@ from cse.indexing.MainIndex import MainIndex
 from cse.indexing.DeltaIndex import DeltaIndex
 
 
-class IndexWriter(object):
+class ReplyToIndexWriter(object):
 
     MB = 1024*1024
     # threshold for delta index to reside in memory
@@ -24,7 +24,7 @@ class IndexWriter(object):
 
     def __init__(self, dictFilepath, mainFilepath):
         self.__dictionary = Dictionary(dictFilepath)
-        self.__dIndex = DeltaIndex(list, entrySize=IndexWriter.ENTRY_SIZE)
+        self.__dIndex = DeltaIndex(list, entrySize=ReplyToIndexWriter.ENTRY_SIZE)
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
 
@@ -32,7 +32,7 @@ class IndexWriter(object):
     def __shouldDeltaMerge(self):
         print("delta size check [Bytes]:", self.__dIndex.estimatedSize())
         # check memory usage
-        if self.__dIndex.estimatedSize() > IndexWriter.MEMORY_THRESHOLD:
+        if self.__dIndex.estimatedSize() > ReplyToIndexWriter.MEMORY_THRESHOLD:
             self.deltaMerge()
             self.__calls = -1
 
@@ -48,7 +48,7 @@ class IndexWriter(object):
             childCid
         )
 
-        if self.__calls % int(IndexWriter.MEMORY_THRESHOLD / 250) == 0:
+        if self.__calls % int(ReplyToIndexWriter.MEMORY_THRESHOLD / 250) == 0:
             self.__shouldDeltaMerge()
 
         self.__calls = self.__calls + 1
@@ -74,7 +74,7 @@ class IndexWriter(object):
 
         # beginning of merge
         print("!! delta merge !!")
-        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / IndexWriter.MB, "mb")
+        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / ReplyToIndexWriter.MB, "mb")
 
         with open(tempFilePath, 'wb') as tempFile:
             # merge step 1: for each parent cid in main update cid list (add delta)
@@ -110,7 +110,7 @@ class IndexWriter(object):
         self.__dictionary.save()
 
         print(self.__class__.__name__ + ":", "added", added, "new posting lists")
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / IndexWriter.MB, "mb")
+        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / ReplyToIndexWriter.MB, "mb")
 
 
 
@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
     # indexing
     print("\n\n#### creating index ####\n")
-    index = IndexWriter(os.path.join("data", "test", "replyToDict.index"), os.path.join("data", "test", "replyToLists.index"))
+    index = ReplyToIndexWriter(os.path.join("data", "test", "replyToDict.index"), os.path.join("data", "test", "replyToLists.index"))
     for cid, parentCid in docs:
         index.insert(parentCid, cid)
     # delta merge

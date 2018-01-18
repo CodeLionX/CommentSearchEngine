@@ -1,7 +1,7 @@
 import os
 
 from cse.indexing.posting.IndexWriter import IndexWriter as PostingIndexWriter
-from cse.indexing.replyto.IndexWriter import IndexWriter as ReplyToIndexWriter
+from cse.indexing.ReplyToIndexWriter import ReplyToIndexWriter
 from cse.indexing import DocumentMap
 from cse.reader import CommentReader
 
