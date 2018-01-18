@@ -173,7 +173,7 @@ if __name__ == "__main__":
     )
 
     start = time.process_time()
-    FileIndexer("data", prep).indexReplyToList()
+    FileIndexer("data", prep).index()
     end = time.process_time()
 
     print("==========================================")
