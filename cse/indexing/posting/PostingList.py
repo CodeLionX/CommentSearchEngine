@@ -28,8 +28,9 @@ class PostingListBase(abc.ABC):
     def idf(self):
         return self._idf
 
-    def append(self, cid, tf, positionList):
-        self._postingList.append((cid, tf, positionList))
+    def append(self, values):
+        # cid, tf, positionList = values[0], values[1], values[2]
+        self._postingList.append(values)
 
     def merge(cls1, cls2):
         """
@@ -117,7 +118,8 @@ class CidDeltaCodec(PostingListBase):
         self.__baseCid = 0
         self.__plWasDecoded = False
 
-    def append(self, cid, tf, positionList):
+    def append(self, values):
+        cid, tf, positionList = values
         self._postingList.append((cid - self.__baseCid, tf, positionList))
         self.__baseCid = cid
 
@@ -170,14 +172,14 @@ class PostingList(CidDeltaCodec, PostingListBinaryBase):
 
 if __name__ == "__main__":
     p = PostingList()
-    p.append(112, 0.1, [1,2,3])
-    p.append(113, 0.112, [1,5,9])
-    p.append(115, 0.23, [1,3,19])
-    p.append(116, 0.002, [9,18,22])
+    p.append((112, 0.1, [1,2,3]))
+    p.append((113, 0.112, [1,5,9]))
+    p.append((115, 0.23, [1,3,19]))
+    p.append((116, 0.002, [9,18,22]))
     p.updateIdf(6)
     p2 = PostingList()
-    p2.append(130, 0.001, [9])
-    p2.append(131, 0.02, [4,7,9])
+    p2.append((130, 0.001, [9]))
+    p2.append((131, 0.02, [4,7,9]))
     p2.updateIdf(6)
 
     pl1 = p.encode()

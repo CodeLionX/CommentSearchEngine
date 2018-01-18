@@ -6,8 +6,8 @@ from shutil import move
 
 from cse.WeightCalculation import calcTf
 from cse.indexing.Dictionary import Dictionary
-from cse.indexing.posting.MainIndex import MainIndex
-from cse.indexing.posting.DeltaIndex import DeltaIndex
+from cse.indexing.MainIndex import MainIndex
+from cse.indexing.DeltaIndex import DeltaIndex
 from cse.indexing.posting.PostingList import PostingList
 
 
@@ -25,7 +25,7 @@ class IndexWriter(object):
 
     def __init__(self, dictFilepath, mainFilepath):
         self.__dictionary = Dictionary(dictFilepath)
-        self.__dIndex = DeltaIndex(entrySize=IndexWriter.POSTING_LIST_ENTRY_SIZE)
+        self.__dIndex = DeltaIndex(PostingList, entrySize=IndexWriter.POSTING_LIST_ENTRY_SIZE)
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
         self.__nDocuments = 0
@@ -47,9 +47,7 @@ class IndexWriter(object):
     def insert(self, term, commentId, nTerms, positions):
         self.__dIndex.insert(
             term,
-            int(commentId),
-            calcTf(nTerms, len(positions)),
-            positions
+            (int(commentId), calcTf(nTerms, len(positions)), positions)
         )
 
         if self.__calls % int(IndexWriter.MEMORY_THRESHOLD / 250) == 0:
@@ -69,7 +67,7 @@ class IndexWriter(object):
             return
 
         # init values
-        mIndex = MainIndex(self.__mIndexFilepath)
+        mIndex = MainIndex(self.__mIndexFilepath, PostingList.decode)
         fh, tempFilePath = mkstemp(text=False)
         visited = set()
         merged, added = 0, 0
@@ -142,7 +140,7 @@ if __name__ == "__main__":
 
     # indexing
     print("\n\n#### creating index ####\n")
-    index = IndexWriter(os.path.join("data", "test"))
+    index = IndexWriter(os.path.join("data", "test", "dictionary.index"), os.path.join("data", "test", "postingLists.index"))
     for term, posList in doc1:
         index.insert(term, 0, len(doc1), posList)
     index.incDocumentCounter()
@@ -164,8 +162,8 @@ if __name__ == "__main__":
 
     # check index structure
     print("\n\n#### checking index ####\n")
-    from cse.indexing import InvertedIndexReader
-    index = InvertedIndexReader(os.path.join("data", "test"))
+    from cse.indexing import IndexReader
+    index = IndexReader(os.path.join("data", "test"))
 
     print("term1\n", index.idf("term1"), index.postingList("term1"), "\n")
     assert(len(index.postingList("term1")) == 2)
