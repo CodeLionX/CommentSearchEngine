@@ -31,7 +31,7 @@ class MainIndex(object):
                     raise
 
         if not os.path.exists(self._indexFilename):
-            print(self.__class__.__name__ + ":", "main index file not available...creating empty file")
+            print(self.__class__.__name__ + ":", "main index file", self._indexFilename, "not available...creating empty file")
             os.mknod(self._indexFilename)
 
         self._indexFile = open(self._indexFilename, 'rb')

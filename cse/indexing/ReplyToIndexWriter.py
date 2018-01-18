@@ -109,8 +109,8 @@ class ReplyToIndexWriter(object):
         move(tempFilePath, self.__mIndexFilepath)
         self.__dictionary.save()
 
-        print(self.__class__.__name__ + ":", "added", added, "new posting lists")
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / ReplyToIndexWriter.MB, "mb")
+        print(self.__class__.__name__ + ":", "added", added, "new entries")
+        print(self.__class__.__name__ + ":", "new ReplyTo index file has size:", os.path.getsize(self.__mIndexFilepath) / ReplyToIndexWriter.MB, "mb")
 
 
 

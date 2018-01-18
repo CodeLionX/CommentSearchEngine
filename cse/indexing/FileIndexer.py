@@ -13,8 +13,6 @@ class FileIndexer(object):
     def __init__(self, directory, preprocessor):
         self.__directory = directory
         self.__prep = preprocessor
-        self.__pIndex = None
-        self.__rIndex = None
         self.__multiFileIndexPath   = os.path.join(directory, "multiFileIndex.index")
         self.__documentMapPath      = os.path.join(directory, "documentMap.index")
         self.__dictionaryPath       = os.path.join(directory, "dictionary.index")
@@ -31,11 +29,12 @@ class FileIndexer(object):
         # cleanup
         self.__deletePreviousIndexFiles()
 
-        # indexing
-        self.__pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
-        self.__rIndex = ReplyToIndexWriter(self.__replyToListsPath, self.__replyToListsPath)
+        # setup index writers
+        pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        rIndex = ReplyToIndexWriter(self.__replyToListsPath, self.__replyToListsPath)
         documentMap = DocumentMap(self.__documentMapPath).open()
 
+        # start indexing the comments file
         #print("Starting indexing...")
         with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
             lastPointer = None
@@ -45,30 +44,34 @@ class FileIndexer(object):
                 try:
                     documentMap.get(data["commentId"])
                 except KeyError:
-                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    # update document map
                     documentMap.insert(data["commentId"], lastPointer)
+                    # index comment text tokens
+                    tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
+                    pIndex.incDocumentCounter()
+                    # index comment parent-child structure
                     cid = data["commentId"]
                     parentCid = data["parent_comment_id"]
                     if parentCid:
-                        self.__rIndex.insert(parentCid, cid)
-                    self.__pIndex.incDocumentCounter()
+                        rIndex.insert(parentCid, cid)
 
                 lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
         documentMap.close()
-        self.__pIndex.close()
-        self.__rIndex.close()
+        pIndex.close()
+        rIndex.close()
 
 
     def indexPostingList(self):
         # cleanup
         self.__deletePreviousIndexFiles(replyToLists=False)
 
-        # indexing
-        self.__pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        # setup index writers
+        pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
         documentMap = DocumentMap(self.__documentMapPath).open()
 
+        # start indexing the comments file
         #print("Starting indexing...")
         with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
             lastPointer = None
@@ -78,25 +81,28 @@ class FileIndexer(object):
                 try:
                     documentMap.get(data["commentId"])
                 except KeyError:
-                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    # update document map
                     documentMap.insert(data["commentId"], lastPointer)
-                    self.__pIndex.incDocumentCounter()
+                    # index comment text tokens
+                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    pIndex.incDocumentCounter()
 
                 lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
         documentMap.close()
-        self.__pIndex.close()
-        self.__pIndex = None
+        pIndex.close()
+        pIndex = None
 
 
     def indexReplyToList(self):
         # cleanup
         self.__deletePreviousIndexFiles(documentMap=False, postingLists=False)
 
-        # indexing
-        self.__rIndex = ReplyToIndexWriter(self.__replyToDictPath, self.__replyToListsPath)
+        # setup index writers
+        rIndex = ReplyToIndexWriter(self.__replyToDictPath, self.__replyToListsPath)
 
+        # start indexing the comments file
         #print("Starting indexing...")
         with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
             lastPointer = None
@@ -104,15 +110,16 @@ class FileIndexer(object):
                 if lastPointer == None:
                     lastPointer = dataFile.startSeekPointer()
 
+                # index comment parent-child structure
                 cid = data["commentId"]
                 parentCid = data["parent_comment_id"]
                 if parentCid:
-                    self.__rIndex.insert(parentCid, cid)
+                    rIndex.insert(parentCid, cid)
                 lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
-        self.__rIndex.close()
-        self.__rIndex = None
+        rIndex.close()
+        rIndex = None
 
 
     def __deletePreviousIndexFiles(self, documentMap=True, postingLists=True, replyToLists=True):
@@ -132,27 +139,7 @@ class FileIndexer(object):
             os.remove(self.__replyToListsPath)
 
 
-    def indexMultiFile(self):
-        raise DeprecationWarning("deprecated and not longer supported")
-
-
-    def __createMultiFileIndex(self):
-        from cse.helper.createIndex import createMultiFileIndex
-        createMultiFileIndex(self.__directory, os.path.basename(self.__multiFileIndexPath))
-
-
-    def __createIndexForArticle(self, filename):
-        cr = CommentReader(os.path.join("data", "raw", filename))
-        cr.open()
-        fileData = cr.readAllData()
-
-        for cid in fileData["comments"]:
-            self.__processComment(cid, fileData["comments"][cid]["comment_text"])
-
-        cr.close()
-
-
-    def __processComment(self, cid, comment):
+    def __processComment(self, index, cid, comment):
         tokenTuples = self.__prep.processText(comment)
         tokens = len(tokenTuples)
 
@@ -166,7 +153,7 @@ class FileIndexer(object):
             positionsList = tokenPositionsDict[token]
             # already sorted:
             #positionsList.sort()
-            self.__pIndex.insert(token, cid, tokens, positionsList)
+            index.insert(token, cid, tokens, positionsList)
 
         return tokens
 

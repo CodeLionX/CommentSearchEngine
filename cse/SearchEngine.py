@@ -82,8 +82,7 @@ class SearchEngine():
         if self.__indexLoaded:
             self.releaseIndex()
 
-        indexer = FileIndexer(self.__directory, self.__prep)
-        indexer.index()
+        FileIndexer(self.__directory, self.__prep).index()
 
 
     def close(self):
