@@ -131,7 +131,7 @@ def profileMemory(func, docs, query, warm=False):
     tracemalloc.start()
     results = []
     for doc in docs:
-        r = cosineSimilarity(doc, query)
+        r = func(doc, query)
         results.append(r)
 
     snapshots[func.__name__] = tracemalloc.take_snapshot()
