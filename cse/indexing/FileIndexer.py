@@ -52,7 +52,7 @@ class FileIndexer(object):
                     # index comment parent-child structure
                     cid = data["commentId"]
                     parentCid = data["parent_comment_id"]
-                    if parentCid:
+                    if parentCid and parentCid != cid:
                         rIndex.insert(parentCid, cid)
 
                 lastPointer = dataFile.currentSeekPointer()
@@ -84,7 +84,7 @@ class FileIndexer(object):
                     # update document map
                     documentMap.insert(data["commentId"], lastPointer)
                     # index comment text tokens
-                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
                     pIndex.incDocumentCounter()
 
                 lastPointer = dataFile.currentSeekPointer()
@@ -113,7 +113,7 @@ class FileIndexer(object):
                 # index comment parent-child structure
                 cid = data["commentId"]
                 parentCid = data["parent_comment_id"]
-                if parentCid:
+                if parentCid and parentCid != cid:
                     rIndex.insert(parentCid, cid)
                 lastPointer = dataFile.currentSeekPointer()
 
