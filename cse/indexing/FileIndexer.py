@@ -1,6 +1,7 @@
 import os
 
-from cse.indexing import InvertedIndexWriter
+from cse.indexing.PostingIndexWriter import PostingIndexWriter
+from cse.indexing.ReplyToIndexWriter import ReplyToIndexWriter
 from cse.indexing import DocumentMap
 from cse.reader import CommentReader
 
@@ -16,6 +17,8 @@ class FileIndexer(object):
         self.__documentMapPath      = os.path.join(directory, "documentMap.index")
         self.__dictionaryPath       = os.path.join(directory, "dictionary.index")
         self.__postingListsPath     = os.path.join(directory, "postingLists.index")
+        self.__replyToDictPath      = os.path.join(directory, "replyToDict.index")
+        self.__replyToListsPath     = os.path.join(directory, "replyToLists.index")
         self.__dataFolderPath       = os.path.join(directory, "raw")
         self.__commentsFilePath     = os.path.join(directory, "comments.data")
         self.__articleFilePath      = os.path.join(directory, "articleMapping.data")
@@ -26,10 +29,12 @@ class FileIndexer(object):
         # cleanup
         self.__deletePreviousIndexFiles()
 
-        # indexing
-        self.__index = InvertedIndexWriter(self.__directory)
+        # setup index writers
+        pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        rIndex = ReplyToIndexWriter(self.__replyToListsPath, self.__replyToListsPath)
         documentMap = DocumentMap(self.__documentMapPath).open()
 
+        # start indexing the comments file
         #print("Starting indexing...")
         with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
             lastPointer = None
@@ -39,49 +44,102 @@ class FileIndexer(object):
                 try:
                     documentMap.get(data["commentId"])
                 except KeyError:
-                    tokens = self.__processComment(data["commentId"], data["comment_text"])
+                    # update document map
                     documentMap.insert(data["commentId"], lastPointer)
-                    self.__index.incDocumentCounter()
-                
+                    # index comment text tokens
+                    tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
+                    pIndex.incDocumentCounter()
+                    # index comment parent-child structure
+                    cid = data["commentId"]
+                    parentCid = data["parent_comment_id"]
+                    if parentCid and parentCid != cid:
+                        rIndex.insert(parentCid, cid)
+
                 lastPointer = dataFile.currentSeekPointer()
 
         #print("Saving index...")
         documentMap.close()
-        self.__index.close()
+        pIndex.close()
+        rIndex.close()
 
 
-    def __deletePreviousIndexFiles(self):
-        if os.path.exists(self.__documentMapPath):
+    def indexPostingList(self):
+        # cleanup
+        self.__deletePreviousIndexFiles(replyToLists=False)
+
+        # setup index writers
+        pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        documentMap = DocumentMap(self.__documentMapPath).open()
+
+        # start indexing the comments file
+        #print("Starting indexing...")
+        with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
+            lastPointer = None
+            for data in dataFile:
+                if lastPointer == None:
+                    lastPointer = dataFile.startSeekPointer()
+                try:
+                    documentMap.get(data["commentId"])
+                except KeyError:
+                    # update document map
+                    documentMap.insert(data["commentId"], lastPointer)
+                    # index comment text tokens
+                    tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
+                    pIndex.incDocumentCounter()
+
+                lastPointer = dataFile.currentSeekPointer()
+
+        #print("Saving index...")
+        documentMap.close()
+        pIndex.close()
+        pIndex = None
+
+
+    def indexReplyToList(self):
+        # cleanup
+        self.__deletePreviousIndexFiles(documentMap=False, postingLists=False)
+
+        # setup index writers
+        rIndex = ReplyToIndexWriter(self.__replyToDictPath, self.__replyToListsPath)
+
+        # start indexing the comments file
+        #print("Starting indexing...")
+        with CommentReader(self.__commentsFilePath, self.__articleFilePath, self.__authorsFilePath) as dataFile:
+            lastPointer = None
+            for data in dataFile:
+                if lastPointer == None:
+                    lastPointer = dataFile.startSeekPointer()
+
+                # index comment parent-child structure
+                cid = data["commentId"]
+                parentCid = data["parent_comment_id"]
+                if parentCid and parentCid != cid:
+                    rIndex.insert(parentCid, cid)
+                lastPointer = dataFile.currentSeekPointer()
+
+        #print("Saving index...")
+        rIndex.close()
+        rIndex = None
+
+
+    def __deletePreviousIndexFiles(self, documentMap=True, postingLists=True, replyToLists=True):
+        if documentMap and os.path.exists(self.__documentMapPath):
             os.remove(self.__documentMapPath)
 
-        if os.path.exists(self.__dictionaryPath):
+        if postingLists and os.path.exists(self.__dictionaryPath):
             os.remove(self.__dictionaryPath)
 
-        if os.path.exists(self.__postingListsPath):
+        if postingLists and os.path.exists(self.__postingListsPath):
             os.remove(self.__postingListsPath)
 
+        if replyToLists and os.path.exists(self.__replyToDictPath):
+            os.remove(self.__replyToDictPath)
 
-    def indexMultiFile(self):
-        raise DeprecationWarning("deprecated and not longer supported")
-
-
-    def __createMultiFileIndex(self):
-        from cse.helper.createIndex import createMultiFileIndex
-        createMultiFileIndex(self.__directory, os.path.basename(self.__multiFileIndexPath))
+        if replyToLists and os.path.exists(self.__replyToListsPath):
+            os.remove(self.__replyToListsPath)
 
 
-    def __createIndexForArticle(self, filename):
-        cr = CommentReader(os.path.join("data", "raw", filename))
-        cr.open()
-        fileData = cr.readAllData()
-
-        for cid in fileData["comments"]:
-            self.__processComment(cid, fileData["comments"][cid]["comment_text"])
-
-        cr.close()
-
-
-    def __processComment(self, cid, comment):
+    def __processComment(self, index, cid, comment):
         tokenTuples = self.__prep.processText(comment)
         tokens = len(tokenTuples)
 
@@ -95,7 +153,7 @@ class FileIndexer(object):
             positionsList = tokenPositionsDict[token]
             # already sorted:
             #positionsList.sort()
-            self.__index.insert(token, cid, tokens, positionsList)
+            index.insert(token, cid, tokens, positionsList)
 
         return tokens
 
@@ -121,6 +179,7 @@ if __name__ == "__main__":
     print("==========================================")
     print("elapsed time:", end - start, "secs")
 
+    """
     # test document map and comment reading
     dm = DocumentMap(os.path.join("data", "documentMap.index")).open()
     print(dm.get(1))
@@ -144,3 +203,4 @@ if __name__ == "__main__":
     print("\t", withoutArticleMapping, "secs")
     print("\nelapsed time with article mapping:")
     print("\t", withArticleMapping, "secs")
+    """

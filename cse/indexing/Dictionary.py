@@ -25,7 +25,9 @@ class Dictionary(object):
                     raise
 
         if not os.path.exists(self.__filename):
-            print(self.__class__.__name__ + ":", "dictionary file not available...creating new dictionary in-memory, " +
+            print(self.__class__.__name__ + ":", "dictionary file",
+                  self.__filename,
+                  "not available...creating new dictionary in-memory, " +
                   "call save() to save to disk!")
             self.__dictionary = {}
         else:
@@ -41,13 +43,13 @@ class Dictionary(object):
 
 
     def retrieve(self, term):
-        if str(term) not in self.__dictionary:
+        if term not in self.__dictionary:
             return None
-        return self.__dictionary[str(term)]
+        return self.__dictionary[term]
 
 
     def insert(self, term, pointer, size):
-        self.__dictionary[str(term)] = (int(pointer), int(size))
+        self.__dictionary[term] = (int(pointer), int(size))
 
 
     def __len__(self):
@@ -71,7 +73,7 @@ class Dictionary(object):
 
 
     def __contains__(self, item):
-        return self.__dictionary.__contains__(str(item))
+        return self.__dictionary.__contains__(item)
 
 
     def __str__(self):

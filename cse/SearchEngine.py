@@ -4,11 +4,9 @@ import functools
 
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
-from cse.indexing import (InvertedIndexReader, DocumentMap)
-from cse.indexing.FileIndexer import FileIndexer
+from cse.indexing import (FileIndexer, IndexReader, DocumentMap)
 from cse.reader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
-from cse.helper.MultiFileMap import MultiFileMap
 from cse.Ranker import Ranker
 
 
@@ -35,7 +33,7 @@ class SearchEngine():
             .addCustomStepToEnd(CustomPpStep())
             .build()
         )
-        self.__boolQueryPattern = re.compile('^([\w\d*]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*]+)+$', re.M)
+        self.__boolQueryPattern = re.compile('^([\w\d*:]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*:]+)+$', re.M)
         self.__prefixQueryPattern = re.compile('^[^\S\x0a\x0d]*([\w\d]*\*)[^\S\x0a\x0d]*$', re.I | re.M)
         self.__phraseQueryPattern = re.compile('^[^\S\x0a\x0d]*(\'[\w\d]+([^\S\x0a\x0d]*[\w\d]*)*\')[^\S\x0a\x0d]*$', re.I | re.M)
         self.__indexLoaded = False
@@ -50,7 +48,7 @@ class SearchEngine():
             return
 
         print(self.__class__.__name__ + ":", "loading index files and comment reader")
-        self.__index = InvertedIndexReader(
+        self.__index = IndexReader(
             self.__directory
         )
 
@@ -84,8 +82,7 @@ class SearchEngine():
         if self.__indexLoaded:
             self.releaseIndex()
 
-        indexer = FileIndexer(self.__directory, self.__prep)
-        indexer.index()
+        FileIndexer(self.__directory, self.__prep).index()
 
 
     def close(self):
@@ -105,6 +102,10 @@ class SearchEngine():
         elif self.__phraseQueryPattern.fullmatch(query):
             print("\n\n##### Phrase Search")
             results = self.__phraseSearch(query, topK)
+        
+        elif query.startswith('ReplyTo:'):
+            print("\n\n##### ReplyTo Search")
+            results = self.__replyToSearch(query)
 
         elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
@@ -140,8 +141,12 @@ class SearchEngine():
         # load document set per term
         for term in terms:
             cidTuples = []
-            if term.endswith("*"):
+            if term.strip().endswith("*"):
                 cidTuples = self.__prefixSearchTerm(term.replace("*", ""))
+
+            elif term.strip().startswith("ReplyTo:"):
+                cids = self.__replyToSearch(term)
+                cidTuples = [(cid, None, []) for cid in cids]
 
             else:
                 pTerm = self.__prep.processText(term)
@@ -154,7 +159,7 @@ class SearchEngine():
                 cidTuples = self.__index.postingList(pTerm[0][0])
 
             if cidTuples:
-                cidSets.append(set( (cid for cid, _ in cidTuples) ))
+                cidSets.append(set( (cid for cid, _, _ in cidTuples) ))
 
         if not cidSets:
             return []
@@ -203,6 +208,29 @@ class SearchEngine():
         rankedCids = ranker.rank()
 
         return set([cid for _, _, cid in rankedCids])
+
+
+    def __replyToSearch(self, query):
+        queryParts = query.strip().split(':')
+        if len(queryParts) > 2:
+            print(
+                self.__class__.__name__ + ":", query,
+                "is invalid! Please use only reply to queries with the following schema:",
+                "`ReplyTo:<numeric comment id>`, eg. `ReplyTo:12345`"
+            )
+            return []
+
+        try:
+            parentCid = int(queryParts[1])
+        except ArithmeticError:
+            print(
+                self.__class__.__name__ + ":", query,
+                "is invalid! Please use only reply to queries with the following schema:",
+                "`ReplyTo:<numeric comment id>`, eg. `ReplyTo:12345`"
+            )
+        
+        # load child cids and return them
+        return self.__index.repliedTo(parentCid)
 
 
     def __keywordSearch(self, query, topK):
@@ -340,6 +368,23 @@ class SearchEngine():
         print(prettyPrint(self.search("negotiate", 5)))
 
 
+    def printAssignment7QueryResults(self):
+        print("\n\n#### Parent CID:7850")
+        print(prettyPrint(self.__loadDocumentTextForCids([7850])))
+        print(prettyPrint(self.search("ReplyTo:7850")))
+
+        print("\n\n#### Parent CID:9590")
+        print(prettyPrint(self.__loadDocumentTextForCids([9590])))
+        print(prettyPrint(self.search("ReplyTo:9590")))
+
+        print("\n\n#### Parent CID:9591")
+        print(prettyPrint(self.__loadDocumentTextForCids([9591])))
+        print(prettyPrint(self.search("ReplyTo:9591")))
+
+        print("\n\n#### Parent CID:9591")
+        print(prettyPrint(self.__loadDocumentTextForCids([9591])))
+        print(prettyPrint(self.search("ReplyTo:9591 AND atheist")))
+
 
 
 def prettyPrint(l):
@@ -367,5 +412,6 @@ if __name__ == '__main__':
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
     #se.printTestQueryResults()
-    se.printAssignment4QueryResults()
+    #se.printAssignment4QueryResults()
+    se.printAssignment7QueryResults()
     se.close()

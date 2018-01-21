@@ -1,21 +1,26 @@
 import os
+import msgpack
 
 from cse.indexing.Dictionary import Dictionary
-from cse.indexing.MainPostingListIndex import MainPostingListIndex
 from cse.indexing.PostingList import PostingList
+from cse.indexing.MainIndex import MainIndex
 
 
-class InvertedIndexReader(object):
+class IndexReader(object):
 
 
     def __init__(self, filepath):
         self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__mIndex = MainPostingListIndex(os.path.join(filepath, "postingLists.index"))
+        self.__mIndex = MainIndex(os.path.join(filepath, "postingLists.index"), PostingList.decode)
+        self.__replyToDictionary = Dictionary(os.path.join(filepath, "replyToDict.index"))
+        self.__mReplyToIndex = MainIndex(os.path.join(filepath, "replyToLists.index"), msgpack.unpackb)
 
 
     def close(self):
         self.__dictionary.close()
         self.__mIndex.close()
+        self.__replyToDictionary.close()
+        self.__mReplyToIndex.close()
 
 
     def retrieve(self, term):
@@ -24,6 +29,14 @@ class InvertedIndexReader(object):
             return self.__mIndex[(pointer, size)]
         else:
             return PostingList()
+
+
+    def repliedTo(self, parentCid):
+        if parentCid in self.__replyToDictionary:
+            pointer, size = self.__replyToDictionary[parentCid]
+            return self.__mReplyToIndex[(pointer, size)]
+        else:
+            return []
 
 
     def postingList(self, term):
@@ -59,6 +72,8 @@ class InvertedIndexReader(object):
     def terms(self):
         return [term for term in self.__dictionary]
 
+    def parentCids(self):
+        return [cid for cid in self.__replyToDictionary]
 
     def numberOfDistinctTerms(self):
         return len(self.__dictionary)
@@ -70,3 +85,12 @@ class InvertedIndexReader(object):
 
     def __exit__(self, type, value, traceback):
         self.close()
+
+
+
+if __name__ == "__main__":
+    reader = IndexReader("data")
+    for i in range(0, 2000, 10):
+        replies = reader.repliedTo(i)
+        if replies:
+            print("Parent", i, " has following replies:", replies)
