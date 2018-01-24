@@ -54,7 +54,12 @@ class Ranker(object):
             rankedDocs.append((score, cid))
         rankedDocs.sort(key=lambda x: -x[0])
 
-        return [(i+1, rankedDoc[0], rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs[:self.__limit])]
+        if self.__limit:
+            limit = self.__limit
+        else:
+            limit = len(rankedDocs)
+
+        return [(i+1, rankedDoc[0], rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs[:limit])]
         #return [(i+1, rankedDoc[1]) for i, rankedDoc in enumerate(rankedDocs)]
 
 

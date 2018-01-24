@@ -33,9 +33,26 @@ class SearchEngine():
             .addCustomStepToEnd(CustomPpStep())
             .build()
         )
-        self.__boolQueryPattern = re.compile('^([\w\d*:]+[^\S\x0a\x0d]*(NOT|OR|AND)[^\S\x0a\x0d]*[\w\d*:]+)+$', re.M)
-        self.__prefixQueryPattern = re.compile('^[^\S\x0a\x0d]*([\w\d]*\*)[^\S\x0a\x0d]*$', re.I | re.M)
-        self.__phraseQueryPattern = re.compile('^[^\S\x0a\x0d]*(\'[\w\d]+([^\S\x0a\x0d]*[\w\d]*)*\')[^\S\x0a\x0d]*$', re.I | re.M)
+        self.__pattern_whitespace = '[^\S\x0a\x0d]*'
+        self.__pattern_keyword = '[\w\d]+'
+        self.__pattern_prefix = self.__pattern_keyword + '\*'
+        self.__pattern_phrase = '\'' + self.__pattern_keyword + '(' + self.__pattern_whitespace + self.__pattern_keyword + ')*\''
+        self.__boolQueryPattern = re.compile(
+            '^(([\w\d*:]+|(' + self.__pattern_phrase + '))' 
+                + self.__pattern_whitespace 
+                + '(NOT|OR|AND)' 
+                + self.__pattern_whitespace 
+                + '([\w\d*:]+|(' + self.__pattern_phrase + ')))+$',
+            re.M
+        )
+        self.__prefixQueryPattern = re.compile(
+            '^' + self.__pattern_whitespace + self.__pattern_prefix + self.__pattern_whitespace + '$',
+            re.I | re.M
+        )
+        self.__phraseQueryPattern = re.compile(
+            '^' + self.__pattern_whitespace + self.__pattern_phrase + self.__pattern_whitespace + '$',
+            re.I | re.M
+        )
         self.__indexLoaded = False
         self.__index = None
         self.__documentMap = None
@@ -146,6 +163,10 @@ class SearchEngine():
 
             elif term.strip().startswith("ReplyTo:"):
                 cids = self.__replyToSearch(term)
+                cidTuples = [(cid, None, []) for cid in cids]
+
+            elif self.__phraseQueryPattern.fullmatch(term):
+                cids = self.__phraseSearch(term, None)
                 cidTuples = [(cid, None, []) for cid in cids]
 
             else:
@@ -369,21 +390,21 @@ class SearchEngine():
 
 
     def printAssignment7QueryResults(self):
-        print("\n\n#### Parent CID:7850")
-        print(prettyPrint(self.__loadDocumentTextForCids([7850])))
-        print(prettyPrint(self.search("ReplyTo:7850")))
+        # print("\n\n#### Parent CID:7850")
+        # print(prettyPrint(self.__loadDocumentTextForCids([7850])))
+        # print(prettyPrint(self.search("ReplyTo:7850")))
 
-        print("\n\n#### Parent CID:9590")
-        print(prettyPrint(self.__loadDocumentTextForCids([9590])))
-        print(prettyPrint(self.search("ReplyTo:9590")))
+        # print("\n\n#### Parent CID:9590")
+        # print(prettyPrint(self.__loadDocumentTextForCids([9590])))
+        # print(prettyPrint(self.search("ReplyTo:9590")))
+
+        # print("\n\n#### Parent CID:9591")
+        # print(prettyPrint(self.__loadDocumentTextForCids([9591])))
+        # print(prettyPrint(self.search("ReplyTo:9591")))
 
         print("\n\n#### Parent CID:9591")
         print(prettyPrint(self.__loadDocumentTextForCids([9591])))
-        print(prettyPrint(self.search("ReplyTo:9591")))
-
-        print("\n\n#### Parent CID:9591")
-        print(prettyPrint(self.__loadDocumentTextForCids([9591])))
-        print(prettyPrint(self.search("ReplyTo:9591 AND atheist")))
+        print(prettyPrint(self.search("ReplyTo:9591 AND 'hate God'")))
 
 
 
