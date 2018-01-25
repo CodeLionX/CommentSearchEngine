@@ -119,11 +119,11 @@ class SearchEngine():
         elif self.__phraseQueryPattern.fullmatch(query):
             print("\n\n##### Phrase Search")
             results = self.__phraseSearch(query, topK)
-        
+
         elif query.startswith('ReplyTo:'):
             print("\n\n##### ReplyTo Search")
             results = self.__replyToSearch(query)
-        
+
         elif self.__prefixQueryPattern.fullmatch(query):
             print("\n\n##### Prefix Search")
             results = self.__prefixSearch(query, topK)
@@ -313,7 +313,7 @@ class SearchEngine():
 
             if postingListEntry.idf():
                 idfs[t] = postingListEntry.idf()
-            
+
             if postingListEntry.postingList():
                 for cid, tf, _ in postingListEntry.postingList():
                     ranker.documentTerm(cid, t, tf, postingListEntry.idf())
@@ -336,7 +336,7 @@ class SearchEngine():
         cids = set()
         for t in matchedTerms:
             cids.update((cid for cid, _, _ in self.__index.postingList(t)))
-        
+
         return cids
 
 
@@ -455,7 +455,7 @@ class SearchEngine():
         print(prettyPrint(self.search("ReplyTo:107701851")))
         print(prettyPrint(self.search("288 days")))
         print(prettyPrint(self.search("merkel NOT chancel*")))
-        print(prettyPrint(self.search("eu OR 'european union'")))
+        #print(prettyPrint(self.search("eu OR 'european union'"))) # needs way tooo long to print to console for simple testing!
         print(prettyPrint(self.search("trump AND putin AND merkel AND xi")))
         print(prettyPrint(self.search("'new ye'*")))
         print(prettyPrint(self.search("ReplyTo:107701851 AND 'silicon valley'")))
