@@ -123,18 +123,28 @@ class SearchEngine():
         elif query.startswith('ReplyTo:'):
             print("\n\n##### ReplyTo Search")
             results = self.__replyToSearch(query)
+        
+        elif self.__prefixQueryPattern.fullmatch(query):
+            print("\n\n##### Prefix Search")
+            results = self.__prefixSearch(query, topK)
 
         elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
-                #raise ValueError("Query not supported. Please use only one of the following Operators: '*', 'NOT', 'AND', 'OR'")
-                return ["*** ERROR ***", "Query not supported. Please use only one of the following binary Operators or none: '*', 'NOT', 'AND', 'OR'"]
+                print("Query not supported. Please use the following search options:\n" +
+                    "  - Keyword Search: Use one or more words to search for: e.g. `donald trump news`\n" +
+                    "  - Phrase Search:  Exact word order match: e.g. `christams market`\n" +
+                    "  - ReplyTo Search: Search for replies to a parent comment: e.g. `ReplyTo:12345` (no whitespace allowed between keyword and comment ID, also use exact keyword `ReplyTo` [case sensitive])\n" +
+                    "  - Prefix Search:  Search for comments containing words with a specifc prefix: e.g. `euro`\n" +
+                    "  - Boolean Search: Please use only one of the following binary Operators or none: 'NOT', 'AND', 'OR'. You are allowed to use single-keyword-queries, prefix-queries, replyTo-queries and phrase-queries between binary operators"
+                )
+                return []
 
         else:
             print("\n\n##### Keyword Search")
             results = self.__keywordSearch(query, topK)
 
 
-        print("##### Query for >>>", query, "<<< returned", len(results), "comments")
+        print("##### Query for >>>", query, "<<< returned", len(results), "of k=" + str(topK) + " requested comments")
         # print("      CIDs:", results)
         return self.__loadDocumentTextForCids(results)
 
@@ -153,21 +163,26 @@ class SearchEngine():
         else:
             print("No or wrong operator in query!!")
             return []
+
+        # check if query contains any other operator (we do not support this!)
+        for operator in set(Operator)-set([op]):
+            if operator in p:
+                print("Only a single Operator-Type is supported in boolean search queries! Found:", op, operator)
+                return []
+
         terms = [term for term in p if term not in Operator]
 
         # load document set per term
         for term in terms:
-            cidTuples = []
+            cids = []
             if term.strip().endswith("*"):
-                cidTuples = self.__prefixSearchTerm(term.replace("*", ""))
+                cids = self.__prefixSearchTerm(term)
 
             elif term.strip().startswith("ReplyTo:"):
                 cids = self.__replyToSearch(term)
-                cidTuples = [(cid, None, []) for cid in cids]
 
             elif self.__phraseQueryPattern.fullmatch(term):
                 cids = self.__phraseSearch(term, None)
-                cidTuples = [(cid, None, []) for cid in cids]
 
             else:
                 pTerm = self.__prep.processText(term)
@@ -177,14 +192,17 @@ class SearchEngine():
                         "is invalid! Please use only one word for boolean queries."
                     )
                     return []
-                cidTuples = self.__index.postingList(pTerm[0][0])
+                cids = [cid for cid, _, _ in self.__index.postingList(pTerm[0][0])]
 
-            if cidTuples:
-                cidSets.append(set( (cid for cid, _, _ in cidTuples) ))
+            if cids:
+                cidSets.append(set(cids))
 
         if not cidSets:
             return []
 
+        # we are able to sort the cid sets based on their length, because we only have one kind of operators
+        # this should speed up the combination a little bit
+        cidSets.sort(key=lambda cidSet: len(cidSet))
         firstCids = cidSets[0]
         cidSets.remove(firstCids)
         cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)
@@ -263,7 +281,6 @@ class SearchEngine():
         queryTermTuples = self.__prep.processText(query)
         queryTerms = [term for term, _ in queryTermTuples]
 
-        allCidTuples = []
         for term in queryTerms:
             postingListEntry = self.__index.retrieve(term)
 
@@ -273,34 +290,54 @@ class SearchEngine():
             if postingListEntry.postingList():
                 for cid, tf, _ in postingListEntry.postingList():
                     ranker.documentTerm(cid, term, tf, postingListEntry.idf())
-                allCidTuples = allCidTuples + postingListEntry.postingList()
 
         # calculate query term weights
         ranker.queryTerms(queryTerms, idfs)
         rankedCids = ranker.rank()
 
-        #for r, s, c in rankedCids:
-        #    print(r, s, c)
+        #for rank, score, cid in rankedCids:
+        #    print(rank, score, cid)
+        return set([cid for _, _, cid in rankedCids])
+
+
+    def __prefixSearch(self, term, topK):
+        term = term.replace("*", "")
+        # get prefix matching terms
+        matchedTerms = [token for token in self.__index.terms() if token.startswith(term)]
+        ranker = Ranker(topK)
+
+        # load posting list
+        idfs = {}
+        for t in matchedTerms:
+            postingListEntry = self.__index.retrieve(t)
+
+            if postingListEntry.idf():
+                idfs[t] = postingListEntry.idf()
+            
+            if postingListEntry.postingList():
+                for cid, tf, _ in postingListEntry.postingList():
+                    ranker.documentTerm(cid, t, tf, postingListEntry.idf())
+
+        ranker.queryTerms(matchedTerms, idfs)
+        rankedCids = ranker.rank()
         return set([cid for _, _, cid in rankedCids])
 
 
     def __prefixSearchTerm(self, term):
+        """
+        This should only used internally. No ranking is performed. All additional information
+        of the index is lost (like tf, idf, positions, ...).
+        Only returns all document IDs containing at least one matched term.
+        """
+        term = term.replace("*", "")
         # get prefix matching terms
         matchedTerms = [token for token in self.__index.terms() if token.startswith(term)]
 
-        # load posting list
-        cidTuples = {}
-        for term in matchedTerms:
-            for cid, _, posList in self.__index.postingList(term):
-                # there should be NO possibility that we have two terms in one document at the same position
-                # so this operation can be done on simple lists without checking duplicates
-                positions = cidTuples.get(cid, [])
-                positions = positions + posList
-                positions.sort()
-                cidTuples[cid] = positions
-
-        # reconstruct tuple list: [(cid, positionList), (cid2, positionList2)]
-        return [(cid, cidTuples[cid]) for cid in cidTuples]
+        cids = set()
+        for t in matchedTerms:
+            cids.update((cid for cid, _, _ in self.__index.postingList(t)))
+        
+        return cids
 
 
     def __loadDocumentTextForCids(self, cids):
@@ -358,9 +395,9 @@ class SearchEngine():
     
 
     def printAssignment3QueryResults(self):
-        print(prettyPrint(self.search("party AND chancellor")[:1]))
-        print(prettyPrint(self.search("party NOT politics")[:1]))
-        print(prettyPrint(self.search("war OR conflict")[:1]))
+        #print(prettyPrint(self.search("party AND chancellor")[:1]))
+        #print(prettyPrint(self.search("party NOT politics")[:1]))
+        #print(prettyPrint(self.search("war OR conflict")[:1]))
         print(prettyPrint(self.search("euro* NOT europe")[:1]))
         print(prettyPrint(self.search("publi* OR moderation")[:1]))
         print(prettyPrint(self.search("'the european union'")[:1]))
@@ -368,17 +405,17 @@ class SearchEngine():
 
 
     def printTestQueryResults(self):
-        print(prettyPrint(self.search("christmas")))
-        # print(prettyPrint(self.search("christmas market")[:5]))
+        #print(prettyPrint(self.search("christmas")))
+        #print(prettyPrint(self.search("christmas market")[:5]))
         #print(prettyPrint(self.search("hate")[:5]))
         #print(prettyPrint(self.search("prefix* help")[:5]))
-        #print(prettyPrint(self.search("atta*")[:5]))
+        #print(prettyPrint(self.search("europe*")[:5]))
         #print(prettyPrint(self.search("party AND chancellor NOT europe")))
         #print(prettyPrint(self.search("NOT hate")[:5]))
         #print(prettyPrint(self.search("Trump AND hate")[:5]))
         #print(prettyPrint(self.search("'Republican legislation'")))
         #print(prettyPrint(self.search("Trump President Russia Russia Russia", 5)))
-        #print(prettyPrint(self.search("'truck confederate flag'")))
+        #print(prettyPrint(self.search("'they also give'")))
         pass
 
 
@@ -390,21 +427,38 @@ class SearchEngine():
 
 
     def printAssignment7QueryResults(self):
-        # print("\n\n#### Parent CID:7850")
-        # print(prettyPrint(self.__loadDocumentTextForCids([7850])))
-        # print(prettyPrint(self.search("ReplyTo:7850")))
+        print("\n\n#### Parent CID:7850")
+        print(prettyPrint(self.__loadDocumentTextForCids([7850])))
+        print(prettyPrint(self.search("ReplyTo:7850")))
 
-        # print("\n\n#### Parent CID:9590")
-        # print(prettyPrint(self.__loadDocumentTextForCids([9590])))
-        # print(prettyPrint(self.search("ReplyTo:9590")))
+        print("\n\n#### Parent CID:9590")
+        print(prettyPrint(self.__loadDocumentTextForCids([9590])))
+        print(prettyPrint(self.search("ReplyTo:9590")))
 
-        # print("\n\n#### Parent CID:9591")
-        # print(prettyPrint(self.__loadDocumentTextForCids([9591])))
-        # print(prettyPrint(self.search("ReplyTo:9591")))
+        print("\n\n#### Parent CID:9591")
+        print(prettyPrint(self.__loadDocumentTextForCids([9591])))
+        print(prettyPrint(self.search("ReplyTo:9591")))
 
         print("\n\n#### Parent CID:9591")
         print(prettyPrint(self.__loadDocumentTextForCids([9591])))
         print(prettyPrint(self.search("ReplyTo:9591 AND 'hate God'")))
+
+
+    def printFinalQueryResults(self):
+        print(prettyPrint(self.search("election")))
+        print(prettyPrint(self.search("military conflict")))
+        print(prettyPrint(self.search("'German chancellor'")))
+        #print(prettyPrint(self.search("'guardians of the galaxy'"))) # Error: killed (over 4GB memory)
+        print(prettyPrint(self.search("brexit AND economy")))
+        print(prettyPrint(self.search("jared NOT kushner")))
+        print(prettyPrint(self.search("isra*")))
+        print(prettyPrint(self.search("ReplyTo:107701851")))
+        print(prettyPrint(self.search("288 days")))
+        print(prettyPrint(self.search("merkel NOT chancel*")))
+        print(prettyPrint(self.search("eu OR 'european union'")))
+        print(prettyPrint(self.search("trump AND putin AND merkel AND xi")))
+        print(prettyPrint(self.search("'new ye'*")))
+        print(prettyPrint(self.search("ReplyTo:107701851 AND 'silicon valley'")))
 
 
 
@@ -434,5 +488,6 @@ if __name__ == '__main__':
     #se.printAssignment3QueryResults()
     #se.printTestQueryResults()
     #se.printAssignment4QueryResults()
-    se.printAssignment7QueryResults()
+    #se.printAssignment7QueryResults()
+    se.printFinalQueryResults()
     se.close()
