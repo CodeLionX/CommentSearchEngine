@@ -13,6 +13,17 @@ AUTHORFILE = "authors.csv"
 ARTICLEFILE = "articles.csv"
 
 
+def checkIndexFilenames(filenameSource):
+    commentsFilename = filenameSource.split(":")[1].strip()
+
+    # check files
+    for filename in [commentsFilename, AUTHORFILE, ARTICLEFILE]:
+        if not os.path.exists(os.path.join(DIRECTORY, filename)):
+            raise ValueError("File {} relative to this scripts directory could not be found!".format(os.path.join(DIRECTORY, filename)))
+
+    return commentsFilename, AUTHORFILE, ARTICLEFILE
+
+
 def read_queries(filename):
     if not os.path.exists(filename):
         raise ValueError("File {} does not exist!".format(filename))
@@ -27,7 +38,7 @@ def print_results_to(results, filename, idsOnly=False):
     with open(filename, 'wt', encoding="UTF-8") as file:
         for res in results:
             if idsOnly:
-                file.write(res + "\n")
+                file.write(str(res) + "\n")
             else:
                 file.write("{}, {}".format(res[0], res[1].replace("\n", "\\n")) + "\n")
 
@@ -42,15 +53,17 @@ def main():
 
     # load queries
     shouldBuildIndex = False
-    queries = read_queries(args.query)
-    if queries and queries[0].lower().startswith("index:"):
+    commentsFile, authorFile, articleFile = COMMENTSFILE, AUTHORFILE, ARTICLEFILE
+    if args.query.startswith("Index:"):
         shouldBuildIndex = True
-        queries = queries[1:]
-
-        # check files
-        for filename in [COMMENTSFILE, AUTHORFILE, ARTICLEFILE]:
-            if not os.path.exists(os.path.join(DIRECTORY, filename)):
-                raise ValueError("File {} relative to this scripts directory could not be found!".format(os.path.join(DIRECTORY, filename)))
+        commentsFile, authorFile, articleFile = checkIndexFilenames(args.query)
+        
+    else:
+        queries = read_queries(args.query)
+        if queries and queries[0].startswith("Index:"):
+            shouldBuildIndex = True
+            commentsFile, authorFile, articleFile = checkIndexFilenames(queries[0])
+            queries = queries[1:]
 
     # output configuration:
     if args.printIdsOnly:
@@ -63,9 +76,9 @@ def main():
     # call search engine
     cse = SearchEngine(
         DIRECTORY,
-        COMMENTSFILE,
-        ARTICLEFILE,
-        AUTHORFILE
+        commentsFile,
+        authorFile,
+        articleFile
     )
 
     if shouldBuildIndex:

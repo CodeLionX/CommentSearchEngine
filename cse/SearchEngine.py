@@ -113,20 +113,21 @@ class SearchEngine():
             return []
 
         results = []
+        print()
         if self.__boolQueryPattern.fullmatch(query):
-            print("\n\n##### Boolean Query Search")
+            print("##### Boolean Query Search")
             results = self.__booleanSearch(query)
 
         elif self.__phraseQueryPattern.fullmatch(query):
-            print("\n\n##### Phrase Search")
+            print("##### Phrase Search")
             results = self.__phraseSearch(query, topK)
 
         elif query.startswith('ReplyTo:'):
-            print("\n\n##### ReplyTo Search")
+            print("##### ReplyTo Search")
             results = self.__replyToSearch(query)
 
         elif self.__prefixQueryPattern.fullmatch(query):
-            print("\n\n##### Prefix Search")
+            print("##### Prefix Search")
             results = self.__prefixSearch(query, topK)
 
         elif re.search('NOT|AND|OR|[*]', query):
@@ -141,11 +142,11 @@ class SearchEngine():
                 return []
 
         else:
-            print("\n\n##### Keyword Search")
+            print("##### Keyword Search")
             results = self.__keywordSearch(query, topK)
 
 
-        print("##### Query for >>>", query, "<<< returned", len(results), "of k=" + str(topK) + " requested comments")
+        print("##### Query for >>>", query.strip(), "<<< returned", len(results), "of k=" + str(topK) + " requested comments")
         # print("      CIDs:", results)
         if idsOnly:
             return results
