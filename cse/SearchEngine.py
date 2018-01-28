@@ -5,6 +5,7 @@ import functools
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
 from cse.indexing import (FileIndexer, IndexReader, DocumentMap)
+from cse.indexing import DOCUMENT_MAP_NAME
 from cse.reader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
 from cse.Ranker import Ranker
@@ -12,19 +13,13 @@ from cse.Ranker import Ranker
 
 class SearchEngine():
 
-    """
-    preprocessing
-    - to lower case
-    - tokenization (remove punctuation)
-    - remove stopwords (https://github.com/igorbrigadir/stopwords)
-    - stemming (porter(2), porter very fast python wrapper: https://github.com/shibukawa/snowball_py)
-      or lemmatization (i dont think we need this)
+    
 
-    see: http://whoosh.readthedocs.io/en/latest/stemming.html (stemming from whoosh in separate package: https://pypi.python.org/pypi/stemming/1.0)
-    """
-
-    def __init__(self, directory):
+    def __init__(self, directory, commentsFilename, articleFilename, authorFilename):
         self.__directory = directory
+        self.__commentsFilename = commentsFilename
+        self.__articleFilename = articleFilename
+        self.__authorFilename = authorFilename
         self.__prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
@@ -70,13 +65,13 @@ class SearchEngine():
         )
 
         self.__documentMap = DocumentMap(
-            os.path.join("data", "documentMap.index")
+            os.path.join(self.__directory, DOCUMENT_MAP_NAME)
         ).open()
 
         self.__commentReader = CommentReader(
-            os.path.join("data", "comments.data"),
-            os.path.join("data", "articleMapping.data"),
-            os.path.join("data", "authorMapping.data")
+            os.path.join(self.__directory, self.__commentsFilename),
+            os.path.join(self.__directory, self.__articleFilename),
+            os.path.join(self.__directory, self.__authorFilename)
         ).open()
 
         self.__indexLoaded = True
@@ -99,7 +94,13 @@ class SearchEngine():
         if self.__indexLoaded:
             self.releaseIndex()
 
-        FileIndexer(self.__directory, self.__prep).index()
+        FileIndexer(
+            self.__directory,
+            self.__commentsFilename,
+            self.__articleFilename,
+            self.__authorFilename,
+            self.__prep
+        ).index()
 
 
     def close(self):
@@ -405,6 +406,7 @@ class SearchEngine():
 
 
     def printTestQueryResults(self):
+        print(prettyPrint(self.search("not to be")))
         #print(prettyPrint(self.search("christmas")))
         #print(prettyPrint(self.search("christmas market")[:5]))
         #print(prettyPrint(self.search("hate")[:5]))
@@ -481,13 +483,13 @@ class CustomPpStep(PreprocessorStep):
 
 
 if __name__ == '__main__':
-    se = SearchEngine("data")
+    se = SearchEngine("data", "comments.data", "articleMapping.data", "authorMapping.data")
     #se.index()
     se.loadIndex()
     #se.printAssignment2QueryResults()
     #se.printAssignment3QueryResults()
-    #se.printTestQueryResults()
+    se.printTestQueryResults()
     #se.printAssignment4QueryResults()
     #se.printAssignment7QueryResults()
-    se.printFinalQueryResults()
+    #se.printFinalQueryResults()
     se.close()
