@@ -5,15 +5,22 @@ from cse.indexing.Dictionary import Dictionary
 from cse.indexing.PostingList import PostingList
 from cse.indexing.MainIndex import MainIndex
 
+from cse.indexing.commons import (
+    POSTING_DICT_NAME,
+    POSTING_LISTS_NAME,
+    REPLYTO_DICT_NAME,
+    REPLYTO_LISTS_NAME
+)
+
 
 class IndexReader(object):
 
 
     def __init__(self, filepath):
-        self.__dictionary = Dictionary(os.path.join(filepath, "dictionary.index"))
-        self.__mIndex = MainIndex(os.path.join(filepath, "postingLists.index"), PostingList.decode)
-        self.__replyToDictionary = Dictionary(os.path.join(filepath, "replyToDict.index"))
-        self.__mReplyToIndex = MainIndex(os.path.join(filepath, "replyToLists.index"), msgpack.unpackb)
+        self.__dictionary = Dictionary(os.path.join(filepath, POSTING_DICT_NAME))
+        self.__mIndex = MainIndex(os.path.join(filepath, POSTING_LISTS_NAME), PostingList.decode)
+        self.__replyToDictionary = Dictionary(os.path.join(filepath, REPLYTO_DICT_NAME))
+        self.__mReplyToIndex = MainIndex(os.path.join(filepath, REPLYTO_LISTS_NAME), msgpack.unpackb)
 
 
     def close(self):

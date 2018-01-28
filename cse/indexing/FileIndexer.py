@@ -5,24 +5,29 @@ from cse.indexing.ReplyToIndexWriter import ReplyToIndexWriter
 from cse.indexing import DocumentMap
 from cse.reader import CommentReader
 
+from cse.indexing.commons import (
+    POSTING_DICT_NAME,
+    POSTING_LISTS_NAME,
+    REPLYTO_DICT_NAME,
+    REPLYTO_LISTS_NAME,
+    DOCUMENT_MAP_NAME
+)
 
 
 class FileIndexer(object):
 
 
-    def __init__(self, directory, preprocessor):
+    def __init__(self, directory, commentsFilename, articleFilename, authorFilename, preprocessor):
         self.__directory = directory
         self.__prep = preprocessor
-        self.__multiFileIndexPath   = os.path.join(directory, "multiFileIndex.index")
-        self.__documentMapPath      = os.path.join(directory, "documentMap.index")
-        self.__dictionaryPath       = os.path.join(directory, "dictionary.index")
-        self.__postingListsPath     = os.path.join(directory, "postingLists.index")
-        self.__replyToDictPath      = os.path.join(directory, "replyToDict.index")
-        self.__replyToListsPath     = os.path.join(directory, "replyToLists.index")
-        self.__dataFolderPath       = os.path.join(directory, "raw")
-        self.__commentsFilePath     = os.path.join(directory, "comments.data")
-        self.__articleFilePath      = os.path.join(directory, "articleMapping.data")
-        self.__authorsFilePath      = os.path.join(directory, "authorMapping.data")
+        self.__documentMapPath      = os.path.join(directory, DOCUMENT_MAP_NAME)
+        self.__dictionaryPath       = os.path.join(directory, POSTING_DICT_NAME)
+        self.__postingListsPath     = os.path.join(directory, POSTING_LISTS_NAME)
+        self.__replyToDictPath      = os.path.join(directory, REPLYTO_DICT_NAME)
+        self.__replyToListsPath     = os.path.join(directory, REPLYTO_LISTS_NAME)
+        self.__commentsFilePath     = os.path.join(directory, commentsFilename)
+        self.__articleFilePath      = os.path.join(directory, articleFilename)
+        self.__authorsFilePath      = os.path.join(directory, authorFilename)
 
 
     def index(self):
@@ -173,7 +178,7 @@ if __name__ == "__main__":
     )
 
     start = time.process_time()
-    FileIndexer("data", prep).index()
+    FileIndexer("data", "comments.data", "articleMapping.data", "authorMapping.data", prep).index()
     end = time.process_time()
 
     print("==========================================")
