@@ -23,6 +23,15 @@ def read_queries(filename):
     return queries
 
 
+def print_results_to(results, filename, idsOnly=False):
+    with open(filename, 'wt', encoding="UTF-8") as file:
+        for res in results:
+            if idsOnly:
+                file.write(res + "\n")
+            else:
+                file.write("{}, {}".format(res[0], res[1].replace("\n", "\\n")) + "\n")
+
+
 def main():
     # parse args
     parser = argparse.ArgumentParser(description='Search Engine for comments on news websites')
@@ -63,12 +72,9 @@ def main():
         cse.index()
 
     cse.loadIndex()
-    for query in queries:
-        for res in cse.search(query, idsOnly=args.printIdsOnly, topK=args.topN):
-            if args.printIdsOnly:
-                print(res)
-            else:
-                print("{}, {}".format(res[0], res[1].replace("\n", "\\n")))
+    for i, query in enumerate(queries):
+        results = cse.search(query, idsOnly=args.printIdsOnly, topK=args.topN)
+        print_results_to(results, "query{}.txt".format(i), idsOnly=args.printIdsOnly)
 
     cse.close()
 
