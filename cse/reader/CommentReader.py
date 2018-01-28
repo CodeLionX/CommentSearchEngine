@@ -7,15 +7,17 @@ from cse.reader.AuthorMappingReader import AuthorMappingReader
 class CommentReader(object):
 
 
-    def __init__(self, commentsFilepath, arcticlesFilepath, authorsFilepath, delimiter=','):
+    def __init__(self, commentsFilepath, arcticlesFilepath, authorsFilepath, delimiter=',', ignoreMapping=True):
         self.__delimiter = delimiter
+        self.__ignoreMapping = ignoreMapping
 
         self.__commentsFile = None
         self.__commentReader = None
-
         self.__commentsFilepath = commentsFilepath
-        self.__authorsReader = AuthorMappingReader(authorsFilepath)
-        self.__articlesReader = ArticleMappingReader(arcticlesFilepath)
+
+        if not self.__ignoreMapping:
+            self.__authorsReader = AuthorMappingReader(authorsFilepath)
+            self.__articlesReader = ArticleMappingReader(arcticlesFilepath)
 
         self.__startSeekPointer = 0
 
@@ -29,7 +31,8 @@ class CommentReader(object):
         self.__commentsFile = open(self.__commentsFilepath, 'r', newline='', encoding="UTF-8")
         self.__commentReader = csv.reader(self.__commentsFile, delimiter=self.__delimiter)
 
-        self.__articlesReader.open()
+        if not self.__ignoreMapping:
+            self.__articlesReader.open()
 
         return self
 
@@ -52,7 +55,7 @@ class CommentReader(object):
         line = self.__commentsFile.readline()
         iterRow = next(csv.reader([line], delimiter=self.__delimiter))
 
-        if not skipArticleMapping:
+        if not (skipArticleMapping or self.__ignoreMapping):
             # setup article iterator
             iter(self.__articlesReader)
             # load first article mapping
@@ -63,7 +66,8 @@ class CommentReader(object):
 
     def close(self):
         self.__commentsFile.close()
-        self.__articlesReader.close()
+        if not self.__ignoreMapping:
+            self.__articlesReader.close()
 
 
     def __silentParseToInt(self, data, default):
@@ -77,14 +81,17 @@ class CommentReader(object):
         commentId = int(row[0])
         articleId = int(row[1])
         articleUrl = ""
-        author = self.__authorsReader.lookupAuthorname(row[2])
+        author = row[2]
         text = row[3].replace("\\n", "\n")
         timestamp = row[4]
         parentId = self.__silentParseToInt(row[5], None)
         upvotes = self.__silentParseToInt(row[6], 0)
         downvotes = self.__silentParseToInt(row[7], 0)
 
-        if not skipArticleMapping:
+        if not self.__ignoreMapping:
+            author = self.__authorsReader.lookupAuthorname(row[2])
+
+        if not (skipArticleMapping or self.__ignoreMapping):
             # sequentially load article mapping
             # if there are some articles without comments we skip these articles
             while self.__articlesReader.currentArticleId() != articleId:
@@ -119,10 +126,12 @@ class CommentReader(object):
         self.__commentsFile.readline()
         self.__startSeekPointer = self.__commentsFile.tell()
 
-        # setup article iterator
-        iter(self.__articlesReader)
-        # load first article mapping
-        next(self.__articlesReader)
+        if not self.__ignoreMapping:
+            # setup article iterator
+            iter(self.__articlesReader)
+            # load first article mapping
+            next(self.__articlesReader)
+
         return self
 
 
