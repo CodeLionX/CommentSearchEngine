@@ -53,6 +53,24 @@ def cosineSimilarity(docWeights, queryWeights):
     return float(score)
 
 
+def cosineSimilarityHybrid(docWeights, queryWeights):
+    cache = NormCache()
+    dj = np.array(docWeights)
+    q = np.array(queryWeights)
+
+    # use cache to store norms
+    dj_norm = np.linalg.norm(dj)
+    try:
+        q_norm = cache[tuple(queryWeights)]
+    except KeyError:
+        q_norm = np.linalg.norm(q)
+        cache[tuple(queryWeights)] = q_norm
+    #print(q, dj)
+    score = np.dot(dj, q) / (dj_norm * q_norm)
+    #print(score)
+    return float(score)
+
+
 def oldCosineSimilarity(docWeights, queryWeights):
     dj = np.array(docWeights)
     q = np.array(queryWeights)
@@ -167,3 +185,11 @@ if __name__ == "__main__":
     print("\nWarm cached cosine similarity")
     profileTime(cosineSimilarity, docs, query, warm=True)
     profileMemory(cosineSimilarity, docs, query, warm=True)
+
+    print("\nOnly query norms cached cosine similarity")
+    profileTime(cosineSimilarityHybrid, docs, query, warm=False)
+    profileMemory(cosineSimilarityHybrid, docs, query, warm=False)
+
+    print("\nWarm only query norms cached cosine similarity")
+    profileTime(cosineSimilarityHybrid, docs, query, warm=True)
+    profileMemory(cosineSimilarityHybrid, docs, query, warm=True)
