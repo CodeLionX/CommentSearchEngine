@@ -5,10 +5,12 @@ from cse.SearchEngine import SearchEngine
 from cse.__init__ import __version__
 from cse.__init__ import __title__
 
-DIRECTORY = "data"
-COMMENTSFILE = "comments.data"
-AUTHORFILE = "authorMapping.data"
-ARTICLEFILE = "articleMapping.data"
+# This path is relativ to this python script
+DIRECTORY = os.path.join(".")
+# please specify the filenames of the raw comments data
+COMMENTSFILE = "comments.csv"
+AUTHORFILE = "authors.csv"
+ARTICLEFILE = "articles.csv"
 
 
 def read_queries(filename):
@@ -36,6 +38,11 @@ def main():
         shouldBuildIndex = True
         queries = queries[1:]
 
+        # check files
+        for filename in [COMMENTSFILE, AUTHORFILE, ARTICLEFILE]:
+            if not os.path.exists(os.path.join(DIRECTORY, filename)):
+                raise ValueError("File {} relative to this scripts directory could not be found!".format(os.path.join(DIRECTORY, filename)))
+
     # output configuration:
     if args.printIdsOnly:
         print("printIdsOnly turned on")
@@ -57,8 +64,12 @@ def main():
 
     cse.loadIndex()
     for query in queries:
-        cse.search(query, args.printIdsOnly)
-    
+        for res in cse.search(query, idsOnly=args.printIdsOnly, topK=args.topN):
+            if args.printIdsOnly:
+                print(res)
+            else:
+                print("{}, {}".format(res[0], res[1].replace("\n", "\\n")))
+
     cse.close()
 
 

@@ -2,7 +2,7 @@ import os
 
 from cse.indexing.PostingIndexWriter import PostingIndexWriter
 from cse.indexing.ReplyToIndexWriter import ReplyToIndexWriter
-from cse.indexing import DocumentMap
+from cse.indexing.DocumentMap import DocumentMap
 from cse.reader import CommentReader
 
 from cse.indexing.commons import (

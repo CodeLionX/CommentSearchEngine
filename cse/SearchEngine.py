@@ -107,7 +107,7 @@ class SearchEngine():
         self.releaseIndex()
 
 
-    def search(self, query, topK=10):
+    def search(self, query, idsOnly=False, topK=10):
         if not self.__indexLoaded:
             print("Index was not loaded!")
             return []
@@ -147,7 +147,10 @@ class SearchEngine():
 
         print("##### Query for >>>", query, "<<< returned", len(results), "of k=" + str(topK) + " requested comments")
         # print("      CIDs:", results)
-        return self.__loadDocumentTextForCids(results)
+        if idsOnly:
+            return results
+        else:
+            return zip(results, self.__loadDocumentTextForCids(results))
 
 
     def __booleanSearch(self, query):
