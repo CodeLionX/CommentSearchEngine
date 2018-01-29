@@ -178,7 +178,9 @@ if __name__ == "__main__":
     )
 
     start = time.process_time()
-    FileIndexer("data", "comments.data", "articleMapping.data", "authorMapping.data", prep).index()
+    FileIndexer("data", "comments.data", "articleMapping.data", "authorMapping.data", prep).indexPostingList()
+    print("MainPostingList build finished. Starting Replyto index.")
+    FileIndexer("data", "comments.data", "articleMapping.data", "authorMapping.data", prep).indexReplyToList()#index()
     end = time.process_time()
 
     print("==========================================")

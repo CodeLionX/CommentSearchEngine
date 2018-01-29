@@ -23,7 +23,6 @@ class CommentReader(object):
 
         self.__iterMode = False
 
-
     def open(self):
         if not os.path.exists(os.path.dirname(self.__commentsFilepath)):
             raise Exception("comments file not found!")
@@ -78,15 +77,15 @@ class CommentReader(object):
 
 
     def __parseIterRow(self, row, skipArticleMapping=True):
-        commentId = int(row[0])
-        articleId = int(row[1])
+        commentId = int(row[2])
+        articleId = int(row[0])
         articleUrl = ""
-        author = row[2]
+        author = row[1]
         text = row[3].replace("\\n", "\n")
-        timestamp = row[4]
-        parentId = self.__silentParseToInt(row[5], None)
-        upvotes = self.__silentParseToInt(row[6], 0)
-        downvotes = self.__silentParseToInt(row[7], 0)
+        timestamp = row[5]
+        parentId = self.__silentParseToInt(row[4], None)
+        upvotes = 0 #self.__silentParseToInt(row[6], 0) # currently unused information
+        downvotes = 0 #self.__silentParseToInt(row[7], 0) # currently unused information
 
         if not self.__ignoreMapping:
             author = self.__authorsReader.lookupAuthorname(row[2])
@@ -145,7 +144,10 @@ class CommentReader(object):
             raise stop
 
         iterRow = next(csv.reader([line], delimiter=self.__delimiter))
-        return self.__parseIterRow(iterRow, skipArticleMapping=False)
+        try:
+            return self.__parseIterRow(iterRow, skipArticleMapping=False)
+        except ValueError:
+            return self.__next__()
 
 
     def __enter__(self):
