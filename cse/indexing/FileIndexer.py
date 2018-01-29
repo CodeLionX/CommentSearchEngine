@@ -171,7 +171,7 @@ if __name__ == "__main__":
     prep = (
         PreprocessorBuilder()
         .useNltkTokenizer()
-        #.useNltkStopwordList()
+        .useNltkStopwordList()
         .usePorterStemmer()
         .addCustomStepToEnd(CustomPpStep())
         .build()
