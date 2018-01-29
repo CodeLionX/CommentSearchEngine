@@ -68,7 +68,7 @@ class PostingIndexWriter(object):
 
         # init values
         mIndex = MainIndex(self.__mIndexFilepath, PostingList.decode)
-        fh, tempFilePath = mkstemp(text=False)
+        tempFilePath = self.__mIndexFilepath + ".tmp"
         visited = set()
         merged, added = 0, 0
 
@@ -110,7 +110,6 @@ class PostingIndexWriter(object):
 
         # cleaning up and store current snapshot
         mIndex.close()
-        os.close(fh)
         self.__dIndex.clear()
         remove(self.__mIndexFilepath)
         move(tempFilePath, self.__mIndexFilepath)
