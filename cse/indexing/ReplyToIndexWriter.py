@@ -62,7 +62,7 @@ class ReplyToIndexWriter(object):
 
         # init values
         mIndex = MainIndex(self.__mIndexFilepath, msgpack.unpackb)
-        fh, tempFilePath = mkstemp(text=False)
+        fh, tempFilePath = self.__mIndexFilepath + ".tmp"
         visited = set()
         merged, added = 0, 0
 
@@ -103,7 +103,6 @@ class ReplyToIndexWriter(object):
 
         # cleaning up and store current snapshot
         mIndex.close()
-        os.close(fh)
         self.__dIndex.clear()
         remove(self.__mIndexFilepath)
         move(tempFilePath, self.__mIndexFilepath)
