@@ -4,7 +4,6 @@ import errno
 from cse.util import PackerUtil
 
 
-
 class DocumentMap(object):
 
 
