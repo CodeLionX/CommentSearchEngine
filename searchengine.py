@@ -57,6 +57,7 @@ def main():
     if args.query.startswith("Index:"):
         shouldBuildIndex = True
         commentsFile, authorFile, articleFile = checkIndexFilenames(args.query)
+        queries = []
         
     else:
         queries = read_queries(args.query)
@@ -66,10 +67,10 @@ def main():
             queries = queries[1:]
 
     # output configuration:
-    if args.printIdsOnly:
-        print("printIdsOnly turned on")
     if shouldBuildIndex:
         print("shouldBuildIndex is True: first building index")
+    if args.printIdsOnly:
+        print("printIdsOnly turned on")
     if args.topN:
         print("Only returning topN={} results".format(args.topN))
 
