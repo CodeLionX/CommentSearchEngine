@@ -133,7 +133,7 @@ class SearchEngine():
 
         elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
-                print("Query not supported. Please use the following search options:\n" +
+                print("Query <{}> not supported. Please use the following search options:\n".format(query.strip()) +
                     "  - Keyword Search: Use one or more words to search for: e.g. `donald trump news`\n" +
                     "  - Phrase Search:  Exact word order match: e.g. `christams market`\n" +
                     "  - ReplyTo Search: Search for replies to a parent comment: e.g. `ReplyTo:12345` (no whitespace allowed between keyword and comment ID, also use exact keyword `ReplyTo` [case sensitive])\n" +
