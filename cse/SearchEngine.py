@@ -9,6 +9,7 @@ from cse.indexing import DOCUMENT_MAP_NAME
 from cse.reader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
 from cse.Ranker import Ranker
+from cse.util import Util
 
 
 class SearchEngine():
@@ -23,7 +24,7 @@ class SearchEngine():
         self.__prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
-            #.useNltkStopwordList()
+            .useNltkStopwordList()
             .usePorterStemmer()
             .addCustomStepToEnd(CustomPpStep())
             .build()
@@ -245,8 +246,7 @@ class SearchEngine():
                     newCidPosTuples[cid] = posList
                     ranker.documentTerm(cid, term, tf, postingListEntry.idf())
                 cidPosTuples = self.__documentsWithConsecutiveTerms(cidPosTuples, newCidPosTuples)
-                    
-        
+
         ranker.queryTerms(queryTerms, idfs)
         ranker.filterDocumentTermWeightsBy(lambda cid: cid in cidPosTuples)
         rankedCids = ranker.rank()
