@@ -133,12 +133,12 @@ class SearchEngine():
 
         elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
-                print("Query <{}> not supported. Please use the following search options:\n".format(query.strip()) +
+                print("Query >>> {} <<< not supported. Please use the following search options:\n".format(query.strip()) +
                     "  - Keyword Search: Use one or more words to search for: e.g. `donald trump news`\n" +
-                    "  - Phrase Search:  Exact word order match: e.g. `christams market`\n" +
+                    "  - Phrase Search:  Exact word order match: e.g. `'christams market'`\n" +
                     "  - ReplyTo Search: Search for replies to a parent comment: e.g. `ReplyTo:12345` (no whitespace allowed between keyword and comment ID, also use exact keyword `ReplyTo` [case sensitive])\n" +
-                    "  - Prefix Search:  Search for comments containing words with a specifc prefix: e.g. `euro`\n" +
-                    "  - Boolean Search: Please use only one of the following binary Operators or none: 'NOT', 'AND', 'OR'. You are allowed to use single-keyword-queries, prefix-queries, replyTo-queries and phrase-queries between binary operators"
+                    "  - Prefix Search:  Search for comments containing words with a specifc prefix: e.g. `euro*`\n" +
+                    "  - Boolean Search: Please use only one of the following binary Operators or none: `NOT`, `AND`, `OR`. You are allowed to use single-keyword-queries, prefix-queries, replyTo-queries and phrase-queries between binary operators"
                 )
                 return []
 
@@ -147,7 +147,7 @@ class SearchEngine():
             results = self.__keywordSearch(query, topK)
 
 
-        print("##### Query for >>>", query.strip(), "<<< returned", len(results), "of k=" + str(topK) + " requested comments")
+        print("##### Query for >>>", query.strip(), "<<< returned", len(results), "of k=" + str(topK) + "(not considered for boolean search) requested comments")
         # print("      CIDs:", results)
         if idsOnly:
             return results
@@ -208,7 +208,10 @@ class SearchEngine():
 
         # we are able to sort the cid sets based on their length, because we only have one kind of operators
         # this should speed up the combination a little bit
-        cidSets.sort(key=lambda cidSet: len(cidSet))
+        # this would lead to wrong results with the NOT operator
+        if op != Operator.NOT:
+            cidSets.sort(key=lambda cidSet: len(cidSet))
+
         firstCids = cidSets[0]
         cidSets.remove(firstCids)
         cids = functools.reduce(self.__cidSetCombiner(op), cidSets, firstCids)
