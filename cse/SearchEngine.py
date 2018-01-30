@@ -9,6 +9,7 @@ from cse.indexing import DOCUMENT_MAP_NAME
 from cse.reader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
 from cse.Ranker import Ranker
+from cse.util import Util
 
 
 class SearchEngine():
@@ -23,7 +24,7 @@ class SearchEngine():
         self.__prep = (
             PreprocessorBuilder()
             .useNltkTokenizer()
-            #.useNltkStopwordList()
+            .useNltkStopwordList()
             .usePorterStemmer()
             .addCustomStepToEnd(CustomPpStep())
             .build()
@@ -132,7 +133,7 @@ class SearchEngine():
 
         elif re.search('NOT|AND|OR|[*]', query):
                 print("*** ERROR ***")
-                print("Query not supported. Please use the following search options:\n" +
+                print("Query <{}> not supported. Please use the following search options:\n".format(query.strip()) +
                     "  - Keyword Search: Use one or more words to search for: e.g. `donald trump news`\n" +
                     "  - Phrase Search:  Exact word order match: e.g. `christams market`\n" +
                     "  - ReplyTo Search: Search for replies to a parent comment: e.g. `ReplyTo:12345` (no whitespace allowed between keyword and comment ID, also use exact keyword `ReplyTo` [case sensitive])\n" +
@@ -220,7 +221,7 @@ class SearchEngine():
         queryTerms = [term for term, _ in queryTermTuples]
         # use ranking:
         idfs = {}
-        ranker = Ranker(topK)
+        ranker = Ranker(None) # do not use topK restriction!
 
         # determine documents with ordered consecutive query terms
         first = True
@@ -245,11 +246,22 @@ class SearchEngine():
                     newCidPosTuples[cid] = posList
                     ranker.documentTerm(cid, term, tf, postingListEntry.idf())
                 cidPosTuples = self.__documentsWithConsecutiveTerms(cidPosTuples, newCidPosTuples)
-                    
-        
+
         ranker.queryTerms(queryTerms, idfs)
         ranker.filterDocumentTermWeightsBy(lambda cid: cid in cidPosTuples)
         rankedCids = ranker.rank()
+
+        # look for stopwords and filter out all docs not containing the whole phrase
+        # this preserves rank ordering!
+        tokenizer = PreprocessorBuilder().useNltkTokenizer().build()
+        termsWithSW = [term for term, index in tokenizer.processText(query)]
+        filteredRankedCids = []
+        for rank, score, rankedCid in rankedCids:
+            text = self.__loadDocumentTextForCids([rankedCid])[0]
+            documentTerms = [term for term, index in tokenizer.processText(text)]
+            if Util.seq_in_seq(termsWithSW, documentTerms):
+                filteredRankedCids.append((rank, score, rankedCid))
+        rankedCids = filteredRankedCids
 
         return set([cid for _, _, cid in rankedCids])
 
