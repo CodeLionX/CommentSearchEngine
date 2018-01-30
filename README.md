@@ -31,7 +31,7 @@ vagrant up
 vagrant ssh
 ```
 
-- install the project in the vagrant box
+- You can optionally install the project in the vagrant box via
 
 ```bash
 python setup.py sdist
@@ -100,4 +100,5 @@ python searchengine.py query.txt --printIdsOnly --topN 10
 | Keyword    | `christmas` or `donald trump`      | Use one or more keywords                                                                                                                          |
 | Prefix     | `christ*`                          |                                                                                                                                                   |
 | Phrase     | `'christmas market'`               | Search for contiguous words                                                                                                                       |
-| Boolean    | `christmas NOT 'christmas market'` | Each term can be either a keyword, prefix or phrase. You can only use one operator kind at a time. Supported operators: `AND`, `OR`, `NOT` |
+| Boolean    | `christmas NOT 'christmas market'` | Each term can be either a keyword, prefix, replyTo or phrase. You can only use one operator kind at a time. Supported operators: `AND`, `OR`, `NOT` |
+| ReplyTo    | `ReplyTo:123456`                   | The specified comment ID (here: `123456`) must be a valid comment ID.                                                                             |
