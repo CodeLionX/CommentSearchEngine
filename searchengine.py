@@ -57,6 +57,7 @@ def main():
     if args.query.startswith("Index:"):
         shouldBuildIndex = True
         commentsFile, authorFile, articleFile = checkIndexFilenames(args.query)
+        queries = []
         
     else:
         queries = read_queries(args.query)
@@ -66,10 +67,10 @@ def main():
             queries = queries[1:]
 
     # output configuration:
-    if args.printIdsOnly:
-        print("printIdsOnly turned on")
     if shouldBuildIndex:
         print("shouldBuildIndex is True: first building index")
+    if args.printIdsOnly:
+        print("printIdsOnly turned on")
     if args.topN:
         print("Only returning topN={} results".format(args.topN))
 
@@ -86,7 +87,7 @@ def main():
 
     cse.loadIndex()
     for i, query in enumerate(queries):
-        results = cse.search(query, idsOnly=args.printIdsOnly, topK=args.topN)
+        results = cse.search(query.strip(), idsOnly=args.printIdsOnly, topK=args.topN)
         print_results_to(results, "query{}.txt".format(i), idsOnly=args.printIdsOnly)
 
     cse.close()
