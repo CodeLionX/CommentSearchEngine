@@ -86,7 +86,7 @@ def main():
 
     cse.loadIndex()
     for i, query in enumerate(queries):
-        results = cse.search(query, idsOnly=args.printIdsOnly, topK=args.topN)
+        results = cse.search(query.strip(), idsOnly=args.printIdsOnly, topK=args.topN)
         print_results_to(results, "query{}.txt".format(i), idsOnly=args.printIdsOnly)
 
     cse.close()
