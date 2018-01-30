@@ -29,6 +29,14 @@ class Util(object):
         m.update(s.encode('utf-8'))
         return m.hexdigest()
 
+    @staticmethod
+    def seq_in_seq(subseq, seq):
+        """
+        Naive approach to find a subsequence in another sequence using string-operations.
+
+        Returns `true` if `subseq` was found in `seq`, `false` otherwise.
+        """
+        return str(list(subseq))[1:-1] in str(list(seq))[1:-1]
 
 
 class PackerUtil(object):

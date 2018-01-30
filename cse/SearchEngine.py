@@ -221,7 +221,7 @@ class SearchEngine():
         queryTerms = [term for term, _ in queryTermTuples]
         # use ranking:
         idfs = {}
-        ranker = Ranker(topK)
+        ranker = Ranker(None) # do not use topK restriction!
 
         # determine documents with ordered consecutive query terms
         first = True
@@ -250,6 +250,18 @@ class SearchEngine():
         ranker.queryTerms(queryTerms, idfs)
         ranker.filterDocumentTermWeightsBy(lambda cid: cid in cidPosTuples)
         rankedCids = ranker.rank()
+
+        # look for stopwords and filter out all docs not containing the whole phrase
+        # this preserves rank ordering!
+        tokenizer = PreprocessorBuilder().useNltkTokenizer().build()
+        termsWithSW = [term for term, index in tokenizer.processText(query)]
+        filteredRankedCids = []
+        for rank, score, rankedCid in rankedCids:
+            text = self.__loadDocumentTextForCids([rankedCid])[0]
+            documentTerms = [term for term, index in tokenizer.processText(text)]
+            if Util.seq_in_seq(termsWithSW, documentTerms):
+                filteredRankedCids.append((rank, score, rankedCid))
+        rankedCids = filteredRankedCids
 
         return set([cid for _, _, cid in rankedCids])
 
