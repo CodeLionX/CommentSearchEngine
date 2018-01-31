@@ -21,7 +21,7 @@ class DocumentMap(object):
 
     def open(self):
         if os.path.exists(self.__filePathname):
-            self.__index = PackerUtil.unpackFromFile(self.__filePathname)
+            self.__index = PackerUtil.unpackFromFile(self.__filePathname, type=PackerUtil.PICKLE)
         else:
             print(self.__class__.__name__ + ":", "No DocumentMap available...creating new one")
             self.__index = {}
@@ -29,7 +29,7 @@ class DocumentMap(object):
 
 
     def close(self):
-        PackerUtil.packToFile(self.__index, self.__filePathname)
+        PackerUtil.packToFile(self.__index, self.__filePathname, type=PackerUtil.PICKLE)
 
 
     def insert(self, cid, pointer):

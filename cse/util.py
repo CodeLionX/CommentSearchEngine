@@ -1,5 +1,6 @@
 import json
 import msgpack
+import pickle
 
 class Util(object):
 
@@ -43,14 +44,14 @@ class PackerUtil(object):
 
     MSGPACK = 'msgpack'
     JSON = 'json'
-    #PICKLE = 'pickle'
+    PICKLE = 'pickle'
 
     @staticmethod
     def packToFile(data, filename, type=MSGPACK):
         switcher = {
             PackerUtil.MSGPACK: PackerUtil._packMsgpack,
             PackerUtil.JSON: PackerUtil._packJson,
-            #PackerUtil.PICKLE: PackerUtil._packPickle
+            PackerUtil.PICKLE: PackerUtil._packPickle
         }
 
         func = switcher.get(type, PackerUtil._packMsgpack)
@@ -84,7 +85,8 @@ class PackerUtil(object):
 
     @staticmethod
     def _packPickle(data, filename):
-        pass
+        with open(filename, 'wb') as file:
+            pickle.dump(data, file, protocol=pickle.DEFAULT_PROTOCOL)
 
     @staticmethod
     def _unpackJson(filename):
@@ -98,4 +100,5 @@ class PackerUtil(object):
 
     @staticmethod
     def _unpackPickle(filename):
-        pass
+        with open(filename, 'rb') as file:
+            return pickle.load(file)
