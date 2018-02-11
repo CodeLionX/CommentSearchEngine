@@ -10,7 +10,7 @@ from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainIndex import MainIndex
 from cse.indexing.DeltaIndex import DeltaIndex
 from cse.indexing.PostingList import PostingList
-
+from cse.indexing.commons import POSTING_LIST_TMP_DIR
 
 class PostingIndexWriter(object):
 
@@ -32,8 +32,8 @@ class PostingIndexWriter(object):
         self.__nDocuments = 0
         self.__i = 0
         dir = os.path.dirname(self.__mIndexFilepath)
-        if os.path.isdir(os.path.join(dir, 'posting_list_partials')):
-            shutil.rmtree(os.path.join(dir, 'posting_list_partials'))
+        if os.path.isdir(os.path.join(dir, POSTING_LIST_TMP_DIR)):
+            shutil.rmtree(os.path.join(dir, POSTING_LIST_TMP_DIR))
 
 
     def __should_create_partial(self):
@@ -68,7 +68,7 @@ class PostingIndexWriter(object):
     def deltaMerge(self):
         # quit method early if no values are in delta
         dir = os.path.dirname(self.__mIndexFilepath)
-        partials_dir = os.path.join(dir, 'posting_list_partials')
+        partials_dir = os.path.join(dir, POSTING_LIST_TMP_DIR)
         if not os.listdir(partials_dir):
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
@@ -148,10 +148,10 @@ class PostingIndexWriter(object):
     def _save_partial(self):
         dir = os.path.dirname(self.__mIndexFilepath)
         file_name = os.path.basename(self.__mIndexFilepath)
-        if not os.path.exists(os.path.join(dir, 'posting_list_partials')):
-            os.makedirs(os.path.join(dir, 'posting_list_partials'))
+        if not os.path.exists(os.path.join(dir, POSTING_LIST_TMP_DIR)):
+            os.makedirs(os.path.join(dir, POSTING_LIST_TMP_DIR))
         list = self.__dIndex.convert_to_sorted_list()
-        with open(os.path.join(dir, 'posting_list_partials', file_name + str(self.__i)), 'w') as partial:
+        with open(os.path.join(dir, POSTING_LIST_TMP_DIR, file_name + str(self.__i)), 'w') as partial:
             for posting_list in list:
                 partial.write(str(posting_list[0]) + '|||' + repr(posting_list[1]) + '\n')
         print("saved_partial posting list {}".format(self.__i))
