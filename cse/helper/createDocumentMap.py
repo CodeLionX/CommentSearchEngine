@@ -25,12 +25,10 @@ def indexDocMap(directory, commentsFilePath, articleFilePath, authorsFilePath):
         for data in dataFile:
             if lastPointer == None:
                 lastPointer = dataFile.startSeekPointer()
-            try:
-                documentMap.get(data["commentId"])
-                print("Got double cid")
-            except KeyError:
-                # update document map
-                documentMap.insert(data["commentId"], lastPointer)
+
+
+            # update document map
+            documentMap.insert(data["commentId"], lastPointer)
 
             lastPointer = dataFile.currentSeekPointer()
 
