@@ -77,6 +77,7 @@ class CommentReader(object):
 
 
     def __parseIterRow(self, row, skipArticleMapping=True):
+        # TODO This is Guardian layout. Change to default layout
         commentId = int(row[2])
         articleId = int(row[0])
         articleUrl = ""
