@@ -49,6 +49,8 @@ class DocumentMap(object):
 
     def __get_dict_pos(self, cid, list):
         pos = bisect_left(list, int(cid))
+        if len(list) == pos:
+            return pos - 1
         if list[pos] == int(cid):
             return pos
         return pos - 1
@@ -56,7 +58,10 @@ class DocumentMap(object):
     def __get_index_snippet(self, start_pos):
         snippet = ([], [])
         start_offset = self.__dict[1][start_pos]
-        length = self.__dict[1][start_pos + 1] - self.__dict[1][start_pos]
+        try:
+            length = self.__dict[1][start_pos + 1] - self.__dict[1][start_pos]
+        except IndexError:
+            length = -1
         self.__index.seek(start_offset)
         text = self.__index.read(length)
         text = text.strip().split('\n')
