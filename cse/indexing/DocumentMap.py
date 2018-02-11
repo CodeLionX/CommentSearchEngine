@@ -1,6 +1,5 @@
 import os
 import errno
-
 from cse.util import PackerUtil
 
 
@@ -21,7 +20,7 @@ class DocumentMap(object):
 
     def open(self):
         if os.path.exists(self.__filePathname):
-            self.__index = PackerUtil.unpackFromFile(self.__filePathname, type=PackerUtil.PICKLE)
+            self.__index = PackerUtil.unpackFromFile(self.__filePathname, type=PackerUtil.JSON)
         else:
             print(self.__class__.__name__ + ":", "No DocumentMap available...creating new one")
             self.__index = {}
@@ -29,7 +28,7 @@ class DocumentMap(object):
 
 
     def close(self):
-        PackerUtil.packToFile(self.__index, self.__filePathname, type=PackerUtil.PICKLE)
+        PackerUtil.packToFile(self.__index, self.__filePathname, type=PackerUtil.JSON)
 
 
     def insert(self, cid, pointer):

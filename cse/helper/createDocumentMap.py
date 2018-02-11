@@ -1,24 +1,22 @@
 import os
 
-from cse.indexing import DocumentMap
+from cse.indexing.DocumentMapBuilder import DocumentMapBuilder
 from cse.reader import CommentReader
 
 from cse.indexing.commons import (
-    DOCUMENT_MAP_NAME
+    DOCUMENT_MAP_NAME,
+    DOCUMENT_MAP_DICT_NAME
 )
 
 def indexDocMap(directory, commentsFilePath, articleFilePath, authorsFilePath):
     documentMapPath = os.path.join(directory, DOCUMENT_MAP_NAME)
+    document_map_dict_path = os.path.join(directory, DOCUMENT_MAP_DICT_NAME)
     commentsFilePath = os.path.join(directory, commentsFilePath)
     articleFilePath = os.path.join(directory, articleFilePath)
     authorsFilePath = os.path.join(directory, authorsFilePath)
 
-    # clean up
-    if os.path.exists(documentMapPath):
-        os.remove(documentMapPath)
-
     # setup index writers
-    documentMap = DocumentMap(documentMapPath).open()
+    documentMap = DocumentMapBuilder(documentMapPath, document_map_dict_path)
 
     # start indexing the comments file
     #print("Starting indexing...")
@@ -35,7 +33,7 @@ def indexDocMap(directory, commentsFilePath, articleFilePath, authorsFilePath):
 
             lastPointer = dataFile.currentSeekPointer()
 
-    #print("Saving index...")
+    print("Saving index...")
     documentMap.close()
 
 
