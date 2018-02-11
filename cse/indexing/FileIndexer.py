@@ -3,6 +3,7 @@ import os
 from cse.indexing.PostingIndexWriter import PostingIndexWriter
 from cse.indexing.ReplyToIndexWriter import ReplyToIndexWriter
 from cse.indexing.DocumentMap import DocumentMap
+from cse.indexing.DocumentMapBuilder import DocumentMapBuilder
 from cse.reader import CommentReader
 
 from cse.indexing.commons import (
@@ -10,7 +11,8 @@ from cse.indexing.commons import (
     POSTING_LISTS_NAME,
     REPLYTO_DICT_NAME,
     REPLYTO_LISTS_NAME,
-    DOCUMENT_MAP_NAME
+    DOCUMENT_MAP_NAME,
+    DOCUMENT_MAP_DICT_NAME
 )
 
 
@@ -21,6 +23,7 @@ class FileIndexer(object):
         self.__directory = directory
         self.__prep = preprocessor
         self.__documentMapPath      = os.path.join(directory, DOCUMENT_MAP_NAME)
+        self.__documentMapDictPath  = os.path.join(directory, DOCUMENT_MAP_DICT_NAME)
         self.__dictionaryPath       = os.path.join(directory, POSTING_DICT_NAME)
         self.__postingListsPath     = os.path.join(directory, POSTING_LISTS_NAME)
         self.__replyToDictPath      = os.path.join(directory, REPLYTO_DICT_NAME)
@@ -37,7 +40,7 @@ class FileIndexer(object):
         # setup index writers
         pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
         rIndex = ReplyToIndexWriter(self.__replyToDictPath, self.__replyToListsPath)
-        documentMap = DocumentMap(self.__documentMapPath).open()
+        documentMap = DocumentMapBuilder(self.__documentMapPath, self.__documentMapDictPath)
 
         # start indexing the comments file
         #print("Starting indexing...")
@@ -46,19 +49,17 @@ class FileIndexer(object):
             for data in dataFile:
                 if lastPointer == None:
                     lastPointer = dataFile.startSeekPointer()
-                try:
-                    documentMap.get(data["commentId"])
-                except KeyError:
-                    # update document map
-                    documentMap.insert(data["commentId"], lastPointer)
-                    # index comment text tokens
-                    tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
-                    pIndex.incDocumentCounter()
-                    # index comment parent-child structure
-                    cid = data["commentId"]
-                    parentCid = data["parent_comment_id"]
-                    if parentCid and parentCid != cid:
-                        rIndex.insert(parentCid, cid)
+
+                # update document map
+                documentMap.insert(data["commentId"], lastPointer)
+                # index comment text tokens
+                tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
+                pIndex.incDocumentCounter()
+                # index comment parent-child structure
+                cid = data["commentId"]
+                parentCid = data["parent_comment_id"]
+                if parentCid and parentCid != cid:
+                    rIndex.insert(parentCid, cid)
 
                 lastPointer = dataFile.currentSeekPointer()
 

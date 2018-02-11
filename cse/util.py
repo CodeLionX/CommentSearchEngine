@@ -62,7 +62,7 @@ class PackerUtil(object):
         switcher = {
             PackerUtil.MSGPACK: PackerUtil._unpackMsgpack,
             PackerUtil.JSON: PackerUtil._unpackJson,
-            #PackerUtil.PICKLE: PackerUtil._unpackPickle
+            PackerUtil.PICKLE: PackerUtil._unpackPickle
         }
 
         func = switcher.get(type, PackerUtil._unpackMsgpack)

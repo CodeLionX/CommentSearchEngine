@@ -5,7 +5,7 @@ import functools
 from cse.lang import PreprocessorBuilder
 from cse.lang.PreprocessorStep import PreprocessorStep
 from cse.indexing import (FileIndexer, IndexReader, DocumentMap)
-from cse.indexing import DOCUMENT_MAP_NAME
+from cse.indexing import DOCUMENT_MAP_NAME, DOCUMENT_MAP_DICT_NAME
 from cse.reader import CommentReader
 from cse.BooleanQueryParser import (BooleanQueryParser, Operator)
 from cse.Ranker import Ranker
@@ -66,7 +66,8 @@ class SearchEngine():
         )
 
         self.__documentMap = DocumentMap(
-            os.path.join(self.__directory, DOCUMENT_MAP_NAME)
+            os.path.join(self.__directory, DOCUMENT_MAP_NAME),
+            os.path.join(self.__directory, DOCUMENT_MAP_DICT_NAME)
         ).open()
 
         self.__commentReader = CommentReader(
