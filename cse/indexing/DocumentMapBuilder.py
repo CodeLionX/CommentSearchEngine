@@ -1,5 +1,7 @@
 import os
 import errno
+import shutil
+
 from cse.util import PackerUtil
 from cse.indexing.commons import PARTIAL_THRESHOLD
 
@@ -22,11 +24,12 @@ class DocumentMapBuilder:
         if os.path.exists(self.__document_map_dict):
             os.remove(self.__document_map_dict)
         dir = os.path.dirname(self.__document_map_index)
-        if os.path.exists(os.path.join(dir, 'document_map_partials')):
-            os.removedirs(os.path.join(dir, 'document_map_partials'))
+        if os.path.isdir(os.path.join(dir, 'document_map_partials')):
+            shutil.rmtree(os.path.join(dir, 'document_map_partials'))
 
     def close(self):
         self._build_partial_files()
+        self._build_index_and_dict()
         #PackerUtil.packToFile(self.__index, self.__document_map_index, type=PackerUtil.JSON)
 
     def _build_partial_files(self):
@@ -69,3 +72,32 @@ class DocumentMapBuilder:
         with open(os.path.join(dir, 'document_map_partials', file_name + str(i)), 'w') as partial:
             for tuple in partial_list:
                 partial.write(str(tuple[0]) + ',' + str(tuple[1]) + '\n')
+
+    def _build_index_and_dict(self):
+        doc_dict = []
+        dir = os.path.dirname(self.__document_map_index)
+        partials_dir = os.path.join(dir, 'document_map_partials')
+        partial_files = []
+        current_lines = []
+        with open(self.__document_map_index, 'w') as out_index:
+            for file in os.listdir(partials_dir):
+                partial_files.append(open(os.path.join(partials_dir, file)))
+
+            for file_handle in partial_files:
+                current_lines.append(self._read_partial_line(file_handle))
+
+            while partial_files:
+                min_index = current_lines.index(min(current_lines))
+                out_index.write(','.join(current_lines[min_index]))
+                current_lines[min_index] = self._read_partial_line(partial_files[min_index])
+                if not current_lines[min_index]:
+                    partial_files[min_index].close()
+                    del partial_files[min_index]
+                    del current_lines[min_index]
+
+    def _read_partial_line(self, file_handle):
+        line = file_handle.readline()
+        if line:
+            return tuple(line.split(','))
+        else:
+            return None
