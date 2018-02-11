@@ -6,9 +6,11 @@ from cse.WeightCalculation import calcIdf
 
 class PostingListBase(abc.ABC):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._idf = 0
         self._postingList = []
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
 
     def setPostingList(self, postingList):
         self._postingList = postingList
@@ -31,6 +33,17 @@ class PostingListBase(abc.ABC):
     def append(self, values):
         # cid, tf, positionList = values[0], values[1], values[2]
         self._postingList.append(values)
+
+    def __repr__(self):
+        """
+        This method returns a string representation of the object such that eval() can recreate the object.
+        The Class attributes will be unordered
+        e.g. Class(attribute1="String", attribute2=3)
+        """
+        return "{!s}({!s})".format(
+            type(self).__name__,
+            ", ".join(["{!s}={!r}".format(*item) for item in vars(self).items()])
+        )
 
     def merge(cls1, cls2):
         """

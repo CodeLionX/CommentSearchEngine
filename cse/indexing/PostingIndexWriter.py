@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from os import remove
 from tempfile import mkstemp
@@ -17,7 +18,7 @@ class PostingIndexWriter(object):
     # threshold for delta index to reside in memory
     # if the memory consumption of the delta index itself gets higher than this threshold
     # a delta merge is performend and the index will be written to disk
-    MEMORY_THRESHOLD = 500 * MB     # 500 MB
+    MEMORY_THRESHOLD = 5 * MB     # 500 MB
     # entry size estimation for simple heursitic to determine memory consumption of the
     # delta index
     POSTING_LIST_ENTRY_SIZE = 30    #  30 B
@@ -29,13 +30,18 @@ class PostingIndexWriter(object):
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
         self.__nDocuments = 0
+        self.__i = 0
+        dir = os.path.dirname(self.__mIndexFilepath)
+        if os.path.isdir(os.path.join(dir, 'posting_list_partials')):
+            shutil.rmtree(os.path.join(dir, 'posting_list_partials'))
 
 
     def __shouldDeltaMerge(self):
         print("delta size check [Bytes]:", self.__dIndex.estimatedSize())
         # check memory usage
         if self.__dIndex.estimatedSize() > PostingIndexWriter.MEMORY_THRESHOLD:
-            self.deltaMerge()
+            #self.deltaMerge()
+            self._save_partial()
             self.__calls = -1
 
 
@@ -123,6 +129,22 @@ class PostingIndexWriter(object):
     def incDocumentCounter(self):
         self.__nDocuments += 1
 
+    def _save_partial(self):
+        dir = os.path.dirname(self.__mIndexFilepath)
+        file_name = os.path.basename(self.__mIndexFilepath)
+        if not os.path.exists(os.path.join(dir, 'posting_list_partials')):
+            os.makedirs(os.path.join(dir, 'posting_list_partials'))
+        list = self.__dIndex.convert_to_sorted_list()
+        with open(os.path.join(dir, 'posting_list_partials', file_name + str(self.__i)), 'w') as partial:
+            p = 0
+            for posting_list in list:
+                if p < 5:
+                    print(posting_list)
+                    p += 1
+                partial.write(str(posting_list[0]) + '|||' + repr(posting_list[1]) + '\n')
+
+        self.__i += 1
+        self.__dIndex.clear()
 
 
 if __name__ == "__main__":
