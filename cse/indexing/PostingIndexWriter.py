@@ -44,6 +44,7 @@ class PostingIndexWriter(object):
 
 
     def close(self):
+        self._save_partial()
         self.deltaMerge()
         self.__dictionary.close()
 
@@ -71,9 +72,8 @@ class PostingIndexWriter(object):
         if not os.listdir(partials_dir):
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
-        if not self.__dIndex:
-            print(self.__class__.__name__ + ":", "no delta merge needed")
-            return
+        if self.__dIndex:
+            self._save_partial()
 
         # init values
         # mIndex = MainIndex(self.__mIndexFilepath, PostingList.decode)
