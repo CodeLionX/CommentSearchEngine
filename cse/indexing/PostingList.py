@@ -7,10 +7,14 @@ from cse.WeightCalculation import calcIdf
 class PostingListBase(abc.ABC):
 
     def __init__(self, **kwargs):
-        self._idf = 0
-        self._postingList = []
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
+        try:
+            self._idf = kwargs['_idf']
+        except KeyError:
+            self._idf = 0
+        try:
+            self._postingList = kwargs['_postingList']
+        except KeyError:
+            self._postingList = []
 
     def setPostingList(self, postingList):
         self._postingList = postingList
@@ -126,10 +130,16 @@ class PostingListBinaryBase(PostingListBase):
 
 class CidDeltaCodec(PostingListBase):
 
-    def __init__(self):
-        super().__init__()
-        self.__baseCid = 0
-        self.__plWasDecoded = False
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            self.__baseCid = kwargs['_CidDeltaCodec__baseCid']
+        except KeyError:
+            self.__baseCid = 0
+        try:
+            self.__plWasDecoded = kwargs['_CidDeltaCodec__plWasDecoded']
+        except KeyError:
+            self.__plWasDecoded = False
 
     def append(self, values):
         cid, tf, positionList = values
