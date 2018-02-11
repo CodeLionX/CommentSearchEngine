@@ -75,7 +75,7 @@ class FileIndexer(object):
 
         # setup index writers
         pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
-        documentMap = DocumentMap(self.__documentMapPath).open()
+        documentMap = DocumentMapBuilder(self.__documentMapPath, self.__documentMapDictPath)
 
         # start indexing the comments file
         #print("Starting indexing...")

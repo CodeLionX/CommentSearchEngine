@@ -3,7 +3,7 @@ import errno
 import shutil
 
 from cse.util import PackerUtil
-from cse.indexing.commons import PARTIAL_THRESHOLD, SKIP_SIZE
+from cse.indexing.commons import PARTIAL_THRESHOLD, SKIP_SIZE, DOCUMENT_MAP_TMP_DIR
 
 
 class DocumentMapBuilder:
@@ -26,14 +26,20 @@ class DocumentMapBuilder:
         if os.path.exists(self.__document_map_dict):
             os.remove(self.__document_map_dict)
         dir = os.path.dirname(self.__document_map_index)
-        if os.path.isdir(os.path.join(dir, 'document_map_partials')):
-            shutil.rmtree(os.path.join(dir, 'document_map_partials'))
+        if os.path.isdir(os.path.join(dir, DOCUMENT_MAP_TMP_DIR)):
+            shutil.rmtree(os.path.join(dir, DOCUMENT_MAP_TMP_DIR))
 
     def close(self):
         self.__index.sort()
         self.__save_partial_index(self.__index, self.__i)
         doc_dict = self._build_index_and_dict()
         PackerUtil.packToFile(doc_dict, self.__document_map_dict, type=PackerUtil.PICKLE)
+        self.__clear()
+
+    def __clear(self):
+        self.__index = []
+        self.__content = 0
+        self.__i += 1
 
     def insert(self, cid, pointer):
         self.__index.append((cid, pointer))
@@ -41,18 +47,10 @@ class DocumentMapBuilder:
         if self.__content >= PARTIAL_THRESHOLD:
             self.__index.sort()
             self.__save_partial_index(self.__index, self.__i)
-            self.__index = []
-            self.__content = 0
-            self.__i += 1
-
-    def get(self, cid):
-        return self.__index[cid]
-
-    def listCids(self):
-        return [cid for cid in self.__index]
+            self.__clear()
 
     def __enter__(self):
-        return self.open()
+        return self
 
     def __exit__(self, type, value, traceback):
         self.close()
@@ -60,17 +58,17 @@ class DocumentMapBuilder:
     def __save_partial_index(self, partial_list, i):
         dir = os.path.dirname(self.__document_map_index)
         file_name = os.path.basename(self.__document_map_index)
-        if not os.path.exists(os.path.join(dir, 'document_map_partials')):
-            os.makedirs(os.path.join(dir, 'document_map_partials'))
+        if not os.path.exists(os.path.join(dir, DOCUMENT_MAP_TMP_DIR)):
+            os.makedirs(os.path.join(dir, DOCUMENT_MAP_TMP_DIR))
 
-        with open(os.path.join(dir, 'document_map_partials', file_name + str(i)), 'w') as partial:
+        with open(os.path.join(dir, DOCUMENT_MAP_TMP_DIR, file_name + str(i)), 'w') as partial:
             for tuple in partial_list:
                 partial.write(str(tuple[0]) + ',' + str(tuple[1]) + '\n')
 
     def _build_index_and_dict(self):
         doc_dict = ([], [])
         dir = os.path.dirname(self.__document_map_index)
-        partials_dir = os.path.join(dir, 'document_map_partials')
+        partials_dir = os.path.join(dir, DOCUMENT_MAP_TMP_DIR)
         partial_files = []
         current_lines = []
         skips = SKIP_SIZE
