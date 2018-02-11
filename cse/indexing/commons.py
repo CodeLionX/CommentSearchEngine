@@ -5,3 +5,4 @@ REPLYTO_LISTS_NAME = "replyToLists.index"
 DOCUMENT_MAP_NAME = "documentMap.index"
 DOCUMENT_MAP_DICT_NAME = "documentMapDict.index"
 PARTIAL_THRESHOLD = 1000000
+SKIP_SIZE = 1000000

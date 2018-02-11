@@ -3,7 +3,7 @@ import errno
 import shutil
 
 from cse.util import PackerUtil
-from cse.indexing.commons import PARTIAL_THRESHOLD
+from cse.indexing.commons import PARTIAL_THRESHOLD, SKIP_SIZE
 
 
 class DocumentMapBuilder:
@@ -29,8 +29,8 @@ class DocumentMapBuilder:
 
     def close(self):
         self._build_partial_files()
-        self._build_index_and_dict()
-        #PackerUtil.packToFile(self.__index, self.__document_map_index, type=PackerUtil.JSON)
+        doc_dict = self._build_index_and_dict()
+        PackerUtil.packToFile(doc_dict, self.__document_map_dict, type=PackerUtil.PICKLE)
 
     def _build_partial_files(self):
         i = 0
@@ -74,11 +74,12 @@ class DocumentMapBuilder:
                 partial.write(str(tuple[0]) + ',' + str(tuple[1]) + '\n')
 
     def _build_index_and_dict(self):
-        doc_dict = []
+        doc_dict = ([], [])
         dir = os.path.dirname(self.__document_map_index)
         partials_dir = os.path.join(dir, 'document_map_partials')
         partial_files = []
         current_lines = []
+        skips = SKIP_SIZE
         with open(self.__document_map_index, 'w') as out_index:
             for file in os.listdir(partials_dir):
                 partial_files.append(open(os.path.join(partials_dir, file)))
@@ -88,12 +89,18 @@ class DocumentMapBuilder:
 
             while partial_files:
                 min_index = current_lines.index(min(current_lines))
+                skips += 1
+                if skips >= SKIP_SIZE:
+                    doc_dict[0].append(int(current_lines[min_index][0]))
+                    doc_dict[1].append(out_index.tell())
+                    skips = 0
                 out_index.write(','.join(current_lines[min_index]))
                 current_lines[min_index] = self._read_partial_line(partial_files[min_index])
                 if not current_lines[min_index]:
                     partial_files[min_index].close()
                     del partial_files[min_index]
                     del current_lines[min_index]
+        return doc_dict
 
     def _read_partial_line(self, file_handle):
         line = file_handle.readline()
