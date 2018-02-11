@@ -18,7 +18,9 @@ class DocumentMapBuilder:
 
         self.__document_map_index = document_map_index
         self.__document_map_dict = document_map_dict
-        self.__index = {}
+        self.__index = []
+        self.__i = 0
+        self.__content = 0
         if os.path.exists(self.__document_map_index):
             os.remove(self.__document_map_index)
         if os.path.exists(self.__document_map_dict):
@@ -28,28 +30,20 @@ class DocumentMapBuilder:
             shutil.rmtree(os.path.join(dir, 'document_map_partials'))
 
     def close(self):
-        self._build_partial_files()
+        self.__index.sort()
+        self.__save_partial_index(self.__index, self.__i)
         doc_dict = self._build_index_and_dict()
         PackerUtil.packToFile(doc_dict, self.__document_map_dict, type=PackerUtil.PICKLE)
 
-    def _build_partial_files(self):
-        i = 0
-        content = 0
-        partial_list = []
-        for cid in self.__index:
-            partial_list.append((cid, self.__index[cid]))
-            content += 1
-            if content >= PARTIAL_THRESHOLD:
-                partial_list.sort()
-                self.__save_partial_index(partial_list, i)
-                partial_list = []
-                content = 0
-                i += 1
-        partial_list.sort()
-        self.__save_partial_index(partial_list, i)
-
     def insert(self, cid, pointer):
-        self.__index[cid] = pointer
+        self.__index.append((cid, pointer))
+        self.__content += 1
+        if self.__content >= PARTIAL_THRESHOLD:
+            self.__index.sort()
+            self.__save_partial_index(self.__index, self.__i)
+            self.__index = []
+            self.__content = 0
+            self.__i += 1
 
     def get(self, cid):
         return self.__index[cid]
@@ -100,6 +94,7 @@ class DocumentMapBuilder:
                     partial_files[min_index].close()
                     del partial_files[min_index]
                     del current_lines[min_index]
+        # TODO delete partial files
         return doc_dict
 
     def _read_partial_line(self, file_handle):
