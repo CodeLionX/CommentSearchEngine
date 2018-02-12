@@ -6,7 +6,7 @@ from tempfile import mkstemp
 from shutil import move
 
 from cse.WeightCalculation import calcTf
-from cse.indexing.Dictionary import Dictionary
+from cse.indexing.DictionaryBuilder import DictionaryBuilder
 from cse.indexing.MainIndex import MainIndex
 from cse.indexing.DeltaIndex import DeltaIndex
 from cse.indexing.PostingList import PostingList
@@ -24,8 +24,8 @@ class PostingIndexWriter(object):
     POSTING_LIST_ENTRY_SIZE = 30    #  30 B
 
 
-    def __init__(self, dictFilepath, mainFilepath):
-        self.__dictionary = Dictionary(dictFilepath)
+    def __init__(self, dictIndexFilepath, dictDictFilepath, mainFilepath):
+        self.__dictionary = DictionaryBuilder(dictIndexFilepath, dictDictFilepath)
         self.__dIndex = DeltaIndex(PostingList, entrySize=PostingIndexWriter.POSTING_LIST_ENTRY_SIZE)
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0

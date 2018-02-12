@@ -12,7 +12,8 @@ from cse.indexing.commons import (
     REPLYTO_DICT_NAME,
     REPLYTO_LISTS_NAME,
     DOCUMENT_MAP_NAME,
-    DOCUMENT_MAP_DICT_NAME
+    DOCUMENT_MAP_DICT_NAME,
+    POSTING_DICT_DICT_NAME
 )
 
 
@@ -25,6 +26,7 @@ class FileIndexer(object):
         self.__documentMapPath      = os.path.join(directory, DOCUMENT_MAP_NAME)
         self.__documentMapDictPath  = os.path.join(directory, DOCUMENT_MAP_DICT_NAME)
         self.__dictionaryPath       = os.path.join(directory, POSTING_DICT_NAME)
+        self.__dictionaryDictPath   = os.path.join(directory, POSTING_DICT_DICT_NAME)
         self.__postingListsPath     = os.path.join(directory, POSTING_LISTS_NAME)
         self.__replyToDictPath      = os.path.join(directory, REPLYTO_DICT_NAME)
         self.__replyToListsPath     = os.path.join(directory, REPLYTO_LISTS_NAME)
@@ -38,7 +40,7 @@ class FileIndexer(object):
         self.__deletePreviousIndexFiles()
 
         # setup index writers
-        pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        pIndex = PostingIndexWriter(self.__dictionaryPath,self.__dictionaryDictPath,  self.__postingListsPath)
         rIndex = ReplyToIndexWriter(self.__replyToDictPath, self.__replyToListsPath)
         documentMap = DocumentMapBuilder(self.__documentMapPath, self.__documentMapDictPath)
 
@@ -74,7 +76,7 @@ class FileIndexer(object):
         self.__deletePreviousIndexFiles(replyToLists=False)
 
         # setup index writers
-        pIndex = PostingIndexWriter(self.__dictionaryPath, self.__postingListsPath)
+        pIndex = PostingIndexWriter(self.__dictionaryPath, self.__dictionaryDictPath, self.__postingListsPath)
         documentMap = DocumentMapBuilder(self.__documentMapPath, self.__documentMapDictPath)
 
         # start indexing the comments file

@@ -1,4 +1,5 @@
 POSTING_DICT_NAME = "postingDict.index"
+POSTING_DICT_DICT_NAME = "postingDictDict.index"
 POSTING_LISTS_NAME = "postingLists.index"
 REPLYTO_DICT_NAME = "replyToDict.index"
 REPLYTO_LISTS_NAME = "replyToLists.index"
@@ -8,3 +9,4 @@ PARTIAL_THRESHOLD = 1000
 SKIP_SIZE = 100
 DOCUMENT_MAP_TMP_DIR = 'document_map_partials'
 POSTING_LIST_TMP_DIR = 'posting_list_partials'
+DICT_TMP_DIR = 'dictionary_partials'

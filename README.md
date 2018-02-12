@@ -84,6 +84,7 @@ The indexer will create the following files:
 - `replyToDict.index`
 - `documentMap.index`
 - `documentMapDict.index`
+- `postingDictDict.index`
 
 Additionally there will be a lot of temporary files. At maximum you will need twice the space of the listed files to be able to build the index.
 
