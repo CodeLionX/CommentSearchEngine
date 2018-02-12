@@ -14,5 +14,5 @@ __author__ = 'Benedikt Bock, Sebastian Schmidl'
 __license__ = 'MIT'
 
 # top-level shortcuts
-from cse.CommentSpider import CommentSpider
+#from cse.CommentSpider import CommentSpider
 from cse.util import Util

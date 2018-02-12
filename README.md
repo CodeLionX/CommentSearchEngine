@@ -1,5 +1,7 @@
 # Comment Search Engine
 
+Source code at [Github](https://github.com/CodeLionX/CommentSearchEngine)
+
 ## Project Structure
 
 | Folder/File       | Description                        |
@@ -81,6 +83,9 @@ The indexer will create the following files:
 - `replyToLists.index`
 - `replyToDict.index`
 - `documentMap.index`
+- `documentMapDict.index`
+
+Additionally there will be a lot of temporary files. At maximum you will need twice the space of the listed files to be able to build the index.
 
 
 Please do not delete any of these files. Depending on your document collection, the index files can get pretty huge (up to 1.5 times of the source file size).
