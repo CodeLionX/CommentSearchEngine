@@ -46,7 +46,8 @@ class DictionaryBuilder(object):
         self.__clear()
 
     def insert(self, term, pointer, size):
-        self.__dictionary.append((term, int(pointer)))
+        #TODO size entfernen?
+        self.__dictionary.append((term, int(pointer), int(size)))
         self.__content += 1
         if self.__content >= PARTIAL_THRESHOLD:
             self.__dictionary.sort()
@@ -60,7 +61,7 @@ class DictionaryBuilder(object):
 
         with open(os.path.join(self.__tmp_dir, file_name + str(i)), 'w') as partial:
             for tuple in partial_list:
-                partial.write(str(tuple[0]) + ',' + str(tuple[1]) + '\n')
+                partial.write(str(tuple[0]) + '|||' + str(tuple[1]) + '\n')
 
     def _build_index_and_dict(self):
         dic_dict = ([], [])
@@ -68,7 +69,7 @@ class DictionaryBuilder(object):
         partial_files = []
         current_lines = []
         skips = SKIP_SIZE
-        with open(self.__dictionary_index_path, 'w') as out_index:
+        with open(self.__dictionary_index_path, 'w', encoding='UTF-8') as out_index:
             for file in os.listdir(partials_dir):
                 partial_files.append(open(os.path.join(partials_dir, file)))
 
@@ -82,7 +83,7 @@ class DictionaryBuilder(object):
                     dic_dict[0].append(str(current_lines[min_index][0]))
                     dic_dict[1].append(out_index.tell())
                     skips = 0
-                out_index.write(','.join(current_lines[min_index]))
+                out_index.write('|||'.join(current_lines[min_index]))
                 current_lines[min_index] = self._read_partial_line(partial_files[min_index])
                 if not current_lines[min_index]:
                     partial_files[min_index].close()
@@ -94,7 +95,7 @@ class DictionaryBuilder(object):
     def _read_partial_line(self, file_handle):
         line = file_handle.readline()
         if line:
-            return tuple(line.split(','))
+            return tuple(line.split('|||'))
         else:
             return None
 

@@ -9,7 +9,9 @@ from cse.indexing.commons import (
     POSTING_DICT_NAME,
     POSTING_LISTS_NAME,
     REPLYTO_DICT_NAME,
-    REPLYTO_LISTS_NAME
+    REPLYTO_LISTS_NAME,
+    POSTING_DICT_DICT_NAME,
+    REPLYTO_DICT_DICT_NAME
 )
 
 
@@ -17,9 +19,11 @@ class IndexReader(object):
 
 
     def __init__(self, filepath):
-        self.__dictionary = Dictionary(os.path.join(filepath, POSTING_DICT_NAME))
+        self.__dictionary = Dictionary(os.path.join(filepath, POSTING_DICT_NAME),
+                                       os.path.join(filepath, POSTING_DICT_DICT_NAME))
         self.__mIndex = MainIndex(os.path.join(filepath, POSTING_LISTS_NAME), PostingList.decode)
-        self.__replyToDictionary = Dictionary(os.path.join(filepath, REPLYTO_DICT_NAME))
+        self.__replyToDictionary = Dictionary(os.path.join(filepath, REPLYTO_DICT_NAME),
+                                              os.path.join(filepath, REPLYTO_DICT_DICT_NAME))
         self.__mReplyToIndex = MainIndex(os.path.join(filepath, REPLYTO_LISTS_NAME), msgpack.unpackb)
 
 

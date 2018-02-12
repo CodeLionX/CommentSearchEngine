@@ -1,4 +1,3 @@
-Index:comments.csv
 election
 military conflict
 'German chancellor'
