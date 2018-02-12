@@ -6,9 +6,15 @@ from cse.WeightCalculation import calcIdf
 
 class PostingListBase(abc.ABC):
 
-    def __init__(self):
-        self._idf = 0
-        self._postingList = []
+    def __init__(self, **kwargs):
+        try:
+            self._idf = kwargs['_idf']
+        except KeyError:
+            self._idf = 0
+        try:
+            self._postingList = kwargs['_postingList']
+        except KeyError:
+            self._postingList = []
 
     def setPostingList(self, postingList):
         self._postingList = postingList
@@ -31,6 +37,17 @@ class PostingListBase(abc.ABC):
     def append(self, values):
         # cid, tf, positionList = values[0], values[1], values[2]
         self._postingList.append(values)
+
+    def __repr__(self):
+        """
+        This method returns a string representation of the object such that eval() can recreate the object.
+        The Class attributes will be unordered
+        e.g. Class(attribute1="String", attribute2=3)
+        """
+        return "{!s}({!s})".format(
+            type(self).__name__,
+            ", ".join(["{!s}={!r}".format(*item) for item in vars(self).items()])
+        )
 
     def merge(cls1, cls2):
         """
@@ -113,10 +130,16 @@ class PostingListBinaryBase(PostingListBase):
 
 class CidDeltaCodec(PostingListBase):
 
-    def __init__(self):
-        super().__init__()
-        self.__baseCid = 0
-        self.__plWasDecoded = False
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            self.__baseCid = kwargs['_CidDeltaCodec__baseCid']
+        except KeyError:
+            self.__baseCid = 0
+        try:
+            self.__plWasDecoded = kwargs['_CidDeltaCodec__plWasDecoded']
+        except KeyError:
+            self.__plWasDecoded = False
 
     def append(self, values):
         cid, tf, positionList = values

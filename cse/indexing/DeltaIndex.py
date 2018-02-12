@@ -13,6 +13,7 @@ class DeltaIndex(object):
 
     def __init__(self, entryContainerConstructor, entrySize=42):
         self._deltaIndexDict = {}
+        self._deltaIndex = []
         self._entryContainerConstructor = entryContainerConstructor
         self._entrySize = entrySize
         self._numDocuments = 0
@@ -21,18 +22,27 @@ class DeltaIndex(object):
     def retrieve(self, key):
         if key not in self._deltaIndexDict:
             return None
-        return self._deltaIndexDict[key]
+        return self._deltaIndex[self._deltaIndexDict[key]][1]
 
 
     def insert(self, key, entry):
+
+        if key == '':
+            # TODO Quick and dirty. Normally this should never occur!
+            return
         if key not in self._deltaIndexDict:
-            self._deltaIndexDict[key] = self._entryContainerConstructor()
-        self._deltaIndexDict[key].append(entry)
+            tuple = (key, self._entryContainerConstructor())
+            self._deltaIndex.append(tuple)
+            index = self._deltaIndex.index(tuple)
+            self._deltaIndexDict[key] = index
+        index = self._deltaIndexDict[key]
+        self._deltaIndex[index][1].append(entry)
         self._numDocuments = self._numDocuments + 1
 
 
     def clear(self):
         self._deltaIndexDict = {}
+        self._deltaIndex = []
         self._numDocuments = 0
 
 
@@ -42,6 +52,10 @@ class DeltaIndex(object):
 
     def lines(self):
         return self._deltaIndexDict.keys()
+
+    def convert_to_sorted_list(self):
+        self._deltaIndex.sort()
+        return self._deltaIndex
 
 
     def __getitem__(self, key):

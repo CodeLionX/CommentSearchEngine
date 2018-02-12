@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from os import remove
 from tempfile import mkstemp
@@ -9,7 +10,7 @@ from cse.indexing.Dictionary import Dictionary
 from cse.indexing.MainIndex import MainIndex
 from cse.indexing.DeltaIndex import DeltaIndex
 from cse.indexing.PostingList import PostingList
-
+from cse.indexing.commons import POSTING_LIST_TMP_DIR
 
 class PostingIndexWriter(object):
 
@@ -17,7 +18,7 @@ class PostingIndexWriter(object):
     # threshold for delta index to reside in memory
     # if the memory consumption of the delta index itself gets higher than this threshold
     # a delta merge is performend and the index will be written to disk
-    MEMORY_THRESHOLD = 500 * MB     # 500 MB
+    MEMORY_THRESHOLD = 5 * MB     # 500 MB
     # entry size estimation for simple heursitic to determine memory consumption of the
     # delta index
     POSTING_LIST_ENTRY_SIZE = 30    #  30 B
@@ -29,17 +30,21 @@ class PostingIndexWriter(object):
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
         self.__nDocuments = 0
+        self.__i = 0
+        dir = os.path.dirname(self.__mIndexFilepath)
+        if os.path.isdir(os.path.join(dir, POSTING_LIST_TMP_DIR)):
+            shutil.rmtree(os.path.join(dir, POSTING_LIST_TMP_DIR))
 
 
-    def __shouldDeltaMerge(self):
-        print("delta size check [Bytes]:", self.__dIndex.estimatedSize())
+    def __should_create_partial(self):
         # check memory usage
         if self.__dIndex.estimatedSize() > PostingIndexWriter.MEMORY_THRESHOLD:
-            self.deltaMerge()
+            self._save_partial()
             self.__calls = -1
 
 
     def close(self):
+        self._save_partial()
         self.deltaMerge()
         self.__dictionary.close()
 
@@ -51,7 +56,7 @@ class PostingIndexWriter(object):
         )
 
         if self.__calls % int(PostingIndexWriter.MEMORY_THRESHOLD / 250) == 0:
-            self.__shouldDeltaMerge()
+            self.__should_create_partial()
 
         self.__calls = self.__calls + 1
 
@@ -62,15 +67,18 @@ class PostingIndexWriter(object):
 
     def deltaMerge(self):
         # quit method early if no values are in delta
-        if not self.__dIndex:
+        dir = os.path.dirname(self.__mIndexFilepath)
+        partials_dir = os.path.join(dir, POSTING_LIST_TMP_DIR)
+        if not os.listdir(partials_dir):
             print(self.__class__.__name__ + ":", "no delta merge needed")
             return
+        if self.__dIndex:
+            self._save_partial()
 
         # init values
-        mIndex = MainIndex(self.__mIndexFilepath, PostingList.decode)
-        fh, tempFilePath = mkstemp(text=False)
+        # mIndex = MainIndex(self.__mIndexFilepath, PostingList.decode)
+        # fh, tempFilePath = mkstemp(text=False)
         visited = set()
-        merged, added = 0, 0
 
         # helper func
         def updateIdfAndWritePostingList(tempFile, postingList):
@@ -81,49 +89,79 @@ class PostingIndexWriter(object):
 
         # beginning of merge
         print("!! delta merge !!")
-        print(self.__class__.__name__ + ":", "delta estimated size:", self.__dIndex.estimatedSize() / PostingIndexWriter.MB, "mb")
 
-        with open(tempFilePath, 'wb') as tempFile:
-            # merge step 1: for each term in main update postingList (add delta and recalc idf)
-            for term in sorted(self.__dictionary):
-                pointer, size = self.__dictionary[term]
-                postingList = mIndex.retrieve(pointer, size)
+        with open(self.__mIndexFilepath, 'wb') as main_index_file:
+            partial_files = []
+            current_lines = []
+            for file in os.listdir(partials_dir):
+                partial_files.append(open(os.path.join(partials_dir, file)))
 
-                if term in self.__dIndex:
-                    postingList = postingList.merge(self.__dIndex[term])
+            for file_handle in partial_files:
+                current_lines.append(self._read_partial_line(file_handle))
 
-                seekPosition, bytesWritten = updateIdfAndWritePostingList(tempFile, postingList)
-                self.__dictionary.insert(term, seekPosition, bytesWritten)
-                visited.add(term)
+            while partial_files:
+                min_line = min(current_lines, key=lambda x: x[0])
+                min_indexes = [i for i,x in enumerate(current_lines) if x[0] == min_line[0]]
 
-            added = len(set(self.__dIndex.lines()) - visited)
-            merged = len(set(self.__dIndex.lines())) - added
-            print(self.__class__.__name__ + ":", "merged", merged, "posting lists")
+                #setup postinglist list
+                posting_lists = []
+                current_term = current_lines[min_indexes[0]][0]
+                for index in min_indexes:
+                    posting_lists.append(current_lines[index][1])
 
-            # merge step 2: for all remaining terms save postingLists in main
-            for term in sorted(self.__dIndex):
-                if term not in visited:
-                    postingList = self.__dIndex[term]
-                    seekPosition, bytesWritten = updateIdfAndWritePostingList(tempFile, postingList)
-                    self.__dictionary.insert(term, seekPosition, bytesWritten)
+                if len(posting_lists) % 2 != 0 and len(posting_lists) > 1:
+                    posting_lists[1] = posting_lists[0].merge(posting_lists[1])
+                    del posting_lists[0]
 
+                while len(posting_lists) > 1:
+                    new_lists = []
+                    for list1, list2 in pairwise(posting_lists):
+                        new_lists.append(list1.merge(list2))
+                    posting_lists = new_lists
 
-        # cleaning up and store current snapshot
-        mIndex.close()
-        os.close(fh)
-        self.__dIndex.clear()
-        remove(self.__mIndexFilepath)
-        move(tempFilePath, self.__mIndexFilepath)
+                seekPosition, bytesWritten = updateIdfAndWritePostingList(main_index_file, posting_lists[0])
+                self.__dictionary.insert(current_term, seekPosition, bytesWritten)
+                for index in min_indexes:
+                    current_lines[index] = self._read_partial_line(partial_files[index])
+
+                for i, _ in enumerate(current_lines):
+                    if not current_lines[i]:
+                        partial_files[i].close()
+                        del partial_files[i]
+                        del current_lines[i]
+
+        # TODO delete partial files
         self.__dictionary.save()
 
-        print(self.__class__.__name__ + ":", "added", added, "new posting lists")
-        print(self.__class__.__name__ + ":", "new postinglist index file has size:", os.path.getsize(self.__mIndexFilepath) / PostingIndexWriter.MB, "mb")
+    def _read_partial_line(self, file_handle):
+        line = file_handle.readline()
+        if line:
+            term, posting_list_string = line.split('|||')
 
+            return term, eval(posting_list_string.strip())
+        else:
+            return None
 
     def incDocumentCounter(self):
         self.__nDocuments += 1
 
+    def _save_partial(self):
+        dir = os.path.dirname(self.__mIndexFilepath)
+        file_name = os.path.basename(self.__mIndexFilepath)
+        if not os.path.exists(os.path.join(dir, POSTING_LIST_TMP_DIR)):
+            os.makedirs(os.path.join(dir, POSTING_LIST_TMP_DIR))
+        list = self.__dIndex.convert_to_sorted_list()
+        with open(os.path.join(dir, POSTING_LIST_TMP_DIR, file_name + str(self.__i)), 'w') as partial:
+            for posting_list in list:
+                partial.write(str(posting_list[0]) + '|||' + repr(posting_list[1]) + '\n')
+        print("saved_partial posting list {}".format(self.__i))
+        self.__i += 1
+        self.__dIndex.clear()
 
+def pairwise(iterable):
+    "s -> (s0, s1), (s2, s3), (s4, s5), ..."
+    a = iter(iterable)
+    return zip(a, a)
 
 if __name__ == "__main__":
     # data
