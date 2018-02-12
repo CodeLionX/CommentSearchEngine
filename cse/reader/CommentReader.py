@@ -77,14 +77,13 @@ class CommentReader(object):
 
 
     def __parseIterRow(self, row, skipArticleMapping=True):
-        # TODO This is Guardian layout. Change to default layout
-        commentId = int(row[2])
-        articleId = int(row[0])
+        commentId = int(row[0])
+        articleId = int(row[1])
         articleUrl = ""
-        author = row[1]
+        author = row[2]
         text = row[3].replace("\\n", "\n")
-        timestamp = row[5]
-        parentId = self.__silentParseToInt(row[4], None)
+        timestamp = row[4]
+        parentId = self.__silentParseToInt(row[5], None)
         upvotes = 0 #self.__silentParseToInt(row[6], 0) # currently unused information
         downvotes = 0 #self.__silentParseToInt(row[7], 0) # currently unused information
 
