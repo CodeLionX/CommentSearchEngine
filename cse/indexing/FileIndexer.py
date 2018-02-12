@@ -84,14 +84,12 @@ class FileIndexer(object):
             for data in dataFile:
                 if lastPointer == None:
                     lastPointer = dataFile.startSeekPointer()
-                try:
-                    documentMap.get(data["commentId"])
-                except KeyError:
-                    # update document map
-                    documentMap.insert(data["commentId"], lastPointer)
-                    # index comment text tokens
-                    tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
-                    pIndex.incDocumentCounter()
+
+                # update document map
+                documentMap.insert(data["commentId"], lastPointer)
+                # index comment text tokens
+                tokens = self.__processComment(pIndex, data["commentId"], data["comment_text"])
+                pIndex.incDocumentCounter()
 
                 lastPointer = dataFile.currentSeekPointer()
 
