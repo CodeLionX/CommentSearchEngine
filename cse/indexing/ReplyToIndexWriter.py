@@ -5,7 +5,7 @@ from os import remove
 from tempfile import mkstemp
 from shutil import move
 
-from cse.indexing.Dictionary import Dictionary
+from cse.indexing.DictionaryBuilder import DictionaryBuilder
 from cse.indexing.MainIndex import MainIndex
 from cse.indexing.DeltaIndex import DeltaIndex
 
@@ -22,8 +22,8 @@ class ReplyToIndexWriter(object):
     ENTRY_SIZE       = 10           #  10 B
 
 
-    def __init__(self, dictFilepath, mainFilepath):
-        self.__dictionary = Dictionary(dictFilepath)
+    def __init__(self, dictFilepath, dictDictFilepath, mainFilepath):
+        self.__dictionary = DictionaryBuilder(dictFilepath, dictDictFilepath)
         self.__dIndex = DeltaIndex(list, entrySize=ReplyToIndexWriter.ENTRY_SIZE)
         self.__mIndexFilepath = mainFilepath
         self.__calls = 0
