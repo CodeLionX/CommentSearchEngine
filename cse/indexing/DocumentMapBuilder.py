@@ -92,7 +92,9 @@ class DocumentMapBuilder:
                     partial_files[min_index].close()
                     del partial_files[min_index]
                     del current_lines[min_index]
-        # TODO delete partial files
+        dir = os.path.dirname(self.__document_map_index)
+        if os.path.isdir(os.path.join(dir, DOCUMENT_MAP_TMP_DIR)):
+            shutil.rmtree(os.path.join(dir, DOCUMENT_MAP_TMP_DIR))
         return doc_dict
 
     def _read_partial_line(self, file_handle):

@@ -130,7 +130,9 @@ class PostingIndexWriter(object):
                         del partial_files[i]
                         del current_lines[i]
 
-        # TODO delete partial files
+        dir = os.path.dirname(self.__mIndexFilepath)
+        if os.path.isdir(os.path.join(dir, POSTING_LIST_TMP_DIR)):
+            shutil.rmtree(os.path.join(dir, POSTING_LIST_TMP_DIR))
         self.__dictionary.save()
 
     def _read_partial_line(self, file_handle):
